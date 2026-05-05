@@ -15,7 +15,6 @@ class DespatchController extends Controller
 {
     public function index(Request $request)
     {
-
         $company_id = Auth::user()->company_id;
         if ($request->ajax()) {
             $list_data = DB::table("iv_outbound_despatch as a")
@@ -33,7 +32,6 @@ class DespatchController extends Controller
                 return $value;
             });
 
-            // dd($list_data);
 
             return datatables()->of($list_data)
                 ->editColumn('etd', function ($data) {
@@ -102,6 +100,7 @@ class DespatchController extends Controller
                         'seal_no' => $request->seal_no,
                         'size_id' => $request->size_id,
                         'container_no' => $request->container_no,
+                        'price' => $request->price,
                         'etd' => $etd,
                         'awb_no' => $request->awb_no,
                         'awb_date' => $awb_date,

@@ -225,7 +225,7 @@ class InboundController extends Controller
                                         array_push($error_data, array('message' => 'error Entry Date', 'input' => $exp_date, 'value' => $exp_date));
                                     }
                                 } else {
-                                    $exp_date = '';
+                                    $exp_date = NULL;
                                 }
                                 $qty = ($value['mqty']);
                                 $actual_pqty = ($qty - ($qty % $productData->muppp)) / $productData->muppp;

@@ -24,15 +24,21 @@ class BatchController extends Controller
 
         if ($request->ajax()) {
             $list_data = DB::table("iv_outbound_batch as a")
-                ->select("a.*", "b.product_name", "c.site_name", "d.area_name")
+                ->select("a.*", "b.product_name", "c.site_name", "b.manufactur_code", "d.area_name")
                 ->join("iv_product as b", "a.product_id", "b.id")
-                ->leftjoin("iv_site as c", "a.site_id", "c.id")
-                ->leftjoin("iv_site_area as d", "a.area_id", "d.id")
+                ->leftJoin("iv_site as c", "a.site_id", "c.id")
+                ->leftJoin("iv_site_area as d", "a.area_id", "d.id")
                 ->where("a.company_id", $company_id)
                 ->where("a.outbound_id", $request->outbound_id)
                 ->where("a.confirmed_flag", "No")
                 ->get();
-            // dd($list_data);
+
+            $list_data->transform(function ($item) use ($list_data) {
+                $total_qty = $list_data->where('product_code', $item->product_code)->sum('qty');
+                $item->total_qty = $total_qty;
+                return $item;
+            });
+
             return datatables()->of($list_data)
                 ->editColumn('exp_date', function ($data) {
                     $exp_date = "";
@@ -49,17 +55,31 @@ class BatchController extends Controller
                     return $mfg_date;
                 })
                 ->addColumn("check", function ($data) {
-                    return "<input type='checkbox' required='required' name='confirm_id[]' class='confirm-check' id='" . $data->id . "' value='" . $data->id . "'>";
+                    $button = "<input type='checkbox' required='required' name='confirm_id[]' class='confirm-check' id='" . $data->id . "' value='" . $data->id . "'>";
+                    if (!is_null($data->ean_code)) {
+                        $eanCode = $data->ean_code;
+                        $ean_code_count = 0;
+                        if (!empty($eanCode)) {
+                            $ean_codes = explode(",", $eanCode);  // Pisahkan berdasarkan koma
+                            $ean_code_count = count($ean_codes);  // Hitung jumlahnya
+                        }
+                        if ($ean_code_count === (int) $data->total_qty) {
+                            return $button;
+                        } else {
+                            return "";
+                        }
+                    } else {
+                        return $button;
+                    }
                 })
-                ->rawColumns(["check"])
+                ->rawColumns(["check"])  // Render checkbox sebagai HTML
                 ->addIndexColumn()
                 ->make(true);
         }
     }
-    public function submit(Request $request)
+    public function submitad(Request $request)
     {
-        ini_set('default_socket_timeout', 6000);
-        ini_set('max_execution_time', 6000);
+        // NEW CODE BY ARI RIZKITA
         $company_id = Auth::user()->company_id;
         $user_id = Auth::user()->id;
         $confirmed_by = Auth::user()->username;
@@ -158,8 +178,7 @@ class BatchController extends Controller
         }
         // return response()->json($message);
     }
-
-    public function submit2(Request $request)
+    public function submit(Request $request)
     {
         $exception = DB::transaction(function () use ($request) {
             $confirmed_by = Auth::user()->username;
@@ -295,11 +314,6 @@ class BatchController extends Controller
 
         return response()->json($exception);
     }
-
-    // private function autocorrection($data)
-    // {
-
-    // }
 
     private function sendAPI($data)
     {

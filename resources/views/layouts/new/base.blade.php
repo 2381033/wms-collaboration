@@ -383,18 +383,17 @@
     <script>
         $(".logout").click(function() {
             $.ajax({
-                url: "{{ URL::to('/') }}/logout",
+                url: "{{ url('/logout') }}",
                 type: "POST",
-                dataType: "JSON",
+                data: {
+                    _token: "{{ csrf_token() }}"
+                },
                 success: function(response) {
-                    if (response.success == 1) {
-                        location.reload();
-                        return false;
-                    }
+                    window.location.href = "{{ url('/login') }}";
                 },
                 error: function(error) {
-                    location.reload();
                     console.log(error);
+                    window.location.href = "{{ url('/login') }}";
                 }
             });
         });

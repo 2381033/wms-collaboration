@@ -21,20 +21,20 @@ class inboundEmail extends Mailable
         $this->principal = $principal;
         $this->message = $message;
     }
-    
+
     public function build()
     {
         $files = [];
         foreach ($this->message as $value) {
             $files[] = "inbound_$value->job_no.xlsx";
-            
-            Excel::store(new InboundEmailExport($value->id), "inbound_$value->job_no.xlsx");            
+
+            Excel::store(new InboundEmailExport($value->id), "inbound_$value->job_no.xlsx");
         }
 
-        $message = $this->markdown('email/inboundEmail')->subject('Inbound Transaction')->with("data", $this->message);  
-        
-        foreach ($files as $file) { 
-            $message->attach(storage_path("app/".$file));
+        $message = $this->view('email/inboundEmail')->subject('Inbound Transaction')->with("data", $this->message);
+
+        foreach ($files as $file) {
+            $message->attach(storage_path("app/" . $file));
         }
 
         return $message;

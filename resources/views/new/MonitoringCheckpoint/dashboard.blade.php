@@ -245,7 +245,7 @@
                         $('#appendProgress').append(`
                                 <h2>{{ $onProgress }} ORDER SEDANG BERJALAN <img
                                 src="{{ asset('images/to-bongkar.gif') }}" alt=""
-                                class="align-self-end h-50px"></h2>`)
+                                class="align-self-end" style="height: 60px; width: auto;"></h2>`)
                     } else {
                         $('#appendProgress').append(`<h2>Belum ada aktifitas</h2>`)
                     }

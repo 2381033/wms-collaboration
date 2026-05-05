@@ -63,7 +63,7 @@
                         <li class="nav-item">
                             <a class="nav-link active" id="job-link" data-toggle="tab" href="#job-tab" role="tab"
                                 aria-controls="home" aria-selected="true">
-                                <i class="fas fa-box"></i> Job Information</a>
+                                <i class="fas fa-info-circle"></i> Job Information</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" id="order-link" data-toggle="tab" href="#order-tab" role="tab"
@@ -73,33 +73,57 @@
                         <li class="nav-item">
                             <a class="nav-link" id="detail-link" data-toggle="tab" href="#detail-tab" role="tab"
                                 aria-controls="detail" aria-selected="false">
-                                <i class="fas fa-box"></i> Order Detail</a>
+                                <i class="fas fa-list"></i> Order Detail</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" id="picking-link" data-toggle="tab" href="#picking-tab" role="tab"
-                                aria-controls="picking" aria-selected="false">
-                                <i class="fas fa-box"></i> Picking</a>
-                        </li>
+                        @can('gate-access', 'adminDC')
+                            <li class="nav-item">
+                                <a class="nav-link" id="picking-link" data-toggle="tab" href="#picking-tab" role="tab"
+                                    aria-controls="picking" aria-selected="false">
+                                    <i class="fas fa-list-ol"></i> Picking</a>
+                            </li>
+                        @endcan
                         <li class="nav-item">
                             <a class="nav-link" id="picking-checker" onclick="generateTablePick()" data-toggle="tab"
                                 href="#picking-checker-tab" role="tab" aria-controls="picking" aria-selected="false">
-                                <i class="fas fa-box"></i> Picking By Checker</a>
+                                <i class="fas fa-user"></i> Pick By Checker</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" id="cancel-link" data-toggle="tab" href="#cancel-tab" role="tab"
-                                aria-controls="cancel" aria-selected="false">
-                                <i class="fas fa-boxes"></i> Cancel</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" id="despatch-link" data-toggle="tab" href="#despatch-tab" role="tab"
-                                aria-controls="cancel" aria-selected="false">
-                                <i class="fas fa-boxes"></i> Despatch</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" id="confirm-link" data-toggle="tab" href="#confirm-tab" role="tab"
-                                aria-controls="confirm" aria-selected="false">
-                                <i class="fas fa-warehouse"></i> Confirmation</a>
-                        </li>
+                        @if (isset($job_view->id))
+                            @if ($job_view->principal_id == 3)
+                                <li class="nav-item">
+                                    <a class="nav-link" id="scan-ean" onclick="tabEan()" data-toggle="tab"
+                                        href="#scan-ean-checker" role="tab" aria-controls="scan-ean"
+                                        aria-selected="false">
+                                        <i class="fas fa-barcode"></i> Scan Carton ID</a>
+                                </li>
+                            @endif
+                        @endif
+                        @can('gate-access', 'AdminDC')
+                            <li class="nav-item">
+                                <a class="nav-link" id="cancel-link" data-toggle="tab" href="#cancel-tab" role="tab"
+                                    aria-controls="cancel" aria-selected="false">
+                                    <i class="fas fa-reply"></i> Cancel</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link print-loading-list" id="loading-list-link" data-toggle="tab"
+                                    href="#loading-list-tab" role="tab" aria-controls="loading-list"
+                                    aria-selected="false">
+                                    <i class="fas fa-truck-moving"></i> Loading List</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" id="confirm-link" data-toggle="tab" href="#confirm-tab" role="tab"
+                                    aria-controls="confirm" aria-selected="false">
+                                    <i class="fas fa-check-circle"></i> Confirm Job</a>
+                            </li>
+                        @endcan
+                        @if (isset($job_view->id))
+                            @if ($job_view->confirmed_flag == 'Yes')
+                                <li class="nav-item">
+                                    <a class="nav-link" id="despatch-link" data-toggle="tab" href="#despatch-tab"
+                                        role="tab" aria-controls="cancel" aria-selected="false">
+                                        <i class="fas fa-print"></i> Despatch</a>
+                                </li>
+                            @endif
+                        @endif
                     </ul>
                     <div class="tab-content" id="outboundTab">
                         <div class="tab-pane fade show active" id="job-tab" role="tabpanel"
@@ -483,6 +507,51 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="tab-pane fade show" id="scan-ean-checker" role="tabpanel"
+                            aria-labelledby="scan-ean-checker">
+                            <div class="container mt-3">
+                                <div class="row">
+                                    <div class="col-sm-8">
+                                        @can('gate-access', 'CheckerDC')
+                                            @if (isset($job_view))
+                                                @if ($job_view->principal_id == 3)
+                                                    <div class="row">
+                                                        <div class="col-sm-6 mt-4">
+                                                            <div class="form-group">
+                                                                <input type="text" name="" id="scanEAN"
+                                                                    class="form-control" placeholder="Scan Barcode EAN Here.."
+                                                                    aria-describedby="helpId" autofocus autocomplete="off"
+                                                                    style="background-color: yellow;">
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-sm-6 mt-4">
+                                                            <a href="#modal-scanning-list" data-toggle="modal"
+                                                                class="btn btn-dark btn-md"> <i class="fas fa-eye"></i> Show
+                                                                Scanning List</a>
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                            @endif
+                                        @endcan
+                                    </div>
+                                    <div class="col-sm-12">
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-hover" id="table-ean">
+                                                <thead>
+                                                    <tr class="text-center">
+                                                        <th>SKU NO</th>
+                                                        {{-- <th>SKU NAME</th> --}}
+                                                        {{-- <th>BATCH</th> --}}
+                                                        <th>QTY SCAN</th>
+                                                        <th>QTY EXPECTED</th>
+                                                    </tr>
+                                                </thead>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="tab-pane fade show" id="cancel-tab" role="tabpanel" aria-labelledby="cancel-tab5">
                             <div class="container mt-3">
                                 <div class="row mb-3" data-aos="fade-up">
@@ -562,66 +631,18 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="tab-pane fade show" id="despatch-tab" role="tabpanel"
-                            aria-labelledby="confirm-tab5">
-                            <div class="container mt-3">
+                        {{-- <div class="tab-pane fade show" id="loading-list-tab" role="tabpanel"
+                            aria-labelledby="loading-list-tab">
+                            <div class="container mt-4">
                                 <div class="row">
-                                    <div class="col-lg-12">
-                                        <div class="table-responsive">
-                                            @if ($multi_level == 'Yes')
-                                                <table id="despatch_table"
-                                                    class="table table-striped table-bordered table-sm"
-                                                    style="width:100%;">
-                                                    <thead class="text-center">
-                                                        <tr>
-                                                            <th rowspan="2">Action</th>
-                                                            <th rowspan="2">Customer Name</th>
-                                                            <th rowspan="2">Delivery Type</th>
-                                                            <th rowspan="2">ETD</th>
-                                                            <th rowspan="2">Mode</th>
-                                                            <th rowspan="2">Carrier Name</th>
-                                                            <th rowspan="2">Vessel Name</th>
-                                                            <th rowspan="2">Driver Name</th>
-                                                            <th rowspan="2">AWB No</th>
-                                                            <th colspan="3">Quantity</th>
-                                                            {{-- <th>Expected Qty</th> --}}
-                                                        </tr>
-                                                        <tr>
-                                                            <th>1st</th>
-                                                            <th>2nd</th>
-                                                            <th>3rd</th>
-                                                        </tr>
-                                                    </thead>
-                                                </table>
-                                            @else
-                                                <table id="despatch_table"
-                                                    class="table table-striped table-bordered table-sm"
-                                                    style="width:100%;">
-                                                    <thead class="text-center">
-                                                        <tr>
-                                                            <th rowspan="2">Action</th>
-                                                            <th rowspan="2">Customer Name</th>
-                                                            <th rowspan="2">Delivery Type</th>
-                                                            <th rowspan="2">ETD</th>
-                                                            <th rowspan="2">Mode</th>
-                                                            <th rowspan="2">Carrier Name</th>
-                                                            <th rowspan="2">Vessel Name</th>
-                                                            <th rowspan="2">Driver Name</th>
-                                                            <th rowspan="2">AWB No</th>
-                                                            <th colspan="2">Quantity</th>
-                                                        </tr>
-                                                        <tr>
-                                                            <th>Actual Qty</th>
-                                                            <th>Expected Qty</th>
-                                                        </tr>
-                                                    </thead>
-                                                </table>
-                                            @endif
-                                        </div>
+                                    <div class="col-md-4">
+                                        <a href="javascript:void(0)"
+                                            class="btn btn-md btn-dark print-loading-list mt-4"><i
+                                                class="fas fa-print"></i> Print Loading List</a>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div> --}}
                         <div class="tab-pane fade show" id="confirm-tab" role="tabpanel" aria-labelledby="confirm-tab5">
                             <div class="container mt-3">
                                 <form id="form-confirm" name="form-confirm" method="post">
@@ -742,6 +763,66 @@
                                                         <tr>
                                                             <th>1st</th>
                                                             <th>Unit</th>
+                                                        </tr>
+                                                    </thead>
+                                                </table>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade show" id="despatch-tab" role="tabpanel"
+                            aria-labelledby="confirm-tab5">
+                            <div class="container mt-3">
+                                <div class="row">
+                                    <div class="col-lg-12">
+                                        <div class="table-responsive">
+                                            @if ($multi_level == 'Yes')
+                                                <table id="despatch_table"
+                                                    class="table table-striped table-bordered table-sm"
+                                                    style="width:100%;">
+                                                    <thead class="text-center">
+                                                        <tr>
+                                                            <th rowspan="2">Action</th>
+                                                            <th rowspan="2">Customer Name</th>
+                                                            <th rowspan="2">Delivery Type</th>
+                                                            <th rowspan="2">ETD</th>
+                                                            <th rowspan="2">Mode</th>
+                                                            <th rowspan="2">Carrier Name</th>
+                                                            <th rowspan="2">Vessel Name</th>
+                                                            <th rowspan="2">Driver Name</th>
+                                                            <th rowspan="2">AWB No</th>
+                                                            <th colspan="3">Quantity</th>
+                                                            {{-- <th>Expected Qty</th> --}}
+                                                        </tr>
+                                                        <tr>
+                                                            <th>1st</th>
+                                                            <th>2nd</th>
+                                                            <th>3rd</th>
+                                                        </tr>
+                                                    </thead>
+                                                </table>
+                                            @else
+                                                <table id="despatch_table"
+                                                    class="table table-striped table-bordered table-sm"
+                                                    style="width:100%;">
+                                                    <thead class="text-center">
+                                                        <tr>
+                                                            <th rowspan="2">Action</th>
+                                                            <th rowspan="2">Customer Name</th>
+                                                            <th rowspan="2">Delivery Type</th>
+                                                            <th rowspan="2">ETD</th>
+                                                            <th rowspan="2">Mode</th>
+                                                            <th rowspan="2">Carrier Name</th>
+                                                            <th rowspan="2">Vessel Name</th>
+                                                            <th rowspan="2">Driver Name</th>
+                                                            <th rowspan="2">AWB No</th>
+                                                            <th colspan="2">Quantity</th>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Actual Qty</th>
+                                                            <th>Expected Qty</th>
                                                         </tr>
                                                     </thead>
                                                 </table>
@@ -972,6 +1053,49 @@
         </div>
     </div>
 
+    <div class="modal fade" tabindex="-1" role="dialog" id="modal-scanning-list">
+        <div class="modal-dialog  modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modal-title-detail"></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr class="text-center">
+                                        <th>SKU</th>
+                                        <th>CARTON ID</th>
+                                        <th>QTY SCAN</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($list_sku->whereNotNull('ean_code') as $item)
+                                        <tr class="text-center align-top">
+                                            <td>{{ $item->product_code }}</td>
+                                            <td class="text-start">
+                                                <ol class="mb-0 ps-3">
+                                                    @foreach (explode(',', $item->ean_code) as $ean)
+                                                        <li> {{ $ean }}</li>
+                                                    @endforeach
+                                                </ol>
+                                            </td>
+                                            <td>{{ count(explode(',', $item->ean_code)) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" tabindex="-1" role="dialog" id="modal-despatch">
         <div class="modal-dialog  modal-xl" role="document">
             <div class="modal-content">
@@ -1048,8 +1172,13 @@
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label>Vehicle No</label>
-                                    <input type="text" id='vehicle_no' name="vehicle_no" class="form-control"
-                                        autocomplete="off">
+                                    <select name="vehicle_no" id="vehicle_no" required class="form-control">
+                                        <option value="" disabled selected>.:Select:.</option>
+                                        @foreach ($vehicle as $item)
+                                            <option value="{{ $item->vehicle_number }}">{{ $item->vehicle_number }}
+                                            </option>
+                                        @endforeach
+                                    </select>
                                 </div>
                             </div>
                             <div class="col-md-3">
@@ -1123,21 +1252,21 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
                                     <label>1st Qty</label>
                                     <input type="text" autocomplete="off" id="pqty_despatch" name="pqty_despatch"
                                         class="form-control" readonly>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
                                     <label>2nd Qty</label>
                                     <input type="text" autocomplete="off" id="mqty_despatch" name="mqty_despatch"
                                         class="form-control" readonly>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
                                     <label>3rd Qty</label>
                                     <input type="text" autocomplete="off" id="bqty_despatch" name="bqty_despatch"
@@ -1150,6 +1279,14 @@
                                     <input type="hidden" id="store_id" name="store_id">
                                     <input type="text" autocomplete="off" id="store_name" name="store_name"
                                         class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Price</label>
+                                    <input type="number" autocomplete="off" name="price" class="form-control"
+                                        value="0" id="price" min="0" required>
+                                    <span class="text-muted">Abaikan jika tidak ada</span>
                                 </div>
                             </div>
                         </div>
@@ -1345,6 +1482,109 @@
         var success = new Audio("{{ url('assets/audio/success.mp3') }}");
         var error = new Audio("{{ url('assets/audio/error.mp3') }}");
 
+        function tabEan() {
+            loadDataEan();
+        }
+
+        $("#scanEAN").keyup(function(event) {
+            var job_id = "{{ $job_view->id ?? 0 }}";
+            var value = $('#scanEAN').val();
+            if (event.keyCode === 13) {
+                $('#scanEAN').val("");
+                $.ajax({
+                    url: "{{ url('warehouse/outbound/detail/doScanEan') }}/" + value + '/' +
+                        job_id,
+                    dataType: "json",
+                    success: function(data) {
+                        if (data.message == 'invalid') {
+                            error.play();
+                            swal({
+                                icon: "error",
+                                text: "Product not found!"
+                            }).then(function() {
+                                $("#scanEAN").focus();
+                            });
+                        } else if (data.message == 'duplicate') {
+                            error.play();
+                            swal({
+                                icon: "warning",
+                                text: "CARTON ID has already been!"
+                            }).then(function() {
+                                $("#scanEAN").focus();
+                            })
+                        } else if (data.message == 'qty') {
+                            error.play();
+                            swal({
+                                icon: "warning",
+                                text: "The scan process exceeds the limit!"
+                            }).then(function() {
+                                $("#scanEAN").focus();
+                            })
+                        } else {
+                            success.play();
+                            swal({
+                                icon: "success",
+                                text: `Good Job! ${data.sku}`
+                            }).then(function() {
+                                $("#scanEAN").focus();
+                            })
+                            loadDataEan();
+                        }
+                    },
+                    error: function(error) {
+                        console.log('====================================');
+                        console.log(error);
+                        console.log('====================================');
+                    }
+                });
+            }
+        });
+
+        function loadDataEan() {
+            $('#table-ean').DataTable().destroy();
+            $('#table-ean').DataTable({
+                "dom": '<"wrapper"flipt>',
+                processing: true,
+                serverSide: true,
+                paging: false,
+                destroy: true,
+                searching: false,
+                ajax: {
+                    url: "{{ url('warehouse/outbound/getListEAN/') }}/" + '{{ $job_view->id ?? 0 }}',
+                    type: "GET",
+                },
+                columns: [{
+                        data: 'product_code',
+                        name: 'product_code'
+                    },
+                    {
+                        data: 'ean_code_count',
+                        name: 'ean_code_count',
+                        render: function(data, type, row) {
+                            return data + ' ' + row.puom; // Menggabungkan ean_code_count dan puom
+                        }
+                    },
+                    {
+                        data: 'qty',
+                        name: 'qty',
+                        render: function(data, type, row) {
+                            return data + ' ' + row.puom; // Menggabungkan ean_code_count dan puom
+                        }
+                    },
+                ],
+                order: [
+                    [0, 'asc']
+                ],
+                createdRow: function(row, data, dataIndex) {
+                    if (data.ean_code_count != data.qty) {
+                        $(row).css('background-color', 'yellow'); // Beri warna kuning
+                    }
+                }
+            });
+        }
+
+
+
         $('#locationCode').select2({
             'placeholder': 'Select a location'
         });
@@ -1398,16 +1638,20 @@
                             var batch = value.lot_no
                         }
                         if (value.scan_pallet_tag == 'N' && value.scan_location == 'N') {
-                            var tools = ` <a href="javascript:void(0)" class="btn btn-sm btn-dark"
+                            @can('gate-access', 'CheckerDC')
+                                var tools = ` <a href="javascript:void(0)" class="btn btn-sm btn-dark"
                                 onclick="scanPalletTag('${value.id}', '${value.product_code}')">
                                 <i class="fas fa-camera"></i> Scan Pallet Tag</a>`
+                            @endcan
                         } else if (value.scan_pallet_tag == 'Y' && value.scan_location == 'Y') {
                             var tools = `<span class="badge badge-success"> <i class="fas fa-check mr-1"></i> Done!
                             </span>`
                         } else {
-                            var tools = `<a href="javascript:void(0)" class="btn btn-sm btn-info"
+                            @can('gate-access', 'CheckerDC')
+                                var tools = `<a href="javascript:void(0)" class="btn btn-sm btn-info"
                                 onclick="scanLocation('${value.id}', '${value.product_code}')"><i
                                     class="fas fa-camera"></i> Scan Location </a>`
+                            @endcan
                         }
                         if (value.soa > 0) {
                             var soa = value.soa + " " + value.puom;
@@ -3131,6 +3375,17 @@
                 }
             }
 
+            const inputPrice = document.getElementById('price');
+
+            inputPrice.addEventListener('keypress', e => {
+                if (e.key === '.') e.preventDefault();
+            });
+
+            inputPrice.addEventListener('paste', e => {
+                const pasted = (e.clipboardData || window.clipboardData).getData('text');
+                if (pasted.includes('.')) e.preventDefault();
+            });
+
             $('body').on('click', '.edit-despatch', function() {
                 var data_id = $(this).data('id');
 
@@ -3196,6 +3451,7 @@
                         $('#carrier_name').val(data.carrier_name);
                         $('#driver_name').val(data.driver_name);
                         $('#phone').val(data.phone);
+                        $('#price').val(data.price);
                         $('#container_no').val(data.container_no);
                         $('#delivery_type').val(data.delivery_type);
                         $('#awb_no').val(data.awb_no);
@@ -3219,6 +3475,13 @@
                 var data_id = $(this).data('id');
 
                 window.open("{{ url('/warehouse/outbound/report/despatch/') }}" + "/" + data_id,
+                    'OutboundReport', 'width=800,height=600')
+            });
+
+            $('body').on('click', '.print-loading-list', function() {
+                var data_id = $('#outbound_id').val();
+
+                window.open("{{ url('/warehouse/outbound/report/loading_list/') }}" + "/" + data_id,
                     'OutboundReport', 'width=800,height=600')
             });
 

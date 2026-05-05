@@ -1880,8 +1880,18 @@
         }
 
         function processConfirm() {
+
+            var btn = $("#btn-process-confirm");
+            btn.addClass('disabled')
+            .css({
+                'pointer-events': 'none',
+                'opacity': '0.5',
+                'cursor': 'not-allowed'
+            })
+
             var status = sessionStorage.getItem('status');
             $('.productStatusValue').val(status);
+
             var oTable = $("#confirm_table").dataTable();
             $("#form-confirm").trigger("reset");
 
@@ -1933,7 +1943,14 @@
                 },
                 error: function(data) {
                     $("#btn-process-confirm").html("Process");
-                }
+                },
+                complete: function() {
+                btn.removeClass('disabled').css({
+                    'pointer-events': '',
+                    'opacity': '',
+                    'cursor': ''
+                }).html('<i class="fas fa-play"></i> Process');
+            }
             });
         }
 

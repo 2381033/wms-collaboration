@@ -9,6 +9,43 @@ use Str;
 
 class FotoManagementController extends Controller
 {
+    private function compressJpeg($uploadedFile, $destination, $quality = 70)
+    {
+        $source = imagecreatefromjpeg($uploadedFile->getRealPath());
+        $width  = imagesx($source);
+        $height = imagesy($source);
+
+        $maxWidth = 1600;
+        $maxHeight = 1600;
+
+        if ($width > $maxWidth || $height > $maxHeight) {
+            $ratio = min($maxWidth / $width, $maxHeight / $height);
+
+            $newWidth  = intval($width * $ratio);
+            $newHeight = intval($height * $ratio);
+
+            $resized = imagecreatetruecolor($newWidth, $newHeight);
+
+            imagecopyresampled(
+                $resized,
+                $source,
+                0,
+                0,
+                0,
+                0,
+                $newWidth,
+                $newHeight,
+                $width,
+                $height
+            );
+
+            $source = $resized;
+        }
+
+        imagejpeg($source, $destination, $quality);
+
+        imagedestroy($source);
+    }
     private function myBranch($username)
     {
         $idUser = DB::table('users')
@@ -154,36 +191,39 @@ class FotoManagementController extends Controller
         $exception = DB::transaction(function () use ($request) {
             try {
                 $file = $request->file('photo');
-                $token =  DB::table('imp_image_header')
+                if (!$file) {
+                    throw new \Exception("File 'photo' tidak ditemukan. Pastikan form-data dan nama field tepat.");
+                }
+                $token = DB::table('imp_image_header')
                     ->where('masterbl', $request->masterbl)
                     ->where('housebl', $request->housebl)
-                    // ->where('eta', $request->eta)
                     ->where('container', $request->container)
                     ->value('token');
 
-                $filename = $token . "-" . Str::random(3) .  "." . $file->getClientOriginalExtension();
-                if (!file_exists(public_path('foto/warehouse-import/foto-management' . $filename))) {
-                    $file->move(public_path('foto/warehouse-import/foto-management'), $filename);
-                }
-                DB::table('imp_image_detail')
-                    ->insert([
-                        'file'   => $filename,
-                        'token' => $token,
-                        'masterbl' => $request->masterbl,
-                        'housebl' => $request->housebl,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'created_by' => $request->created_by,
-                    ]);
+                $filename = $token . "-" . Str::random(3) . ".jpg";
+                $folder = public_path('foto/warehouse-import/foto-management');
+                $destination = $folder . '/' . $filename;
+                $this->compressJpeg($file, $destination);
+                DB::table('imp_image_detail')->insert([
+                    'file'   => $filename,
+                    'token' => $token,
+                    'masterbl' => $request->masterbl,
+                    'housebl' => $request->housebl,
+                    'created_at' => now(),
+                    'created_by' => $request->created_by,
+                ]);
+
                 DB::commit();
                 return $request->all();
             } catch (\Exception $e) {
                 DB::rollBack();
-                $message = ['error' => $e->getMessage()];
-                return $message;
+                return ['error' => $e->getMessage()];
             }
         });
+
         return response()->json($exception);
     }
+
 
     public function getFoto(Request $request)
     {

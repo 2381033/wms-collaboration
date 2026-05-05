@@ -19,36 +19,38 @@ class GateOutController extends Controller
             try {
                 $type = $request->type;
                 $username = $request->username;
+
+                // 1. Ambil data utama
                 $data = DB::table('ex_gate_in_' . $type)
                     ->where('confirmed_flag', 'No')
                     ->where('created_by', $username)
                     ->get();
-                $data = $data->map(function ($value) {
-                    $value->checker_flag = $this->getHeaderByVehicle($value->vehicle_number)->checker_flag ?? 'Open';
-                    $value->job_id = $this->getHeaderByVehicle($value->vehicle_number)->id ?? 0;
-                    return $value;
-                });
-                $message = ['data' => $data];
 
-                return $message;
+                // 2. Ambil semua vehicle_number unik
+                $vehicleNumbers = $data->pluck('vehicle_number')->unique();
+
+                // 3. Ambil semua header terkait sekaligus (hanya yang Confirmed)
+                $headers = DB::table('ex_inbound_header')
+                    ->whereIn('vehicle_no', $vehicleNumbers)
+                    ->where('checker_flag', 'Confirmed')
+                    ->get()
+                    ->keyBy('vehicle_no'); // Key by vehicle_no agar mudah diakses
+
+                // 4. Map data + tambahkan field checker_flag dan job_id
+                $data = $data->map(function ($item) use ($headers) {
+                    $header = $headers[$item->vehicle_number] ?? null;
+                    $item->checker_flag = $header->checker_flag ?? 'Open';
+                    $item->job_id = $header->id ?? 0;
+                    return $item;
+                });
+
+                return ['data' => $data];
             } catch (\Exception $e) {
                 DB::rollBack();
-
-                $message = ['error' => true, 'message' => [$e->getMessage()]];
-
-                return $message;
+                return ['error' => true, 'message' => [$e->getMessage()]];
             }
         });
         return response()->json($exception);
-    }
-
-    private function getHeaderByVehicle($vehicle_no)
-    {
-        $data = DB::table('ex_inbound_header')
-            ->where('vehicle_no', $vehicle_no)
-            ->where('checker_flag', 'Confirmed')
-            ->first();
-        return $data;
     }
 
     public function getFoto($id_gate_in)
@@ -91,7 +93,7 @@ class GateOutController extends Controller
                     ->where('id', $id_gate_in)
                     ->update([
                         'confirmed_flag' => 'Yes'
-                        ]);
+                    ]);
                 DB::commit();
                 $message = [
                     'message' => 'Data Successfully Saved',
@@ -136,7 +138,6 @@ class GateOutController extends Controller
                 DB::commit();
                 $message = [
                     'message' => 'Data Successfully Saved',
-                    'request' => $request->all()
                 ];
                 return $message;
             } catch (\Exception $e) {

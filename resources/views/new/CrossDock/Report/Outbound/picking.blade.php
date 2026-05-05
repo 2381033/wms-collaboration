@@ -70,11 +70,11 @@
                                     @foreach ($data->where('picking_flag', 'Yes') as $item)
                                         <tr>
                                             <td class="center">{{ $loop->iteration }}</td>
-                                            <td class="center">{{ $item->stock->description }}</td>
-                                            <td class="center">{{ $item->stock->id_cargo }}</td>
-                                            <td class="center">{{ $item->stock->sku }}</td>
+                                            <td class="center">{{ $item->stock_description }}</td>
+                                            <td class="center">{{ $item->id_cargo }}</td>
+                                            <td class="center">{{ $item->stock_sku }}</td>
                                             <td class="center">{{ $item->qty }}</td>
-                                            <td class="center">{{ $item->stock->location_code }}</td>
+                                            <td class="center">{{ $item->stock_location_code }}</td>
                                         </tr>
                                     @endforeach
                                     <tr>

@@ -68,6 +68,7 @@ class StockEmailExport implements FromCollection, WithHeadings, ShouldAutoSize, 
             $summary = DB::table("iv_stock_ledger as a")
                 ->select(
                     "c.principal_name",
+                    "a.planning",
                     "a.job_no",
                     "a.job_date",
                     "a.product_code",
@@ -195,7 +196,25 @@ class StockEmailExport implements FromCollection, WithHeadings, ShouldAutoSize, 
                 }
             } else {
                 foreach ($summary as $value) {
-                    $list[] = [
+                    $max = 4;
+                    $ipWeek = [];
+                    for ($i = 1; $i <= $max; $i++) {
+                        $ipWeek["IP $i"] = '';
+                        $ipWeek["Week $i"] = '';
+                    }
+                    if ($principal->id == 3 && !empty($value->planning)) {
+                        $plans = is_array($value->planning)
+                            ? $value->planning
+                            : json_decode($value->planning, true);
+                        $plans = collect($plans)->sortBy('week')->values()->toArray();
+                        foreach ($plans as $index => $plan) {
+                            if ($index < $max) {
+                                $ipWeek["IP " . ($index + 1)] = $plan['ip'] ?? '';
+                                $ipWeek["Week " . ($index + 1)] = $plan['week'] ?? '';
+                            }
+                        }
+                    }
+                    $list[] = array_merge([
                         "principal_name" => $value->principal_name,
                         "job_no" => $value->job_no,
                         "job_date" => $value->job_date,
@@ -210,7 +229,7 @@ class StockEmailExport implements FromCollection, WithHeadings, ShouldAutoSize, 
                         "freeze_flag" => $value->freeze_flag,
                         "gross_weight" => $value->gross_weight * $value->qtys,
                         "volume" => $value->volume * $value->qtys,
-                    ];
+                    ], $ipWeek);
                 }
             }
         }
@@ -305,6 +324,13 @@ class StockEmailExport implements FromCollection, WithHeadings, ShouldAutoSize, 
                     "Gross Weight",
                     "Volume",
                 ];
+
+                if ($principal->id == 3) {
+                    for ($i = 1; $i <= 4; $i++) {
+                        $header[] = "IP $i";
+                        $header[] = "Week $i";
+                    }
+                }
             }
         }
 

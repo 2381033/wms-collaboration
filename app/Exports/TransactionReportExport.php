@@ -106,6 +106,8 @@ class TransactionReportExport implements FromCollection, WithHeadings, ShouldAut
             ->groupBy('a.product_id')
             ->get();
 
+
+
         switch ($this->group_on) {
             case 'product':
                 $stockList = DB::table('iv_stock_transaction as a')
@@ -136,7 +138,6 @@ class TransactionReportExport implements FromCollection, WithHeadings, ShouldAut
                         'b.gross_weight',
                         'b.volume',
                         'a.created_at',
-                        "f.order_no",
                         "a.reference_no",
                         DB::raw("CASE WHEN a.job_type = 'IMP' THEN e.description WHEN a.job_type = 'EXP' THEN g.description ELSE '' END as description")
                     )
@@ -146,10 +147,6 @@ class TransactionReportExport implements FromCollection, WithHeadings, ShouldAut
                     ->leftjoin('iv_inbound_job as e', function ($data) {
                         $data->on("a.principal_id", "e.principal_id")
                             ->on("a.reference_no", "e.job_no");
-                    })
-                    ->leftjoin('iv_outbound_order as f', function ($data) {
-                        $data->on("a.principal_id", "f.principal_id")
-                            ->on("a.reference_no", "f.job_no");
                     })
                     ->leftjoin('iv_outbound_job as g', function ($data) {
                         $data->on("a.principal_id", "g.principal_id")
@@ -168,17 +165,8 @@ class TransactionReportExport implements FromCollection, WithHeadings, ShouldAut
                     ->orderBy('b.product_name', 'asc')
                     ->orderBy('a.job_date', 'asc')
                     ->orderBy(DB::raw("CASE WHEN a.job_type = 'IMP' THEN 1 WHEN a.job_type = 'TFRI' THEN 2 WHEN a.job_type = 'ADJ+' THEN 3 WHEN a.job_type = 'EXP' THEN 4 WHEN a.job_type = 'TFRO' THEN 5 ELSE 6 END"), 'asc')
-                    ->distinct()->get();
-                // $stockList->map(function ($value) {
-                //     if ($value->job_type == 'EXP') {
-                //         $value->order_no = DB::table('iv_outbound_order')->where('job_no', $value->reference_no)->first() ?? '';
-                //         $value->ref_no = DB::table('iv_outbound_job')->where('job_no', $value->reference_no)->first() ?? '';
-                //     } elseif ($value->job_type == 'IMP') {
-                //         $value->ref_no = DB::table('iv_inbound_job')->where('job_no', $value->reference_no)->first() ?? '';
-                //     }
-                //     return $value;
-                // });
-
+                    // ->distinct()
+                    ->get();
 
                 $first_line = true;
                 $product_before = "";
@@ -361,19 +349,6 @@ class TransactionReportExport implements FromCollection, WithHeadings, ShouldAut
                             "reference_no" => $value->reference_no,
                         ];
                     } else {
-                        // if ($value->job_type == 'EXP') {
-                        //     $description = $value->ref_no->description ?? '';
-                        //     $order_no =  $value->order_no->order_no ?? '';
-                        //     $reference_no = $value->order_no->job_no ?? '';
-                        // } else if ($value->job_type == 'IMP') {
-                        //     $description = $value->order_no->description ?? '';
-                        //     $order_no =  '';
-                        //     $reference_no = $value->order_no->job_no ?? '';
-                        // } else {
-                        //     $description = '';
-                        //     $order_no = '';
-                        //     $reference_no = $value->reference_no ?? '';
-                        // }
                         $list[] = [
                             "job_no" => $value->job_no,
                             "job_date" => $value->job_date,
@@ -391,7 +366,7 @@ class TransactionReportExport implements FromCollection, WithHeadings, ShouldAut
                             "volume" => $value->qty * $value->volume,
                             "created_at" => $value->created_at,
                             "description" => $value->description,
-                            "order_no" => $value->order_no,
+                            // "order_no" => $value->order_no,
                             "reference_no" => $value->reference_no
                         ];
                     }

@@ -62,8 +62,8 @@ class JobController extends Controller
     private function detailUser($username)
     {
         $data = DB::table('users')
-        ->where('username', $username)
-        ->first();
+            ->where('username', $username)
+            ->first();
         return $data;
     }
 
@@ -153,17 +153,26 @@ class JobController extends Controller
     {
         $exception = DB::transaction(function () use ($request) {
             try {
-                DB::table("ex_inbound_header")
-                    ->where("id", $request->job_id)
-                    ->update([
-                        'remarks' => $request->remarks,
-                        'checker_flag' => 'Confirmed',
-                        'checker_confirmed_flag' => date('Y-m-d H:i:s')
-                    ]);
-                DB::commit();
-                $message = [
-                    'message' => 'Data Successfully Saved',
-                ];
+                $validate = DB::table('ex_inbound_foto_cargo')
+                    ->where('job_id', $request->job_id)
+                    ->count();
+                if ($validate <= 6) {
+                    $message = [
+                        'message' => 'picture',
+                    ];
+                } else {
+                    DB::table("ex_inbound_header")
+                        ->where("id", $request->job_id)
+                        ->update([
+                            'remarks' => $request->remarks,
+                            'checker_flag' => 'Confirmed',
+                            'checker_confirmed_flag' => date('Y-m-d H:i:s')
+                        ]);
+                    DB::commit();
+                    $message = [
+                        'message' => 'Data Successfully Saved',
+                    ];
+                }
                 return $message;
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -257,6 +266,17 @@ class JobController extends Controller
                 $consignee_id = $this->getConsignee($request->consignee_name);
                 $job_no = $this->getJob($request->branch_id);
 
+                // penambahan validasi sesuai dengan tiket Manage Service 164707
+                $exists = DB::table('ex_inbound_header')
+                    ->where('po_number', Str::Upper($request->po_number))
+                    ->where('vehicle_no', Str::Upper($request->vehicle_no))
+                    ->where('peb_no', Str::Upper($request->peb_no))
+                    ->exists();
+
+                if ($exists) {
+                    return ['error' => true, 'message' => 'Data Transaksi ini sudah terinput sebelumnya.'];
+                }
+
                 DB::table('ex_inbound_header')->insert([
                     'job_no' => $job_no,
                     'branch_id' => $request->branch_id,
@@ -272,7 +292,7 @@ class JobController extends Controller
                     'aju_no' => Str::Upper($request->aju_no),
                     'qty_cargo' => $request->qty_cargo,
                     'cbm' => $request->cbm,
-                    'weight' => $request->weight,
+                    'weight' => 0,
                     'user_id' => $request->created_by,
                     'created_at' => date('Y-m-d H:i:s'),
                 ]);
@@ -351,11 +371,11 @@ class JobController extends Controller
     public function getJobPutaway($username)
     {
         $data = DB::table("ex_inbound_header")
-        ->where("branch_id", $this->myBranch($username))
-        ->where('status_flag', 'Confirmed')
-        ->where("putaway_flag", "No")
-        ->where("stapel_name", $username)
-        ->get();
+            ->where("branch_id", $this->myBranch($username))
+            ->where('status_flag', 'Confirmed')
+            ->where("putaway_flag", "No")
+            ->where("stapel_name", $username)
+            ->get();
         $data = $data->map(function ($value) {
             $value->forwarder_name = $this->getForwarderByid($value->forwarder_id);
             $value->shipper_name = $this->getShipperByid($value->shipper_id);
@@ -375,8 +395,8 @@ class JobController extends Controller
             ->where("job_id", $id)
             ->get();
         $qty_actual = $detail->sum('quantity');
-        $total_pallet = $detail->groupBy('pallet_id')->count();
-    
+        $total_pallet = $detail->unique(fn($item) => $item->pallet_id . '-' . $item->serial_no)->count();
+
         return response()->json([
             'data' => [
                 'header' => $header,
@@ -391,54 +411,100 @@ class JobController extends Controller
     }
 
     public function getListDetailPutaway($type, $id)
-    { 
-        if($type == 'notcompleted'){
+    {
+        if ($type == 'notcompleted') {
             $detail = DB::table("ex_inbound_detail")
-                ->selectRaw('*, sum(quantity) as qty_total')
+                ->select(
+                    'pallet_id',
+                    'id',
+                    DB::raw('GROUP_CONCAT(DISTINCT serial_no ORDER BY serial_no ASC SEPARATOR ", ") as po_list'),
+                    DB::raw('SUM(quantity) as qty_total'),
+                    'job_id',
+                    'scan_location',
+                    'scan_pallet_tag',
+                    'scan_pallet_tag',
+                    'unit'
+                )
                 ->where("job_id", $id)
                 ->where('scan_location', 'No')
                 ->groupBy('pallet_id')
-                ->get();
-        }else{
+                ->get()
+                ->map(function ($row) {
+                    // Ubah string jadi array list
+                    $row->po_list = explode(',', $row->po_list);
+                    return $row;
+                });;
+        } else {
             $detail = DB::table("ex_inbound_detail")
-                ->selectRaw('*, sum(quantity) as qty_total')
+                ->select(
+                    'pallet_id',
+                    'id',
+                    DB::raw('GROUP_CONCAT(DISTINCT serial_no ORDER BY serial_no ASC SEPARATOR ", ") as po_list'),
+                    DB::raw('SUM(quantity) as qty_total'),
+                    'job_id',
+                    'scan_location',
+                    'scan_pallet_tag',
+                    'unit',
+                    'location_code'
+                )
                 ->where("job_id", $id)
                 ->where('scan_location', 'Yes')
                 ->where('scan_pallet_tag', 'Yes')
                 ->groupBy('pallet_id')
-                ->get();
+                ->get()
+                ->map(function ($row) {
+                    // Ubah string jadi array list
+                    $row->po_list = explode(',', $row->po_list);
+                    return $row;
+                });;
         }
         $detail = $detail->map(function ($value) {
             $value->header = $this->detailHeader($value->job_id);
             return $value;
         });
-    
+
         return response()->json(['data' => $detail]);
     }
 
     public function finishPutaway($id)
-    { 
+    {
         $detail = DB::table("ex_inbound_detail")
             ->where("job_id", $id)
             ->groupBy('pallet_id')
             ->get();
-        $locationFlag = $detail->where('scan_location', 'Yes')->where('scan_pallet_tag', 'Yes')->count();
+
+        $locationFlag = $detail->where('scan_location', 'Yes')
+            ->where('scan_pallet_tag', 'Yes')
+            ->count();
+
         $confirmFlag = false;
         $duplicateFlag = false;
+        $duplicates = null;
+
         $arrLocation = $detail->pluck('location_code')->toArray();
-        $duplicates = array_diff_assoc($arrLocation, array_unique($arrLocation));
-        if($detail->count() == $locationFlag){
+
+        // Deteksi lokasi dobel
+        $rawDuplicates = array_diff_assoc($arrLocation, array_unique($arrLocation));
+
+        // Filter yang tidak mengandung "FLOOR"
+        $filteredDuplicates = array_filter($rawDuplicates, function ($loc) {
+            return stripos($loc, 'FLOOR') === false;
+        });
+
+        if ($detail->count() == $locationFlag) {
             $confirmFlag = true;
         }
-        if(count($duplicates) > 0 ){
-            $duplicates = collect($duplicates)->first();
+
+        if (count($filteredDuplicates) > 0) {
+            $duplicates = collect($filteredDuplicates)->first();
             $duplicateFlag = true;
         }
+
         $detail = $detail->map(function ($value) {
             $value->header = $this->detailHeader($value->job_id);
             return $value;
         });
-    
+
         return response()->json(['data' => [
             'detail' => $detail,
             'confirmFlag' => $confirmFlag,
@@ -448,23 +514,25 @@ class JobController extends Controller
     }
 
     public function confirmPutaway(Request $request)
-    { 
+    {
         $exception = DB::transaction(function () use ($request) {
             try {
                 $job_id = ExportInboundHeader::Where('job_no', $request->job_no)
-                ->where('branch_id', $request->branch_id)
-                ->where('job_date', $request->job_date)
-                ->value('id');
+                    ->where('branch_id', $request->branch_id)
+                    ->where('job_date', $request->job_date)
+                    ->value('id');
                 $detail = ExportInboundDetail::Where('job_id', $job_id)->orderBy('id', 'ASC')->get();
                 foreach ($detail as $key => $value) {
                     DB::table('ex_stock_ledger')
-                    ->where('serial_no', $value->serial_no)
-                    ->update([
-                        'location_id' => $value->location_id,
-                        'location_code' => $value->location_code,
-                    ]);
+                        ->where('job_no', $request->job_no)
+                        ->where('branch_id', $request->branch_id)
+                        ->where('serial_no', $value->serial_no)
+                        ->update([
+                            'location_id' => $value->location_id,
+                            'location_code' => $value->location_code,
+                        ]);
                 }
-                    DB::table('ex_inbound_header')
+                DB::table('ex_inbound_header')
                     ->where('id', $job_id)
                     ->update([
                         'putaway_flag' => 'Yes',
@@ -481,14 +549,15 @@ class JobController extends Controller
         return response()->json($exception);
     }
 
-    public function cancelPutaway($id){
+    public function cancelPutaway($id)
+    {
         $exception = DB::transaction(function () use ($id) {
             try {
                 $inStock = DB::table('ex_inbound_detail')
-                        ->where('id', $id)
-                        ->first();
+                    ->where('id', $id)
+                    ->first();
 
-                    DB::table('ex_inbound_detail')
+                DB::table('ex_inbound_detail')
                     ->where('id', $id)
                     ->update([
                         'scan_location'        => 'No',
@@ -496,7 +565,7 @@ class JobController extends Controller
                         'location_code'        => null
                     ]);
 
-                    DB::table('ex_inbound_detail')
+                DB::table('ex_inbound_detail')
                     ->where('serial_no', $inStock->serial_no)
                     ->update([
                         'scan_location'        => 'No',
@@ -504,12 +573,12 @@ class JobController extends Controller
                         'location_code'        => null
                     ]);
 
-                    $header = $this->detailHeader($inStock->job_id);
-                    $shipper_name = $this->getShipperByid($header->shipper_id);
-                    $detail = DB::table("ex_inbound_detail")->where("job_id", $header->id)->get();
-                    $qty_actual = $detail->sum('quantity');
-                    $total_pallet = $detail->groupBy('pallet_id')->count();
-                    
+                $header = $this->detailHeader($inStock->job_id);
+                $shipper_name = $this->getShipperByid($header->shipper_id);
+                $detail = DB::table("ex_inbound_detail")->where("job_id", $header->id)->get();
+                $qty_actual = $detail->sum('quantity');
+                $total_pallet = $detail->groupBy('pallet_id')->count();
+
                 DB::commit();
                 $success = ['data' => [
                     'status' => 'succcess',
@@ -529,10 +598,11 @@ class JobController extends Controller
         return response()->json($exception);
     }
 
-    private function detailHeader($id){
+    private function detailHeader($id)
+    {
         $data = DB::table("ex_inbound_header")
-        ->where("id", $id)
-        ->first();
+            ->where("id", $id)
+            ->first();
         return $data;
     }
 }

@@ -23,12 +23,12 @@
                             <div class="row">
                                 <div class="col-sm-4">
                                     <div class="form-group">
-                                        <label for="">SITE</label>
-                                        <select id="" class="form-control selectSite" name="site"
-                                            onchange="selectSite(this.value)">
-                                            <option value="" selected disabled>{{ 'Select Site' }}</option>
-                                            @foreach ($site as $item)
-                                                <option value="{{ $item->id }}">{{ $item->site_name }}</option>
+                                        <label for="">Job No.</label>
+                                        <select id="" class="form-control selectJobNo" name="job_no"
+                                            onchange="selectJobNo(this.value)">
+                                            <option value="" selected disabled>{{ 'Select Job No' }}</option>
+                                            @foreach ($data as $item)
+                                                <option value="{{ $item->job_no }}">{{ $item->job_no }}</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -43,7 +43,7 @@
                                 </div>
                                 <div class="col-sm-4">
                                     <a href="#addLocation" onclick="locationAdd()" data-toggle="modal"
-                                        class="btn btn-lg btn-primary mt-4"><i class="fas fa-camera"></i> Add Location</a>
+                                        class="btn btn-lg btn-dark mt-4"><i class="fas fa-camera"></i> Add Location</a>
                                 </div>
                                 <div class="col-sm-12 mt-4 appendList">
 
@@ -214,17 +214,17 @@
             searchData();
         }
 
-        function selectSite(val) {
-            sessionStorage.setItem('site', val);
+        function selectJobNo(val) {
+            sessionStorage.setItem('job_no', val);
             searchData();
         }
 
         function searchData() {
-            var site_id = sessionStorage.getItem('site');
+            var job_no = sessionStorage.getItem('job_no');
             var location = sessionStorage.getItem('location');
             $.ajax({
                 type: "GET",
-                url: "{{ url('inventory/cycleCount/getListData') }}/" + site_id + '/' + location,
+                url: "{{ url('inventory/cycleCount/getListData') }}/" + job_no + '/' + location,
                 success: function(data) {
                     if (data.message == "not_found") {
                         Swal.fire({
@@ -335,18 +335,16 @@
                                                 <div class="ribbon-target bg-info" style="top: 10px; right: -5px; zoom:150%;"><a href="javascript:void(0)" onclick="klikOK(${value.id})" class="text-white">OK
                                                     </a>
                                                 </div>
-                                                <h1 class="card-title">${value.stock.product_code} | ${value.product_name} </h1>
+                                                <h1 class="card-title">${value.product_code} | ${value.product_name} </h1>
                                                     </div>
                                                     <div class="card-body">
                                                         <div class="row">
-                                                            <input type="hidden" value="${value.stock.id_ledger}" name="id_ledger" />
                                                             <div class="col-sm-8">
-                                                                <h1>${value.stock.qtya} ${value.stock.puom} </h1>
+                                                                <h1>${value.qtya} ${value.puom} </h1>
                                                                 <hr>
-                                                                <h5>
-                                                                    <b>Location : ${value.stock.location_code} </b> 
-                                                                    <a class="btn btn-md btn-dark mb-3 ml-4" onclick="moveLocation('${value.id}')"><i class="fas fa-sign-in-alt"></i> Transfer
-                                                                        Location</a>
+                                                                <h5 class="mt-2">
+                                                                    <b>Location : ${value.location_code} </b> 
+                                                                    <a class="btn btn-md btn-danger mb-3 ml-4" onclick="variance('${value.id}')"><i class="fas fa-info-circle"></i> Variance</a>
                                                                         </h5>
                                                             </div>
                                                         </div>
@@ -355,23 +353,58 @@
             });
         }
 
-        function moveLocation(id) {
+        function variance(id) {
             Swal.fire({
-                title: 'Are you sure?',
-                icon: 'info',
-                showDenyButton: true,
+                title: 'Variance Reason',
+                input: 'textarea',
+                inputLabel: 'Remarks Variance',
+                inputPlaceholder: 'Input here...',
+                inputAttributes: {
+                    'aria-label': 'Remarks Variance'
+                },
                 showCancelButton: true,
-                confirmButtonText: 'Yes, Confirm Move Location',
-                denyButtonText: `Cancel`,
-            }).then((result) => {
-                /* Read more about isConfirmed, isDenied below */
-                if (result.isConfirmed) {
-                    getTransferLokasi(id)
-                } else if (result.isDenied) {
-                    return false;
+                confirmButtonText: 'Submit',
+                cancelButtonText: 'Cancel',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'Remarks wajib diisi!'
+                    }
                 }
-            })
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    let remarks = result.value;
+                    submitVariance(id, remarks);
+                }
+            });
         }
+
+        function submitVariance(id, remarks) {
+            $.ajax({
+                url: "{{ url('inventory/cycleCount/submitVariance') }}",
+                type: 'POST',
+                data: {
+                    id: id,
+                    remarks: remarks,
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(res) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: 'Variance berhasil disimpan'
+                    });
+                    searchData();
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Gagal menyimpan variance'
+                    });
+                }
+            });
+        }
+
 
         function getTransferLokasi(id) {
             $.ajax({

@@ -100,7 +100,8 @@
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="container_no">Container No</label>
-                                        <input type="text" id="container_no" name="container_no"
+                                        <input type="text" id="container_no" maxlength="11" minlength="11"
+                                            name="container_no"
                                             @isset($header->container_no) value="{{ $header->container_no }}" @endisset
                                             class="form-control"
                                             @isset($header->id) @if ($header->status_flag !== 'Open') disabled @endif @endisset>
@@ -382,6 +383,7 @@
                         .appendTo(ul);
                 };
 
+
             if ($("#form-job").length > 0) {
                 $("#form-job").validate({
                     submitHandler: function(form) {
@@ -393,6 +395,7 @@
                             dataType: 'json',
                             beforeSend: function() {
                                 $("#loader").show();
+                                $('#btn-save-job').hide();
                             },
                             success: function(data) {
                                 $("#loader").hide();
@@ -418,10 +421,12 @@
                                         content: wrapper
                                     });
                                 }
+                                $('#btn-save-job').show();
                             },
                             error: function(data) {
                                 console.log('Error:', data);
                                 $("#loader").hide();
+                                $('#btn-save-job').show();
                             }
                         });
                     }
@@ -738,22 +743,28 @@
                 success: function(data) {
                     $("#loader").hide();
                     $('#form-order').trigger("reset");
-                    if ($.isEmptyObject(data.error)) {
+                    if (data.validate_loc === true) {
+                        swal({
+                            icon: "warning",
+                            text: "Kargo Belum di putaway oleh stapel!!"
+                        });
+                    } else if ($.isEmptyObject(data.error)) {
                         var oTable = $('#table-order').dataTable();
                         oTable.fnDraw(false);
 
                         swal({
                             icon: "success",
-                            text: "Data was processed successfully."
+                            text: "Data berhasil diproses."
+                        }).then(() => {
+                            window.location.reload();
                         });
-
-                        window.location.reload();
                     } else {
                         swal({
                             icon: "error",
                             text: data.error
                         });
                     }
+
                 },
                 error: function(data) {
                     $("#loader").hide();

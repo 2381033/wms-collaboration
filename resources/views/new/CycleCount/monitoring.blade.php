@@ -22,19 +22,21 @@
                         <div class="col-sm-5 mb-3">
                             <div class="input-group">
                                 <div class="input-group-append">
-                                    <span class="input-group-text" id="my-addon">Tanggal Mulai</span>
+                                    <span class="input-group-text" id="my-addon">Start Date</span>
                                 </div>
-                                <input class="form-control tglMulai" type="date" name=""
-                                    placeholder="Recipient's text" aria-label="Recipient's " aria-describedby="my-addon">
+                                <input class="form-control tglMulai" type="date" name="tgl_mulai"
+                                    value="{{ date('Y-m-d') }}" placeholder="Recipient's text" aria-label="Recipient's "
+                                    aria-describedby="my-addon">
                             </div>
                         </div>
                         <div class="col-sm-5 mb-3">
                             <div class="input-group">
                                 <div class="input-group-append">
-                                    <span class="input-group-text" id="my-addon">Tanggal Selesai</span>
+                                    <span class="input-group-text" id="my-addon">End Date</span>
                                 </div>
-                                <input class="form-control tglSelesai" type="date" name=""
-                                    placeholder="Recipient's text" aria-label="Recipient's " aria-describedby="my-addon">
+                                <input class="form-control tglSelesai" type="date" name="tgl_selesai"
+                                    placeholder="Recipient's text" aria-label="Recipient's " aria-describedby="my-addon"
+                                    value="{{ date('Y-m-t') }}">
                             </div>
                         </div>
                         <div class="col-sm-2">
@@ -51,10 +53,12 @@
                                         </tr>
                                         <tr class="text-center">
                                             <th>No</th>
+                                            <th>Principal</th>
                                             <th>Job No</th>
                                             <th>Match</th>
                                             <th>Product Code</th>
                                             <th>Qty</th>
+                                            <th>UoM</th>
                                             <th>Location System</th>
                                             <th>Move To Location</th>
                                             <th>Remakrs</th>
@@ -62,45 +66,10 @@
                                             <th>Count Time</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        @foreach ($data->where('scan_flag', 'Yes') as $item)
-                                            <tr class="text-center">
-                                                <td>{{ $loop->iteration }}</td>
-                                                <td>{{ $item->job_no }}</td>
-                                                <td>
-                                                    @if ($item->match_flag == 'Yes')
-                                                        <badge class="btn btn-success btn-shadow btn-lg mr-3"><i
-                                                                class="fas fa-check" style="border-radius: 25px;"></i>
-                                                            Sesuai
-                                                        </badge>
-                                                    @else
-                                                        <badge class="btn btn-danger btn-shadow btn-lg mr-3"><i
-                                                                class="fas fa-window-close"
-                                                                style="border-radius: 25px;"></i> Tidak
-                                                        </badge>
-                                                    @endif
-                                                </td>
-                                                <td>{{ $item->product_code }}</td>
-                                                <td>{{ $item->stock . ' ' . $item->puom }}</td>
-                                                <td>{{ $item->location_code }}</td>
-                                                <td>{{ $item->match_flag == 'No' ? 'Lock Area' : '-' }}</td>
-                                                <td>{{ $item->remarks == null ? '-' : $item->remarks }}</td>
-                                                <td>{{ $item->scan_by }}</td>
-                                                <td>{{ formatTanggalWaktuIndonesia2($item->scan_at) }}</td>
-                                            </tr>
-                                        @endforeach
+                                    <tbody id="bodyTable">
                                     </tbody>
                                 </table>
                             </div>
-                            @if (!is_null($header) and $data->where('scan_flag', 'Yes')->count() > 0)
-                                @if ($header->confirmed_flag == 'No')
-                                    <div class="float-right">
-                                        <a href="#" onclick="confirmation('{{ $header->job_no }}')"
-                                            class="btn btn-lg btn-info"><i class="fas fa-check"></i>
-                                            Confirm</a>
-                                    </div>
-                                @endif
-                            @endif
                         </div>
                     </div>
                 </div>
@@ -112,15 +81,6 @@
 @push('scripts')
     <script src="{{ url('/') }}/assets/new/plugins/custom/datatables/datatables.bundle.js"></script>
     <script type="text/javascript">
-        @if (!is_null($header))
-            @if ($header->confirmed_flag == 'No')
-                Swal.fire({
-                    icon: 'info',
-                    text: 'Your job status is not confirmed..',
-                })
-            @endif
-        @endif
-
         function confirmation(job_no) {
             Swal.fire({
                 title: 'Are you sure?',
@@ -166,6 +126,7 @@
                 'copy', 'excel'
             ],
         });
+        cariData();
 
         function cariData() {
             var tgl_mulai = $('.tglMulai').val();
@@ -191,6 +152,10 @@
                             }
                         },
                         {
+                            data: 'principal_name',
+                            name: 'principal_name',
+                        },
+                        {
                             data: 'job_no',
                             name: 'job_no',
                         },
@@ -204,7 +169,7 @@
                                         '<badge class="btn btn-success btn-shadow btn-lg mr-3"><i class="fas fa-check" style="border-radius: 25px;"></i> Sesuai</badge>'
                                 } else {
                                     var matching =
-                                        '<badge class="btn btn-danger btn-shadow btn-lg mr-3"><i class="fas fa-window-close" style="border-radius: 25px;"></i> Tidak</badge>'
+                                        '<badge class="btn btn-danger btn-shadow btn-lg mr-3"><i class="fas fa-window-close" style="border-radius: 25px;"></i> Tidak sesuai</badge>'
                                 }
                                 return matching;
                             },
@@ -218,7 +183,15 @@
                             name: null,
                             sortable: false,
                             render: function(row, meta) {
-                                return row.stock + ' ' + row.puom;
+                                return row.stock;
+                            },
+                        },
+                        {
+                            data: null,
+                            name: null,
+                            sortable: false,
+                            render: function(row, meta) {
+                                return row.puom;
                             },
                         },
                         {

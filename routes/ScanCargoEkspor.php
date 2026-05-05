@@ -1,16 +1,20 @@
 <?php
 Route::group(['middleware' => 'auth'], function () {
     Route::group(['prefix' => 'export/ScanCargoEkspor'], function () {
-        Route::get('/', 'NewUpdated\ScanCargoEksporController@index');
-        Route::POST('/storeHeader', 'NewUpdated\ScanCargoEksporController@storeHeader');
-        Route::get('/detailJob/{job_no}', 'NewUpdated\ScanCargoEksporController@detailJob');
-        Route::get('/getListJob/{job_no}', 'NewUpdated\ScanCargoEksporController@getListJob');
-        Route::get('/encryptJob/{job_no}', 'NewUpdated\ScanCargoEksporController@encryptJob');
-        Route::get('/ajaxEncryptJob/{job_no}', 'NewUpdated\ScanCargoEksporController@ajaxEncryptJob');
-        Route::get('/validasiCargo/{barcode}/{job_no}', 'NewUpdated\ScanCargoEksporController@validasiCargo');
-        Route::get('/konfirmJob/{job_no}', 'NewUpdated\ScanCargoEksporController@konfirmJob');
-        Route::get('/getListJobTable/{start}/{end}/{type}', 'NewUpdated\ScanCargoEksporController@getListJobTable');
-        Route::get('/exportExcel/{job_no}', 'NewUpdated\ScanCargoEksporController@exportExcel');
-        // Route::get('/addCargo', 'NewUpdated\ScanCargoEksporController@addCargo');
+        // Route::get('/in', 'NewUpdated\ScanCargoEksporController@index');
+        Route::POST('/submitReceiving', 'NewUpdated\ScanCargoEksporController@submitReceiving')->name('submitReceiving');
+        Route::get('/list', 'NewUpdated\ScanCargoEksporController@list');
+        Route::get('/getListReceive', 'NewUpdated\ScanCargoEksporController@getListReceive')->name('getListReceive');
+
+        // Route::get('/out', 'NewUpdated\ScanCargoEksporController@stuffing');
+        Route::POST('/submitStuffing', 'NewUpdated\ScanCargoEksporController@submitStuffing')->name('submitStuffing');
+        Route::get('/getListStuffing', 'NewUpdated\ScanCargoEksporController@getListStuffing')->name('getListStuffing');
+
+        Route::get('/downloadReceiving/{job_no}', 'NewUpdated\ScanCargoEksporController@downloadReceiving');
+        Route::get('/downloadStuffing/{job_no}', 'NewUpdated\ScanCargoEksporController@downloadStuffing');
+
+        Route::get('/pallet-tag', 'NewUpdated\ScanCargoEksporController@PrintPallettag');
+        Route::POST('/doPrint', 'NewUpdated\ScanCargoEksporController@doPrint');
+        Route::get('/getPalletStuffing/{pallet}', 'NewUpdated\ScanCargoEksporController@getPalletStuffing');
     });
 });

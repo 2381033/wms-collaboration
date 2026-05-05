@@ -123,6 +123,7 @@ class ReportController extends Controller
                     ->join("iv_mode as c", "a.mode_id", "c.id")
                     ->where("a.id", "=", $id)
                     ->first();
+                // dd($detail);
 
                 $data = [
                     "job_view" => $job,
@@ -375,7 +376,8 @@ class ReportController extends Controller
                         "b.muom",
                         "b.buom",
                         "b.volume",
-                        "b.gross_weight"
+                        "b.gross_weight",
+                        DB::raw("CASE WHEN b.manufactur_code IS NULL THEN 'No' ELSE 'Yes' END as manufactur_code")
                     )
                     ->join("iv_product as b", "a.product_id", "b.id")
                     ->leftjoin("iv_site as c", "a.site_id", "c.id")
@@ -459,6 +461,7 @@ class ReportController extends Controller
                         ["name" => "Site", "rowspan" => "2", "colspan" => "1"],
                         ["name" => "Area", "rowspan" => "2", "colspan" => "1"],
                         ["name" => "Location", "rowspan" => "2", "colspan" => "1"],
+                        ["name" => "Scan", "rowspan" => "2", "colspan" => "1"],
                         ["name" => "Quantity", "rowspan" => "1", "colspan" => "2"],
                     ]);
 
@@ -487,6 +490,7 @@ class ReportController extends Controller
                         ["name" => "Site", "field_name" => "site_name", "class" => "left", "colspan" => "1"],
                         ["name" => "Area", "field_name" => "area_name", "class" => "left", "colspan" => "1"],
                         ["name" => "Location", "field_name" => "location_code", "class" => "left", "colspan" => "1"],
+                        ["name" => "Scan Ean", "field_name" => "manufactur_code", "class" => "left", "colspan" => "1"],
                         ["name" => "1st", "field_name" => "qty", "class" => "right", "colspan" => "1"],
                         ["name" => "1st", "field_name" => "puom", "class" => "center", "colspan" => "1"],
                     ]);
@@ -507,6 +511,7 @@ class ReportController extends Controller
                         "site_name" => $value->site_name,
                         "area_name" => $value->area_name,
                         "location_code" => $value->location_code,
+                        "manufactur_code" => $value->manufactur_code,
                         "qty" => number_format($value->qty, 0, ",", "."),
                         "mqty" => number_format($value->mqty, 0, ",", "."),
                         "bqty" => number_format($value->bqty, 0, ",", "."),
@@ -968,7 +973,11 @@ class ReportController extends Controller
                         "b.muom",
                         "b.buom",
                         "b.volume",
-                        "b.gross_weight"
+                        "b.gross_weight",
+                        "b.length",
+                        "b.width",
+                        "b.height",
+                        DB::raw('(b.length * b.width * b.height * a.qty) / 1000000 as total_volume')
                     )
                     ->join("iv_product as b", "a.product_id", "b.id")
                     ->leftjoin("iv_site as c", "a.site_id", "c.id")
@@ -1045,12 +1054,17 @@ class ReportController extends Controller
                         ["name" => "Site", "rowspan" => "2", "colspan" => "1"],
                         ["name" => "Area", "rowspan" => "2", "colspan" => "1"],
                         ["name" => "Location", "rowspan" => "2", "colspan" => "1"],
-                        ["name" => "Quantity", "rowspan" => "1", "colspan" => "2"]
+                        ["name" => "Quantity", "rowspan" => "1", "colspan" => "2"],
+                        ["name" => "Measurements", "rowspan" => "1", "colspan" => "4"],
                     ]);
 
                     $headTwo = collect([
                         ["name" => "1st Qty"],
                         ["name" => "1st Unit"],
+                        ["name" => "Length"],
+                        ["name" => "Width"],
+                        ["name" => "Height"],
+                        ["name" => "Total Volume"]
                     ]);
 
                     $bodyOne = collect([
@@ -1066,9 +1080,13 @@ class ReportController extends Controller
                         ["name" => "Exp Date", "field_name" => "location_code", "class" => "left", "colspan" => "1"],
                         ["name" => "1st", "field_name" => "qty", "class" => "right", "colspan" => "1"],
                         ["name" => "1st", "field_name" => "puom", "class" => "center", "colspan" => "1"],
+                        ["name" => "Length", "field_name" => "length", "class" => "right", "colspan" => "1"],
+                        ["name" => "Width", "field_name" => "width", "class" => "right", "colspan" => "1"],
+                        ["name" => "Height", "field_name" => "height", "class" => "right", "colspan" => "1"],
+                        ["name" => "Total Volume", "field_name" => "total_volume", "class" => "right", "colspan" => "1"]
                     ]);
 
-                    $columnCount = 12;
+                    $columnCount = 16;
                 }
 
                 $listData = [];
@@ -1090,10 +1108,12 @@ class ReportController extends Controller
                         "puom" => $value->puom,
                         "muom" => $value->muom,
                         "buom" => $value->buom,
-                        // "total" => $value->quantum_calculate->calculate,
+                        "length" => number_format($value->length, 2, ",", "."),
+                        "width" => number_format($value->width, 2, ",", "."),
+                        "height" => number_format($value->height, 2, ",", "."),
+                        "total_volume" => number_format($value->total_volume, 3, ",", "."),
                     ];
                 }
-                // dd($stockList->where('product_code', 'ENGVA'));
 
                 $data = [
                     "title" => "Inbound Confirmation Report",
@@ -1222,55 +1242,56 @@ class ReportController extends Controller
         }
     }
 
-    public function allPallet(Request $request){
-            $view = DB::table("iv_inbound_job as a")
-                ->select(
-                    "a.*",
-                    "b.principal_name",
-                    "b.multi_level"
-                )
-                ->join("iv_principal as b", "a.principal_id", "b.id")
-                ->where("a.id", $request->job_id)
+    public function allPallet(Request $request)
+    {
+        $view = DB::table("iv_inbound_job as a")
+            ->select(
+                "a.*",
+                "b.principal_name",
+                "b.multi_level"
+            )
+            ->join("iv_principal as b", "a.principal_id", "b.id")
+            ->where("a.id", $request->job_id)
+            ->first();
+        $list = DB::table("iv_inbound_per_pallet")
+            ->where("inbound_id", $view->id)
+            ->whereIn("product_code", $request->list_sku)
+            ->get();
+
+        $list->map(function ($value) {
+            $value->master_detail = DB::table("iv_inbound_detail")
+                ->where('id', $value->picking_id)
+                ->where("product_code", $value->product_code)
                 ->first();
-            $list = DB::table("iv_inbound_per_pallet")
-                ->where("inbound_id", $view->id)
-                ->whereIn("product_code", $request->list_sku)
-                ->get();
+            return $value;
+        });
 
-            $list->map(function ($value) {
-                $value->master_detail = DB::table("iv_inbound_detail")
-                    ->where('id', $value->picking_id)
-                    ->where("product_code", $value->product_code)
-                    ->first();
-                return $value;
-            });
+        $list->map(function ($value) {
+            $value->master_product = DB::table("iv_product")
+                ->where('product_code', $value->master_detail->product_code)
+                ->first();
+            return $value;
+        });
 
-            $list->map(function ($value) {
-                $value->master_product = DB::table("iv_product")
-                    ->where('product_code', $value->master_detail->product_code)
-                    ->first();
-                return $value;
-            });
+        $list->map(function ($value) {
+            $value->master_principal = DB::table("iv_principal")
+                ->where('id', $value->master_product->principal_id)
+                ->first();
+            return $value;
+        });
 
-            $list->map(function ($value) {
-                $value->master_principal = DB::table("iv_principal")
-                    ->where('id', $value->master_product->principal_id)
-                    ->first();
-                return $value;
-            });
+        $list->map(function ($value) {
+            $value->master_job = DB::table("iv_inbound_job")
+                ->where('id', $value->master_detail->inbound_id)
+                ->first();
+            return $value;
+        });
 
-            $list->map(function ($value) {
-                $value->master_job = DB::table("iv_inbound_job")
-                    ->where('id', $value->master_detail->inbound_id)
-                    ->first();
-                return $value;
-            });
-
-            $data = [
-                "view" => $view,
-                "list_data" => $list
-            ];
-            return view("transaction.inbound.pallet", $data);
+        $data = [
+            "view" => $view,
+            "list_data" => $list
+        ];
+        return view("transaction.inbound.pallet", $data);
     }
 
     public function export(Request $request)

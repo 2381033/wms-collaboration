@@ -33,6 +33,7 @@ class TracingCustomereExportController extends Controller
             ->whereYear('created_at', date('Y'))
             ->orderBy('id', 'DESC')
             ->get();
+        dd($data);
         $data = $data->map(function ($value) {
             $value->shipper_name = DB::table('mt_shipper')->where('id', $value->shipper_id)->value('shipper_name') ?? '-';
             return $value;

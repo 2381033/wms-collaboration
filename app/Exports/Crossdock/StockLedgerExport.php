@@ -4,130 +4,100 @@ namespace App\Exports\Crossdock;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Session;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
 class StockLedgerExport implements FromCollection, WithHeadings
 {
-    protected $id_branch = null;
-    protected $id_warehouse = null;
-    protected $id_customer = null;
+    protected $id_branch;
+    protected $id_warehouse;
+    protected $id_customer;
+    protected $report_type;
 
-    public function __construct($id_branch, $id_customer, $id_warehouse)
+    public function __construct($id_branch, $id_warehouse, $id_customer, $report_type)
     {
-        $this->id_branch = $id_branch;
+        $this->id_branch   = $id_branch;
         $this->id_warehouse = $id_warehouse;
         $this->id_customer = $id_customer;
+        $this->report_type   = $report_type;
     }
 
-    private function getHeaderInbound($id)
+    public function collection(): Collection
     {
-        $data = DB::table('cross_inbound_header')
-            ->where('id', $id)
-            ->first();
-
-        return $data;
-    }
-
-    private function getCustomer($id)
-    {
-        $customer = DB::table('cross_mt_customer')
-            ->where('id', $id)
-            ->value('name');
-
-        return $customer;
-    }
-
-
-    private function getWarehouse($id)
-    {
-        $warehouse = DB::table('cross_mt_warehouse')
-            ->where('id', $id)
-            ->value('name');
-
-        return $warehouse;
-    }
-
-    public function collection()
-    {
-        $data = DB::table('cross_stock_ledger')
-            ->where('id_branch', $this->id_branch)
-            ->where('id_warehouse', $this->id_warehouse)
-            ->where('on_hand', '>', 0)
-            ->get();
-        if ($this->id_customer > 0) {
-            $data = $data->where('id_customer', $this->id_customer);
+        $baseQuery = DB::table('cross_stock_ledger as c')
+            ->join('cross_mt_warehouse as w', 'w.id', '=', 'c.id_warehouse')
+            ->join('cross_mt_customer as cu', 'cu.id', '=', 'c.id_customer')
+            ->leftJoin('cross_inbound_header as ih', 'ih.id', '=', 'c.id_inbound')
+            ->where('c.id_branch', $this->id_branch)
+            ->where('c.id_warehouse', $this->id_warehouse)
+            ->where('c.on_hand', '>', 0);
+        if (is_numeric($this->id_customer)) {
+            $baseQuery->where('c.id_customer', $this->id_customer);
+            // $id_customer = $this->id_customer;
         } else {
-            $data = $data;
+            // $id_customer = 0;
         }
 
-        $data->map(function ($value) {
-            $value->header = $this->getHeaderInbound($value->id_inbound);
-            $value->warehouse = $this->getWarehouse($value->id_warehouse);
-            $value->customer = $this->getCustomer($value->id_customer);
-        });
-
-
-        if ($data->count() > 0) {
-            $groupBy = $data->groupBy('id_customer');
-            //DETAIL
-            if ($this->id_customer > 0) {
-                foreach ($data as $value) {
-                    $weight_total[] = $value->on_hand * $value->w;
-                    $cbm_total[] = $value->on_hand * $value->cbm_per_unit;
-
-                    $list[] = [
-                        "warehouse" => $value->warehouse,
-                        "job_no" => $value->header->job_no,
-                        "customer" => $value->customer,
-                        "description" => $value->description,
-                        "id_cargo" => $value->id_cargo,
-                        "sku" => "'" . $value->sku,
-                        "created_at" => formatTanggalIndonesia2($value->header->created_at),
-                        "p" => $value->p,
-                        "l" => $value->l,
-                        "t" => $value->t,
-                        "w" => $value->w,
-                        "cbm_per_unit" => $value->cbm_per_unit,
-                        "on_hand" => $value->on_hand,
-                        "on_booking" => $value->on_booking == 0 ? '0' : $value->on_booking,
-                        "on_actual" => $value->on_actual == 0 ? '0' : $value->on_actual,
-                        "unit" => $value->unit,
-                        "weight_total" => number_format(array_sum($weight_total), 1, '.', ''),
-                        "cbm_total" => number_format(array_sum($cbm_total), 3, '.', ''),
-                    ];
-                }
-            }
-            //SUMMARY
-            else {
-                foreach ($groupBy as $key => $value) {
-                    $list[] = [
-                        "warehouse" => $data->where('id_customer', $key)->first()->warehouse ?? '-',
-                        "customer" => $data->where('id_customer', $key)->first()->customer ?? '-',
-                        "total_sku" =>  array_sum($data->where('id_customer', $key)->pluck('on_hand')->toArray()),
-                        "weight_total" =>  array_sum($data->where('id_customer', $key)->pluck('w')->toArray()),
-                        "cbm_total" =>  array_sum($data->where('id_customer', $key)->pluck('cbm_per_unit')->toArray()),
-                    ];
-                }
-            }
-            return new Collection($list);
+        if ($this->report_type == 'summary') {
+            return $baseQuery
+                ->selectRaw('
+                w.name as warehouse,
+                cu.name as customer,
+                SUM(c.on_hand) as on_hand,
+                SUM(c.on_booking) as on_booking,
+                SUM(c.on_actual) as on_actual,
+                SUM(c.w) as weight_total,
+                SUM(c.on_hand * c.cbm_per_unit) as total_cbm
+            ')
+                ->groupBy('cu.name', 'w.name')
+                ->orderBy('cu.name')
+                ->get();
         } else {
-            Session::flash('warning', 'Data Not Found..');
-            return back();
+            return $baseQuery
+                // ->where('c.id_customer', $id_customer)
+                ->select([
+                    'w.name as warehouse',
+                    'c.job_no',
+                    'cu.name as customer',
+                    'ih.remarks as inbound_remark',
+                    'c.id_cargo',
+                    'c.created_at',
+                    'c.p',
+                    'c.l',
+                    'c.t',
+                    'c.w',
+                    'c.cbm_per_unit',
+                    'c.on_hand',
+                    DB::raw('COALESCE(c.on_hand, 0) as on_hand'),
+                    DB::raw('COALESCE(c.on_booking, 0) as on_booking'),
+                    DB::raw('COALESCE(c.on_actual, 0) as on_actual'),
+                    'c.unit',
+                ])
+                ->orderBy('cu.name')
+                ->orderBy('c.sku')
+                ->get();
         }
     }
 
     public function headings(): array
     {
-        if ($this->id_customer > 0) {
+        if ($this->report_type == 'summary') {
+            return [
+                'Warehouse',
+                'Customer',
+                'SOH',
+                'SOB',
+                'SOA',
+                'Weight Total (Kg)',
+                'Vol. Total (Cbm)',
+            ];
+        } else {
             return [
                 "Warehouse",
                 "Job No",
                 "Customer",
-                'Description',
-                'Cargo ID',
-                "SKU",
+                "Description",
+                "Cargo ID",
                 "Date In",
                 "P",
                 "L",
@@ -138,16 +108,6 @@ class StockLedgerExport implements FromCollection, WithHeadings
                 "SOB",
                 "SOA",
                 "UOM",
-                "Weight Total (Kg)",
-                "Vol. Total (Cbm)"
-            ];
-        } else {
-            return [
-                'Warehouse',
-                'Customer',
-                'Stock SKU',
-                'Weight Total (Kg)',
-                'Vol. Total (Cbm)',
             ];
         }
     }

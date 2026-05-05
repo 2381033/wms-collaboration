@@ -38,6 +38,14 @@ class OrderController extends Controller
                 ->editColumn('due_date', function ($data) {
                     return date('d/m/Y', strtotime($data->due_date));
                 })
+                ->addColumn('ean_code_count', function ($data) {
+                    if (is_null($data->manufactur_code)) {
+                        $countingActual = $data->pqty;
+                    } else {
+                        $countingActual = $data->ean_code_count;
+                    }
+                    return $countingActual;
+                })
                 ->addColumn('action', function ($data) {
                     $button = "";
                     if ($data->confirmed_flag == 'No') {

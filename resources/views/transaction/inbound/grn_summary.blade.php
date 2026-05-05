@@ -82,8 +82,10 @@
                                             <th rowspan="2">Batch No</th>
                                             <th rowspan="2">Mfg Date</th>
                                             <th rowspan="2">Exp Date</th>
-                                            <th rowspan="2">Volume</th>
-                                            <th rowspan="2">Gross Weight</th>
+                                            <th rowspan="2">Volume <p>(CBM)</p>
+                                            </th>
+                                            <th rowspan="2">Gross Weight <p>(KG)</p>
+                                            </th>
                                             <th colspan="6">Quantity</th>
                                             <th rowspan="2">Status</th>
                                         </tr>
@@ -104,8 +106,10 @@
                                             <th rowspan="2">Batch No</th>
                                             <th rowspan="2">Mfg Date</th>
                                             <th rowspan="2">Exp Date</th>
-                                            <th rowspan="2">Volume</th>
-                                            <th rowspan="2">Gross Weight</th>
+                                            <th rowspan="2">Volume <p>(CBM)</p>
+                                            </th>
+                                            <th rowspan="2">Gross Weight <p>(KG)</p>
+                                            </th>
                                             <th colspan="2">Quantity</th>
                                             <th rowspan="2">Status</th>
                                         </tr>
@@ -134,10 +138,11 @@
                                                 @endisset
                                             </td>
                                             <td rowspan="3" class="right">
-                                                {{ number_format($detail->actual_pqty * $detail->volume, 3, ',', '.') }}
+                                                {{ number_format($detail->actual_pqty * $detail->volume, 0, ',', '.') }}
                                             </td>
                                             <td rowspan="3" class="right">
-                                                {{ number_format($detail->gross_weight, 3, ',', '.') }}</td>
+                                                {{ number_format($detail->gross_weight * $detail->qty, 0, ',', '.') }}
+                                            </td>
                                             <td class="right">{{ number_format($detail->actual_pqty, 0, ',', '.') }}
                                             </td>
                                             <td class="center">{{ $detail->puom }}</td>

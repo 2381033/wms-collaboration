@@ -12,11 +12,58 @@ use Illuminate\Support\Str;
 
 class LokasiBongkarController extends Controller
 {
+
+    private function compressJpeg($uploadedFile, $destination, $quality = 70)
+    {
+        $source = imagecreatefromjpeg($uploadedFile->getRealPath());
+        $width  = imagesx($source);
+        $height = imagesy($source);
+
+        $maxWidth = 1600;
+        $maxHeight = 1600;
+
+        if ($width > $maxWidth || $height > $maxHeight) {
+            $ratio = min($maxWidth / $width, $maxHeight / $height);
+
+            $newWidth  = intval($width * $ratio);
+            $newHeight = intval($height * $ratio);
+
+            $resized = imagecreatetruecolor($newWidth, $newHeight);
+
+            imagecopyresampled(
+                $resized,
+                $source,
+                0,
+                0,
+                0,
+                0,
+                $newWidth,
+                $newHeight,
+                $width,
+                $height
+            );
+
+            $source = $resized;
+        }
+
+        imagejpeg($source, $destination, $quality);
+
+        imagedestroy($source);
+    }
     private function detailUser($id_user)
     {
         $data = DB::table('users')
             ->where('id', $id_user)->first();
         return $data;
+    }
+
+    private function whereMyBranch($user_id)
+    {
+        $branch = DB::table('sm_user_branch')
+            ->where('user_id', $user_id)
+            ->first()->branch_id;
+
+        return $branch;
     }
 
     public function gateInLokasiBongkar($id)
@@ -26,9 +73,10 @@ class LokasiBongkarController extends Controller
                 $token = DB::table('cp_driver_detail')
                     ->where('id', $id)
                     ->value('token');
+                $job = $this->getJob($token);
 
                 DB::table('cp_driver_job')
-                    ->updateOrInsert(
+                    ->where(
                         ['token' =>  $token],
                         [
                             'status_job' => 'gate_in_loc_bongkar',
@@ -40,7 +88,7 @@ class LokasiBongkarController extends Controller
                     ->updateOrInsert(
                         ['id' =>  $id],
                         [
-                            'gate_in_loc_bongkar' => date('Y-m-d H:i:s'),
+                            'gate_in_loc_bongkar' => $this->logicWaktu($job->id_user),
                         ]
                     );
                 DB::commit();
@@ -63,11 +111,9 @@ class LokasiBongkarController extends Controller
     {
         $exception = DB::transaction(function () use ($request) {
             try {
-                $file = $request->file('photo');
-                $filename = 'in-bongkar-' . $request->id . '-' . $request->job_no . "." . $file->getClientOriginalExtension();
-                if (!file_exists(public_path('foto/checkpoint-driver/lokasi-bongkar/' . $filename))) {
-                    $file->move(public_path('foto/checkpoint-driver/lokasi-bongkar'), $filename);
-                }
+                $filename = 'in-bongkar-' . $request->job_no . "-" . Str::random(6) . ".jpg";
+                $destination = public_path('foto/checkpoint-driver/lokasi-bongkar/' . $filename);
+                $this->compressJpeg($request->file('photo'), $destination);
                 DB::table('cp_driver_detail')
                     ->updateOrInsert(
                         ['id' =>  $request->id],
@@ -95,11 +141,9 @@ class LokasiBongkarController extends Controller
     {
         $exception = DB::transaction(function () use ($request) {
             try {
-                $file = $request->file('photo');
-                $filename = 'out-bongkar-' . $request->id . '-' . $request->job_no . "." . $file->getClientOriginalExtension();
-                if (!file_exists(public_path('foto/checkpoint-driver/lokasi-bongkar/' . $filename))) {
-                    $file->move(public_path('foto/checkpoint-driver/lokasi-bongkar'), $filename);
-                }
+                $filename = 'out-bongkar-' . $request->job_no . "-" . Str::random(6) . ".jpg";
+                $destination = public_path('foto/checkpoint-driver/lokasi-bongkar/' . $filename);
+                $this->compressJpeg($request->file('photo'), $destination);
                 DB::table('cp_driver_detail')
                     ->updateOrInsert(
                         ['id' =>  $request->id],
@@ -130,6 +174,7 @@ class LokasiBongkarController extends Controller
                 $token = DB::table('cp_driver_detail')
                     ->where('id', $id)
                     ->value('token');
+                $job = $this->getJob($token);
 
                 DB::table('cp_driver_job')
                     ->updateOrInsert(
@@ -144,7 +189,7 @@ class LokasiBongkarController extends Controller
                     ->updateOrInsert(
                         ['id' =>  $id],
                         [
-                            'gate_out_loc_bongkar' => date('Y-m-d H:i:s'),
+                            'gate_out_loc_bongkar' => $this->logicWaktu($job->driver),
                             'status' => 1
                         ]
                     );
@@ -246,8 +291,10 @@ class LokasiBongkarController extends Controller
                         'remarks_perjalanan' => $request->remarks_perjalanan,
                         'confirmed_flag' => 'Yes',
                         'status_job' => 'confirmed',
-                        'confirmed_at' => date('Y-m-d H:i:s'),
+                        'confirmed_at' => $this->logicWaktu($job->driver),
                         'confirmed_by' => $userDetails->id,
+                        'foto_km_finish' => $job->file_surat_jalan,
+                        'finish_back_to_garage' => $this->logicWaktu($job->driver)
                     ]);
                 DB::commit();
 
@@ -265,5 +312,16 @@ class LokasiBongkarController extends Controller
             }
         });
         return response()->json($exception);
+    }
+
+    private function logicWaktu($id_user)
+    {
+        $branch = $this->whereMyBranch($id_user);
+
+        if ($branch == 5) {
+            return date('Y-m-d H:i:s', strtotime('+1 hour'));
+        } else {
+            return date('Y-m-d H:i:s');
+        }
     }
 }

@@ -14,10 +14,15 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+Route::get('/testcommand', 'ProfileController@testcommand');
+
+//MONITOR SECURITY
+Route::GET('mkt/gate-in/{branch}', 'Transaction\Export\LCLPerformanceController@listGateIn');
+Route::GET('getListGateIn/{branch}/{start}/{end}', 'Transaction\Export\LCLPerformanceController@getListGateIn');
 Route::get('/test', function () {
-    // return view('email.stockEmail');
     return view('welcome');
 });
+// Auth::routes();
 
 Route::get('/', 'HomeController@index')->name('home');
 Route::get('/home', 'HomeController@index')->name('home');
@@ -26,8 +31,21 @@ Route::get('/about', 'ProfileController@about')->name('profile.about');
 Route::get('/services', 'ProfileController@services')->name('profile.services');
 Route::get('/contact', 'ProfileController@contact')->name('profile.contact');
 
+Route::get('warehouse/gate-in/monitoring/{site}', 'MonitoringVehicleDCController@index');
+Route::get('warehouse/gate-in/monitoring/list/{site_id}', 'MonitoringVehicleDCController@listMonitoring');
+Route::get('warehouse/gate-in/monitoring/exportData/{start_date}/{end_date}/{site_id}', 'MonitoringVehicleDCController@exportData')->name('monitoring.exportData');
+
+Route::get('warehouse/gate-in/monitoring/{site}', 'MonitoringVehicleDCController@index');
+Route::get('warehouse/gate-in/monitoring/list/{site_id}', 'MonitoringVehicleDCController@listMonitoring');
+Route::get('warehouse/gate-in/monitoring/exportData/{start_date}/{end_date}/{site_id}', 'MonitoringVehicleDCController@exportData')->name('monitoring.exportData');
+
 Route::get('login', 'LoginController@index')->name('login');
 Route::post('login/post', 'LoginController@postLogin')->name('login.post');
+
+Route::get('warehouse/gate-in/monitoring/{site}', 'MonitoringVehicleDCController@index');
+Route::get('warehouse/gate-in/monitoring/list/{site_id}', 'MonitoringVehicleDCController@listMonitoring');
+Route::get('warehouse/gate-in/monitoring/exportData/{start_date}/{end_date}/{site_id}', 'MonitoringVehicleDCController@exportData')->name('monitoring.exportData');
+
 
 require base_path('routes/tracing-cust-export.php');
 require base_path('routes/Foto-Management-Import.php');
@@ -242,6 +260,7 @@ Route::group(['middleware' => 'auth'], function () {
 
     Route::get('/product-master/product', 'Master\ProductController@index')->name('product.index');
     Route::POST('/product-master/upload', 'Master\ProductController@upload')->name('upload-product-master');
+    Route::POST('/product-master/update-dimension', 'Master\ProductController@updateDimension');
     Route::get('/product-master/product/{id}/edit', 'Master\ProductController@edit');
     Route::post('/product-master/product/store', 'Master\ProductController@store')->name('product.store');
     Route::delete('/product-master/product/{id}', 'Master\ProductController@destroy')->name('product.destroy');
@@ -260,6 +279,8 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/warehouse/inbound/job', 'Transaction\Inbound\JobController@edit')->name('inbound-job.edit');
     Route::post('/warehouse/inbound/store', 'Transaction\Inbound\JobController@store')->name('inbound-job.store');
     Route::post('/warehouse/inbound/add_per_pallet', 'Transaction\Inbound\JobController@add_per_pallet')->name('inbound.add_per_pallet');
+    Route::GET('/warehouse/inbound/getDetailVehicle/{vehicle_number}', 'Transaction\Inbound\JobController@getDetailVehicle');
+    Route::GET('/warehouse/inbound/getDetailVehicle/{vehicle_number}', 'Transaction\Inbound\JobController@getDetailVehicle');
     Route::GET('/warehouse/inbound/bypass/{inbound_id}', 'Transaction\Inbound\JobController@byPassScan');
     /* End Inbound Job */
 
@@ -281,6 +302,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/warehouse/inbound/detailPallet/{picking_id}/{inbound_id}/{product_code}', 'Transaction\Inbound\DetailController@detailPallet');
     Route::GET('/warehouse/inbound/scanLokasi/{qr}', 'Transaction\Inbound\DetailController@getScanLokasi');
     Route::POST('/warehouse/inbound/scanLokasi', 'Transaction\Inbound\DetailController@postScanLokasi')->name('inbound-scan_lokasi');
+    Route::get('/warehouse/inbound/detail/doScanEan/{value}/{job_id}', 'Transaction\Inbound\DetailController@doScanEan');
     /* End Inbound Detail Packing */
 
     /* Inbound Detail Packing */
@@ -300,6 +322,9 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('warehouse/inbound/startPutaway/getLocationAvail/{inbound_id}', 'Transaction\Inbound\PutawayController@getLocationAvail');
     Route::get('/warehouse/inbound/startPutaway/{inbound_id}/{product_id}/{picking_id}', 'Transaction\Inbound\PutawayController@startPutaway');
     Route::get('/warehouse/inbound/startPutaway/getListPutaway/{picking_id}', 'Transaction\Inbound\PutawayController@getListPutaway');
+
+    Route::get('/warehouse/inbound/putaway/getList', 'Transaction\Inbound\PutawayController@getList')->name('inbound-putaway.index');
+
 
     Route::get('/export/inbound/scanCtn/', 'Transaction\Inbound\ScanCtnController@startScan');
     Route::POST('/export/inbound/scanCtn/submit', 'Transaction\Inbound\ScanCtnController@submit');
@@ -357,6 +382,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::POST('/warehouse/outbound/validasiQtyBatch', 'Transaction\Outbound\JobController@validasiQtyBatch')->name('outbound.validasi_qty_batch');
     Route::POST('/warehouse/outbound/postScanLokasi', 'Transaction\Outbound\JobController@postScanLokasi')->name('outbound-scan_lokasi');
     Route::GET('/warehouse/outbound/bypass/{outbound_id}', 'Transaction\Outbound\JobController@byPassScan');
+    Route::GET('/warehouse/outbound/getListEAN/{outbound_id}', 'Transaction\Outbound\DetailController@getListEan');
     /* End Outbound Job */
 
     /* Outbound Order */
@@ -373,6 +399,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::delete('/warehouse/outbound/detail/destroy', 'Transaction\Outbound\DetailController@destroy')->name('outbound-detail.destroy');
     Route::post('/warehouse/outbound/detail/import', 'Transaction\Outbound\DetailController@import')->name('outbound-detail.import');
     Route::get('/warehouse/outbound/detail/export/{id}', 'Transaction\Outbound\DetailController@export');
+    Route::get('/warehouse/outbound/detail/doScanEan/{value}/{job_id}', 'Transaction\Outbound\DetailController@doScanEAN');
     /* End Outbound Detail */
 
     /* Outbound Picking */
@@ -511,10 +538,22 @@ Route::group(['middleware' => 'auth'], function () {
 
     /* Stock Take */
     Route::get('/inventory/stock-take', 'Transaction\StockTake\JobController@index')->name('take-job.index');
+    Route::get('/inventory/stock-take/confirmJob/{id}', 'Transaction\StockTake\JobController@confirmJob');
     Route::get('/inventory/stock-take/create/{id}', 'Transaction\StockTake\JobController@create')->name('take-job.create');
+    Route::get('/inventory/stock-take/ready/{type}/{id}/{principal_id}/{branch_id}', 'Transaction\StockTake\JobController@ready');
     Route::get('/inventory/stock-take/job', 'Transaction\StockTake\JobController@edit')->name('take-job.edit');
     Route::post('/inventory/stock-take/store', 'Transaction\StockTake\JobController@store')->name('take-job.store');
+    Route::get('/inventory/stock-take/scan', 'Transaction\StockTake\JobController@scan');
+    Route::POST('/inventory/stock-take/doScan', 'Transaction\StockTake\JobController@doScan');
+    Route::POST('/inventory/stock-take/variance', 'Transaction\StockTake\JobController@variance');
+    Route::get('/inventory/stock-take/list', 'Transaction\StockTake\JobController@list');
+    Route::get('/inventory/stock-take/getList/{start}/{end}', 'Transaction\StockTake\JobController@getList');
+    Route::get('/inventory/stock-take/getMonitoring/{start}/{end}', 'Transaction\StockTake\JobController@getMonitoring');
+    Route::get('/inventory/stock-take/getBlok/{principal_id}', 'Transaction\StockTake\JobController@getBlok');
+    // Route::get('/inventory/stock-take/getJobNo/{job_no}', 'Transaction\StockTake\JobController@getJobNo');
 
+    Route::POST('/inventory/stock-take/updateList/{id}', 'Transaction\StockTake\DetailController@updateList');
+    Route::get('/inventory/stock-take/matchingList/{id}', 'Transaction\StockTake\DetailController@matchingList');
     Route::get('/inventory/stock-take/detail', 'Transaction\StockTake\DetailController@index')->name('take-detail.index');
     Route::post('/inventory/stock-take/detail/store', 'Transaction\StockTake\DetailController@store')->name('take-detail.store');
 
@@ -530,6 +569,9 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/inventory/stock-adjustment/create/{id}', 'Transaction\Adjustment\JobController@create')->name('adjustment-job.create');
     Route::get('/inventory/stock-adjustment/job', 'Transaction\Adjustment\JobController@edit')->name('adjustment-job.edit');
     Route::post('/inventory/stock-adjustment/store', 'Transaction\Adjustment\JobController@store')->name('adjustment-job.store');
+
+    Route::get('/inventory/stock-adjustment/downloadTemplate/{principal}', 'Transaction\Adjustment\JobController@downloadTemplate');
+    Route::POST('/inventory/stock-adjustment/upload', 'Transaction\Adjustment\JobController@upload');
 
     Route::get('/inventory/stock-adjustment/detail', 'Transaction\Adjustment\DetailController@index')->name('adjustment-detail.index');
     Route::post('/inventory/stock-adjustment/detail/edit', 'Transaction\Adjustment\DetailController@edit')->name('adjustment-detail.edit');
@@ -618,23 +660,31 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post('/cy/report/transaction/print', 'Transaction\CY\ReportController@transaction')->name('cy-report.transaction');
     Route::get('/cy/report/transaction/export', 'Transaction\CY\ReportController@transactionExport');
 
-    Route::get('/export/inbound/create/{id}', 'Transaction\Export\Inbound\JobController@create')->name('export-inbound.create');
+    // Route::get('/export/inbound/create', 'Transaction\Export\Inbound\JobController@create')->name('export-inbound.create');
     // Route::get('/export/inbound/show/{id}', 'Transaction\Export\Inbound\JobController@show')->name('export-inbound.show');
     Route::get('/export/inbound/updateStaple/{job_id}/{username}', 'Transaction\Export\Inbound\JobController@updateStaple');
 
     Route::get('/export/inbound/', 'Transaction\Export\Inbound\JobController@index')->name('export-inbound.index');
-    // Route::get('/export/inbound/create', 'Transaction\Export\Inbound\JobController@create')->name('export-inbound.create');
-    // Route::get('/export/inbound/show/{id}', 'Transaction\Export\Inbound\JobController@show')->name('export-inbound.show');
+    Route::get('/export/inbound/create', 'Transaction\Export\Inbound\JobController@create')->name('export-inbound.create');
+    Route::get('/export/inbound/downloadTemplate', 'Transaction\Export\Inbound\JobController@downloadTemplate');
+    Route::get('/export/inbound/show/{id}', 'Transaction\Export\Inbound\JobController@show')->name('export-inbound.show');
     Route::post('/export/inbound/store', 'Transaction\Export\Inbound\JobController@store')->name('export-inbound.store');
     Route::post('/export/inbound/submit', 'Transaction\Export\Inbound\JobController@submit')->name('export-inbound.submit');
     Route::post('/export/inbound/updateWeight', 'Transaction\Export\Inbound\JobController@updateWeight');
+    Route::get('/export/inbound/getPalletize/{job_id}', 'Transaction\Export\Inbound\JobController@getPalletize');
+    Route::post('/export/inbound/updatePalletize', 'Transaction\Export\Inbound\JobController@updatePalletize');
+    Route::get('/export/inbound/showImages/{job_id}', 'Transaction\Export\Inbound\JobController@showImages');
+    Route::get('/export/inbound/backtoChecker/{job_id}', 'Transaction\Export\Inbound\JobController@backtoChecker');
+    Route::get('/export/inbound/deleteImage/{id}', 'Transaction\Export\Inbound\JobController@deleteImage');
 
     Route::get('/export/inbound/detail', 'Transaction\Export\Inbound\DetailController@index')->name('export-detail.index');
     Route::post('/export/inbound/detail/store', 'Transaction\Export\Inbound\DetailController@store')->name('export-detail.store');
     Route::get('/export/inbound/pallet-tag/{id}', 'Transaction\Export\Inbound\DetailController@palletTag');
 
     Route::get('/export/inbound/tally_sheet/{type}/{id}', 'Transaction\Export\Inbound\DetailController@tally_sheet');
-    Route::get('/export/inbound/tally_sheet/download/{id}', 'Transaction\Export\Inbound\DetailController@tallySheetExcel');
+    // Route::get('/export/inbound/tally_sheet/download/{id}', 'Transaction\Export\Inbound\DetailController@tallySheetExcel');
+    Route::get('/export/inbound/deleteStock/{job_id}', 'Transaction\Export\Inbound\DetailController@deleteStock');
+    Route::POST('/export/inbound/update_palletize', 'Transaction\Export\Inbound\DetailController@updatePalletize');
 
     Route::get('/export/outbound/', 'Transaction\Export\Outbound\JobController@index')->name('export-outbound.index');
     Route::get('/export/outbound/create/{id}', 'Transaction\Export\Outbound\JobController@create')->name('export-outbound.create');
@@ -667,6 +717,8 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/export/inbound/consignee/auto', 'Transaction\AutoCompleteController@getConsignee')->name('export.getConsignee');
     Route::get('/export/inbound/shipper/auto', 'Transaction\AutoCompleteController@getShipper')->name('export.getShipper');
     Route::get('/cy/stock/forwarder/auto', 'Transaction\AutoCompleteController@getForwarderStock')->name('export.getForwarderStock');
+    Route::get('/export/inbound/destination/auto', 'Transaction\AutoCompleteController@getDestination')->name('export.getDestination');
+    Route::get('/export/inbound/final_destination/auto', 'Transaction\AutoCompleteController@getFinalDestination')->name('export.getFinalDestination');
     Route::get('/cy/invoice/forwarder/auto', 'Transaction\AutoCompleteController@getForwarderInvoice')->name('export.getForwarderInvoice');
     Route::get('/export/stock/forwarder/auto', 'Transaction\AutoCompleteController@getForwarderStockExport')->name('export.getForwarderStockExport');
     Route::get('/export/outbound/forwarder/auto', 'Transaction\AutoCompleteController@getForwarderOutbound')->name('export.getForwarderOutbound');
@@ -759,6 +811,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/issue-reason', 'Transaction\Issue\JobController@index')->name('issue-reason.index');
     Route::get('/issue-reason/create/{id}', 'Transaction\Issue\JobController@create')->name('issue-reason.create');
     Route::post('/issue-reason/store', 'Transaction\Issue\JobController@store')->name('issue-reason.store');
+    Route::get('/issue-reason/getList', 'Transaction\Issue\JobController@getList')->name('issue-reason.getList');
 
     /* Import & Export */
     Route::get('/customer-master/customer/export/{id}', 'Master\CustomerController@export');
@@ -875,5 +928,24 @@ Route::group(['middleware' => 'auth'], function () {
     require base_path('routes/CheckpointDriver.php');
     require base_path('routes/ExportBeaCukai.php');
     require base_path('routes/DashboardOps.php');
+    require base_path('routes/DashboardExport.php');
     require base_path('routes/cy-new.php');
+    // require base_path('routes/ScanCargoEkspor.php');
+    require base_path('routes/TrackingCarton.php');
+    require base_path('routes/ReportExport.php');
+    require base_path('routes/FreezeStockDC.php');
+    require base_path('routes/DODashboard.php');
+    require base_path('routes/InboundPlanningDC.php');
+    require base_path('routes/OBExport.php');
+    require base_path('routes/OccupancyDailyDC.php');
+    require base_path('routes/BeritaAcaraDC.php');
+    require base_path('routes/GateInDC.php');
+    require base_path('routes/ToolsManagement.php');
+});
+
+Route::group(['prefix' => 'api/static-auth', 'namespace' => 'Api'], function () {
+    Route::get('/shipper/search', 'StaticAuthController@getShipper')->name('api.static.shipper.search');
+    Route::get('/forwarder/search', 'StaticAuthController@getForwarder')->name('api.static.forwarder.search');
+    Route::get('/shippers', 'StaticAuthController@getAllShippers')->name('api.static.shippers');
+    Route::get('/forwarders', 'StaticAuthController@getAllForwarders')->name('api.static.forwarders');
 });

@@ -45,14 +45,14 @@ class DashboardChart extends Command
     public function handle()
     {
         $this->year = \Carbon\Carbon::now()->year;
-        $this->month = 5;//\Carbon\Carbon::now()->month;
+        $this->month = 5; //\Carbon\Carbon::now()->month;
 
         $principal_list = MasterPrincipal::where("active", "Yes")->get();
 
         // foreach ($principal_list as $key => $value) {
-            // $data = $this->transaction("quantity", 1, 2);
+        // $data = $this->transaction("quantity", 1, 2);
 
-            // $this->sendView($data);
+        // $this->sendView($data);
         // }
         $request = Request::create("/dashboard/chart/2", 'GET');
         $this->info(app()->make(\Illuminate\Contracts\Http\Kernel::class)->handle($request));
@@ -60,7 +60,8 @@ class DashboardChart extends Command
         return 0;
     }
 
-    private function sendView($jsonData) {
+    private function sendView($jsonData)
+    {
         $periode = \Carbon\Carbon::create($this->year, $this->month, 1)->format("F") . " " . $this->year;
 
         $data = [
@@ -71,7 +72,8 @@ class DashboardChart extends Command
         view("dashboard.chart.warehouse", $data);
     }
 
-    public function transaction($type, $company_id, $principal_id) {
+    public function transaction($type, $company_id, $principal_id)
+    {
         $date_start = \Carbon\Carbon::create($this->year, $this->month, 1);
         $date_finish = \Carbon\Carbon::create($this->year, $this->month, 1)->endOfMonth();
 
@@ -83,60 +85,60 @@ class DashboardChart extends Command
         $data = [];
 
         $data[] = ['Day', 'Inbound', 'Outbound'];
-        for ($i=1; $i <= $datediff; $i++) {
+        for ($i = 1; $i <= $datediff; $i++) {
             $date = \Carbon\Carbon::create($this->year, $this->month, $i);
 
-            if ( $type == "volume" ) {
+            if ($type == "volume") {
                 $value = DB::table("iv_stock_transaction as a")
-                            ->select(
-                                DB::raw("sum(case when a.job_type = 'IMP' then a.qty * b.volume end) as inbound"),
-                                DB::raw("sum(case when a.job_type = 'EXP' then a.qty * b.volume end) as outbound")
-                            )
-                            ->join("iv_product as b", "a.product_id", "b.id")
-                            ->where("a.company_id", $company_id)
-                            ->where("a.principal_id", $principal_id)
-                            ->whereMonth("a.job_date", $this->month)
-                            ->whereYear("a.job_date", $this->year)
-                            ->whereIn("a.job_type", ["IMP", "EXP"])
-                            ->where("a.job_date", $date)
-                            ->first();
-            } else if ( $type == "weight" ) {
+                    ->select(
+                        DB::raw("sum(case when a.job_type = 'IMP' then a.qty * b.volume end) as inbound"),
+                        DB::raw("sum(case when a.job_type = 'EXP' then a.qty * b.volume end) as outbound")
+                    )
+                    ->join("iv_product as b", "a.product_id", "b.id")
+                    ->where("a.company_id", $company_id)
+                    ->where("a.principal_id", $principal_id)
+                    ->whereMonth("a.job_date", $this->month)
+                    ->whereYear("a.job_date", $this->year)
+                    ->whereIn("a.job_type", ["IMP", "EXP"])
+                    ->where("a.job_date", $date)
+                    ->first();
+            } else if ($type == "weight") {
                 $value = DB::table("iv_stock_transaction as a")
-                            ->select(
-                                DB::raw("sum(case when a.job_type = 'IMP' then a.qty * b.gross_weight end) as inbound"),
-                                DB::raw("sum(case when a.job_type = 'EXP' then a.qty * b.gross_weight end) as outbound")
-                            )
-                            ->join("iv_product as b", "a.product_id", "b.id")
-                            ->where("a.company_id", $company_id)
-                            ->where("a.principal_id", $principal_id)
-                            ->whereMonth("a.job_date", $this->month)
-                            ->whereYear("a.job_date", $this->year)
-                            ->whereIn("a.job_type", ["IMP", "EXP"])
-                            ->where("a.job_date", $date)
-                            ->first();
-            } else if ( $type == "quantity" ) {
+                    ->select(
+                        DB::raw("sum(case when a.job_type = 'IMP' then a.qty * b.gross_weight end) as inbound"),
+                        DB::raw("sum(case when a.job_type = 'EXP' then a.qty * b.gross_weight end) as outbound")
+                    )
+                    ->join("iv_product as b", "a.product_id", "b.id")
+                    ->where("a.company_id", $company_id)
+                    ->where("a.principal_id", $principal_id)
+                    ->whereMonth("a.job_date", $this->month)
+                    ->whereYear("a.job_date", $this->year)
+                    ->whereIn("a.job_type", ["IMP", "EXP"])
+                    ->where("a.job_date", $date)
+                    ->first();
+            } else if ($type == "quantity") {
                 $value = DB::table("iv_stock_transaction as a")
-                            ->select(
-                                DB::raw("sum(case when a.job_type = 'IMP' then a.qty end) as inbound"),
-                                DB::raw("sum(case when a.job_type = 'EXP' then a.qty end) as outbound")
-                            )
-                            ->join("iv_product as b", "a.product_id", "b.id")
-                            ->where("a.company_id", $company_id)
-                            ->where("a.principal_id", $principal_id)
-                            ->whereMonth("a.job_date", $this->month)
-                            ->whereYear("a.job_date", $this->year)
-                            ->whereIn("a.job_type", ["IMP", "EXP"])
-                            ->where("a.job_date", $date)
-                            ->first();
+                    ->select(
+                        DB::raw("sum(case when a.job_type = 'IMP' then a.qty end) as inbound"),
+                        DB::raw("sum(case when a.job_type = 'EXP' then a.qty end) as outbound")
+                    )
+                    ->join("iv_product as b", "a.product_id", "b.id")
+                    ->where("a.company_id", $company_id)
+                    ->where("a.principal_id", $principal_id)
+                    ->whereMonth("a.job_date", $this->month)
+                    ->whereYear("a.job_date", $this->year)
+                    ->whereIn("a.job_type", ["IMP", "EXP"])
+                    ->where("a.job_date", $date)
+                    ->first();
             }
 
             $jumlah_in = 0;
-            if ( isset($value) ) {
+            if (isset($value)) {
                 $jumlah_in = $value->inbound;
             }
 
             $jumlah_out = 0;
-            if ( isset($value) ) {
+            if (isset($value)) {
                 $jumlah_out = $value->outbound;
             }
 

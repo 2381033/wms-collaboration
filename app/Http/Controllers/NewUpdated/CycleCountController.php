@@ -12,13 +12,6 @@ use Maatwebsite\Excel\Facades\Excel;
 use Str;
 use Illuminate\Support\Facades\Session;
 use DataTables;
-use App\Imports\StockTransferImport;
-
-use App\Models\Transaction\Stock\Ledger as stockLedger;
-use App\Models\Master\Location as MasterLocation;
-use App\Models\Transaction\Stock\Transaction as StockTransaction;
-use App\Models\User;
-use PDO;
 use App\Imports\CycleCountSKUImports as ImportsCycleCountSKUImports;
 use App\Imports\CycleCountLocationImports as ImportsCycleCountLocationImports;
 
@@ -35,18 +28,44 @@ class CycleCountController extends Controller
         return $data;
     }
 
+    public function submitVariance(Request $request)
+    {
+        $exception = DB::transaction(function () use ($request) {
+            try {
+                DB::table('iv_cyclecount_detail')
+                    ->where('branch_id', $this->myBranch())
+                    ->where('id', $request->id)
+                    ->update([
+                        'scan_flag' => 'Yes',
+                        'scan_by'   => Auth::user()->username,
+                        'scan_at'   => date('Y-m-d H:i:s'),
+                        'match_flag'   => 'No',
+                        'remarks'   => $request->remarks,
+                    ]);
+
+                DB::commit();
+                $message = ['message' => 'Data Successfully Saved'];
+                return $message;
+            } catch (\Exception $e) {
+                DB::rollBack();
+                $message = ['error' => $e->getMessage()];
+                return $message;
+            }
+        });
+        return response()->json($exception);
+    }
+
     private function getDetail($job_no)
     {
-        $data = DB::table('iv_cyclecount_detail')
-            ->orderBy('location_code', 'ASC')
-            ->where('job_no', $job_no)
-            ->where('branch_id', $this->myBranch())
+        $data = DB::table('iv_cyclecount_detail as a')
+            ->select('a.*', 'sl.qtya', 'sl.location_code', 'p.product_name')
+            ->leftJoin('iv_stock_ledger as sl', 'sl.id', '=', 'a.id_ledger')
+            ->leftJoin('iv_product as p', 'p.id', '=', 'a.product_id')
+            ->orderBy('a.location_code', 'ASC')
+            ->whereIn('a.job_no', $job_no)
+            ->where('a.branch_id', $this->myBranch())
             ->get();
-        $data = $data->map(function ($value) {
-            $value->stock = DB::table('iv_stock_ledger')->where('id', $value->id_ledger)->first();
-            $value->product_name = DB::table('iv_product')->select('product_name')->where('id', $value->product_id)->value('product_name') ?? '-';
-            return $value;
-        });
+        // dd($data);
 
         return $data;
     }
@@ -90,82 +109,64 @@ class CycleCountController extends Controller
         return $site;
     }
 
-    private function getMyPrincipal()
+    public function getList($param, $site, $principal_id)
     {
-        $data = DB::table('users_principal')
-            ->where('user_id', Auth::user()->id)
-            ->get();
-        $principal = $data->map(function ($value) {
-            $value->principal = DB::table('iv_principal')
-                ->where('id', $value->principal_id)
-                ->first()->principal_name ?? '-';
-            return $value;
-        });
-
-        return $principal;
-    }
-
-    public function getList($param, $site)
-    {
-        if ($param == 'sku') {
-            $data = DB::table('iv_stock_ledger')
-                ->orderBy('product_code', 'ASC')
-                ->where('branch_id', $this->myBranch())
-                ->where('qtya', '>', 0)
-                ->where('site_id', $site)
-                ->whereIn('principal_id', $this->getMyPrincipal()->pluck('principal_id')->toArray())
-                ->groupBy('product_id')
-                ->get();
-            $data = $data->map(function ($value) {
-                $value->principal = DB::table('iv_principal')
-                    ->where('id', $value->principal_id)
-                    ->first()->principal_name ?? '-';
-                return $value;
-            });
+        $query = DB::table('iv_stock_ledger as s')
+            ->leftJoin('iv_principal as p', 'p.id', '=', 's.principal_id')
+            ->where('s.branch_id', $this->myBranch())
+            ->where('s.qtya', '>', 0)
+            ->where('s.site_id', $site)
+            ->orderBy('s.product_code', 'ASC');
+        if ($param === 'sku') {
+            $query->select('s.product_id', 's.product_code', 'p.principal_name')
+                ->where('s.principal_id', $principal_id)
+                ->groupBy('s.product_id');
         } else {
-            $data =  DB::table('iv_location')
-                ->where('site_id', $site)
-                ->groupBy('location_code')
-                ->get();
+            $query->select('s.id', 's.location_code', 'p.principal_name')
+                ->where('s.principal_id', $principal_id)
+                ->groupBy('s.location_code');
         }
-        return response()->json($data);
+
+        return response()->json($query->get());
     }
+
 
     public function index()
     {
         $site = $this->getMySite();
-        $check = DB::table('iv_cyclecount_job')
+        $data = DB::table('iv_cyclecount_job')
             ->where('branch_id', $this->myBranch())
             ->whereDate('created_at', date('Y-m-d'))
-            ->count();
+            ->get();
+        $check = count($data);
 
-        return view("new.CycleCount.index", compact('check', 'site'));
+        return view("new.CycleCount.index", compact('check', 'data'));
     }
 
     public function setup()
     {
-        $job_no   = $this->getJobNo();
-        $site      = $this->getMySite();
-        $validate_tools = false;
+        $site          = $this->getMySite();
+        $principal     = DB::table('iv_principal_branch as a')
+            ->select('b.*')
+            ->leftJoin('iv_principal as b', 'b.id', '=', 'a.principal_id')
+            ->where('branch_id', $this->myBranch())
+            ->get();
+
         $detail = [];
 
-        $list_today = DB::table('iv_cyclecount_job')
-            ->where('branch_id', $this->myBranch())
-            ->where('created_by', Auth::user()->username)
-            ->whereDate('created_at', date('Y-m-d'))
+        $list_today = DB::table('iv_cyclecount_job as a')
+            ->leftJoin('iv_site as b', 'b.id', '=', 'a.site_id')
+            ->where('a.branch_id', $this->myBranch())
+            ->where('a.created_by', Auth::user()->username)
+            ->whereDate('a.created_at', date('Y-m-d'))
             ->get();
 
         if (count($list_today) > 0) {
-            $detail      = $this->getDetail($list_today->first()->job_no);
-            $validate_tools = count($detail->where('scan_flag', 'Yes')) == 0 ? true : false;
+            $detail      = $this->getDetail($list_today->pluck('job_no')->toArray())->groupBy('job_no');
         }
+        // dd($detail[$key]->pluck('location_code')->toArray());
 
-        $list_today->map(function ($value) {
-            $value->site_name = DB::table('iv_site')->where('id', $value->site_id)->first()->site_name ?? '-';
-            return $value;
-        });
-
-        return view("new.CycleCount.setup", compact('job_no', 'site', 'list_today', 'detail', 'validate_tools'));
+        return view("new.CycleCount.setup", compact('site', 'list_today', 'detail', 'principal'));
     }
 
     private function getStock($site, $location)
@@ -181,14 +182,13 @@ class CycleCountController extends Controller
         return $data;
     }
 
-    private function getStockBySKU($site, $product_id)
+    private function getStockBySKU($product_id, $principal_id)
     {
         $data = DB::table('iv_stock_ledger')
             ->orderBy('product_code', 'ASC')
             ->where('qtya', '>', 0)
-            ->where('site_id', $site)
+            ->where('principal_id', $principal_id)
             ->whereIn('product_id', $product_id)
-            ->where('branch_id', $this->myBranch())
             ->get();
         return $data;
     }
@@ -197,131 +197,27 @@ class CycleCountController extends Controller
     {
         $exception = DB::transaction(function () use ($request) {
             try {
-                $validate = $this->getHeader()
-                    ->where('site_id', $request->site_id)
-                    ->count();
-                if ($validate > 0) {
-                    DB::rollBack();
-                    $message = ['message' => 'exist'];
+                if ($request->type == 'sku') {
+                    $stock = $this->getStockBySKU($request->values, $request->principal_id);
                 } else {
-                    if ($request->type == 'sku') {
-                        $stock = $this->getStockBySKU($request->site_id, $request->values);
-                    } else {
-                        $stock = $this->getStock($request->site_id, $request->values);
-                    }
-                    if (count($stock) > 0) {
-                        $job[] = [
-                            'site_id' => $request->site_id,
-                            'branch_id' => $this->myBranch(),
-                            'job_no'  => $request->job_no,
-                            'type'  => $request->type,
-                            'description' => $request->description,
-                            'created_by'   => Auth::user()->username,
-                            'created_at' => date('Y-m-d H:i:s'),
-                        ];
-
-                        foreach ($stock as $value) {
-                            $detail[] = [
-                                'job_no' => $request->job_no,
-                                'branch_id' => $value->branch_id,
-                                'principal_id' => $value->principal_id,
-                                'id_ledger' => $value->id,
-                                'product_id' => $value->product_id,
-                                'product_code' => $value->product_code,
-                                'site_id' => $value->site_id,
-                                'area_id' => $value->area_id,
-                                'location_id' => $value->location_id,
-                                'location_code' => $value->location_code,
-                                'puom' => $value->puom,
-                                'muom' => $value->muom,
-                                'uppp' => $value->uppp,
-                                'muppp' => $value->muppp,
-                                'pqty' => $value->pqty,
-                                'mqty' => $value->mqty,
-                                'created_by'   => Auth::user()->username,
-                                'created_at' => date('Y-m-d H:i:s'),
-                            ];
-                        }
-
-                        DB::table('iv_cyclecount_job')->insert($job);
-                        DB::table('iv_cyclecount_detail')->insert($detail);
-
-                        DB::commit();
-                        $message = ['message' => 'Data Successfully Saved'];
-                    } else {
-                        DB::rollBack();
-                        $message = ['message' => 'not_found'];
-                    }
+                    $stock = $this->getStock($request->site_id, $request->values);
                 }
+                $job_no   = $this->getJobNo();
+                if (count($stock) > 0) {
+                    $job[] = [
+                        'site_id'      => $request->site_id,
+                        'principal_id' => $request->principal_id,
+                        'branch_id'    => $this->myBranch(),
+                        'job_no'       => $job_no,
+                        'type'         => $request->type,
+                        'description'  => $request->description,
+                        'created_by'   => Auth::user()->username,
+                        'created_at'   => date('Y-m-d H:i:s'),
+                    ];
 
-                return $message;
-            } catch (\Exception $e) {
-                DB::rollBack();
-                $message = ['error' => $e->getMessage()];
-                return $message;
-            }
-        });
-        return response()->json($exception);
-    }
-
-    public function editJob($id)
-    {
-        $exception = DB::transaction(function () use ($id) {
-            try {
-                $header = DB::table('iv_cyclecount_job')
-                    ->where('id', $id)
-                    ->where('branch_id', $this->myBranch())
-                    ->first();
-                $detail =  $this->getDetail($header->job_no);
-                $loop = [];
-                $myDetail = [];
-                if ($header->type == 'sku') {
-                    $myDetail = $detail->pluck('product_id')->toArray();
-                    $loop = DB::table('iv_stock_ledger')
-                        ->orderBy('product_code', 'ASC')
-                        ->where('qtya', '>', 0)
-                        ->whereNotIn('product_id', $myDetail)
-                        ->where('site_id', $header->site_id)
-                        ->groupBy('product_id')
-                        ->where('branch_id', $this->myBranch())
-                        ->get();
-                } else {
-                    $myDetail = $detail->pluck('location_code')->toArray();
-                    $loop =  DB::table('iv_location')
-                        ->where('site_id', $header->site_id)
-                        ->whereNotIn('location_code', $myDetail)
-                        ->groupBy('location_code')
-                        ->pluck('location_code')->toArray();
-                }
-                $data = [
-                    'header' => $header,
-                    'myDetail' => $myDetail,
-                    'loop' => $loop,
-                ];
-
-                return $data;
-            } catch (\Exception $e) {
-                DB::rollBack();
-                $message = ['error' => $e->getMessage()];
-                return $message;
-            }
-        });
-        return response()->json($exception);
-    }
-
-    public function updateJob(Request $request)
-    {
-        $exception = DB::transaction(function () use ($request) {
-            try {
-                if ($request->has('values')) {
-                    if ($request->type == 'sku') {
-                        $stock = $this->getStockBySKU($request->site_id, $request->values);
-                    } else {
-                        $stock = $this->getStock($request->site_id, $request->values);
-                    }
                     foreach ($stock as $value) {
                         $detail[] = [
-                            'job_no' => $request->job_no,
+                            'job_no' => $job_no,
                             'branch_id' => $value->branch_id,
                             'principal_id' => $value->principal_id,
                             'id_ledger' => $value->id,
@@ -341,15 +237,17 @@ class CycleCountController extends Controller
                             'created_at' => date('Y-m-d H:i:s'),
                         ];
                     }
+
+                    DB::table('iv_cyclecount_job')->insert($job);
                     DB::table('iv_cyclecount_detail')->insert($detail);
+
+                    DB::commit();
+                    $message = ['message' => 'Data Successfully Saved'];
+                } else {
+                    DB::rollBack();
+                    $message = ['message' => 'not_found'];
                 }
-                DB::table('iv_cyclecount_job')
-                    ->where('job_no', $request->job_no)
-                    ->update([
-                        'description' => $request->description,
-                    ]);
-                DB::commit();
-                $message = ['message' => 'Data Successfully Saved'];
+
                 return $message;
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -360,19 +258,14 @@ class CycleCountController extends Controller
         return response()->json($exception);
     }
 
-    public function deleteJob($id)
+    public function deleteJob($job_no)
     {
-        $job_no = DB::table('iv_cyclecount_job')
-            ->where('id', $id)
-            ->where('branch_id', $this->myBranch())
-            ->value('job_no');
-
-        DB::table('iv_cyclecount_detail')
+        DB::table('iv_cyclecount_job')
             ->where('branch_id', $this->myBranch())
             ->where('job_no', $job_no)
             ->delete();
 
-        DB::table('iv_cyclecount_job')
+        DB::table('iv_cyclecount_detail')
             ->where('branch_id', $this->myBranch())
             ->where('job_no', $job_no)
             ->delete();
@@ -398,20 +291,20 @@ class CycleCountController extends Controller
         ]);
     }
 
-    public function getListData($site_id, $location)
+    public function getListData($job_no, $location)
     {
-        $exception = DB::transaction(function () use ($site_id, $location) {
+        $exception = DB::transaction(function () use ($job_no, $location) {
             try {
                 $data = $this->getHeader()
                     ->where('confirmed_flag', 'No')
-                    ->where('site_id', $site_id)
+                    ->where('job_no', $job_no)
                     ->first();
 
                 if (!is_null($data)) {
                     if ($location == 'All') {
-                        $data = $this->getDetail($data->job_no)->where('scan_flag', 'No');
+                        $data = $this->getDetail([$data->job_no])->where('scan_flag', 'No');
                     } else {
-                        $data = $this->getDetail($data->job_no)->where('scan_flag', 'No')
+                        $data = $this->getDetail([$data->job_no])->where('scan_flag', 'No')
                             ->where('location_code', $location);
                     }
 
@@ -493,20 +386,21 @@ class CycleCountController extends Controller
     {
         $header = $this->getHeader()->first();
 
-        $data = DB::table('iv_cyclecount_detail')
-            ->where('branch_id', $this->myBranch())
-            ->whereDate('created_at', date('Y-m-d'))
-            ->whereNotNull('match_flag')
-            ->get();
+        // $data = DB::table('iv_cyclecount_detail')
+        //     ->where('branch_id', $this->myBranch())
+        //     ->whereDate('created_at', date('Y-m-d'))
+        //     ->whereNotNull('match_flag')
+        //     ->get();
 
-        $data->map(function ($value) {
-            $value->principal_name = DB::table('iv_principal')
-                ->where('id', $value->principal_id)->first()->principal_name ?? '-';
-            $value->site_name = DB::table('iv_site')
-                ->where('id', $value->site_id)->first()->site_name ?? '-';
-            $value->stock = DB::table('iv_stock_ledger')
-                ->where('id', $value->id_ledger)->first()->qtya ?? '-';
-        });
+        // $data->map(function ($value) {
+        //     $value->principal_name = DB::table('iv_principal')
+        //         ->where('id', $value->principal_id)->first()->principal_name ?? '-';
+        //     $value->site_name = DB::table('iv_site')
+        //         ->where('id', $value->site_id)->first()->site_name ?? '-';
+        //     $value->stock = DB::table('iv_stock_ledger')
+        //         ->where('id', $value->id_ledger)->first()->qtya ?? '-';
+        // });
+        $data = [];
 
         return view('new.CycleCount.monitoring', compact('data', 'header'));
     }
@@ -535,21 +429,26 @@ class CycleCountController extends Controller
 
     public function cariData($tgl_mulai, $tgl_selesai)
     {
-        $data = DB::table('iv_cyclecount_detail')
-            ->where('scan_flag', 'Yes')
-            ->whereBetween('created_at', [$tgl_mulai . ' 00:00:00', $tgl_selesai . ' 23:59:00'])
-            ->get();
+        $data = DB::table('iv_cyclecount_detail as ccd')
+            ->select([
+                'ccd.*',
+                // 's.site_name',
+                'p.principal_name',
+                DB::raw('COALESCE(sl.qtya, 0) as stock')
+            ])
+            // ->leftJoin('iv_site as s', 's.id', '=', 'ccd.site_id')
+            ->leftJoin('iv_stock_ledger as sl', 'sl.id', '=', 'ccd.id_ledger')
+            ->leftJoin('iv_principal as p', 'p.id', '=', 'ccd.principal_id')
+            ->where('ccd.scan_flag', 'Yes')
+            ->whereBetween('ccd.created_at', [
+                $tgl_mulai . ' 00:00:00',
+                $tgl_selesai . ' 23:59:59'
+            ])
+            ->orderBy('ccd.created_at', 'desc');
 
-        $data->map(function ($value) {
-            $value->site_name = DB::table('iv_site')
-                ->where('id', $value->site_id)
-                ->value('site_name') ?? '-';
-            $value->stock = DB::table('iv_stock_ledger')
-                ->where('id', $value->id_ledger)->first()->qtya ?? '-';
-            return $value;
-        });
         return Datatables::of($data)->make(true);
     }
+
 
     public function confirm($job_no)
     {
@@ -614,35 +513,6 @@ class CycleCountController extends Controller
             ->where('location_code', 'LIKE', '%Lock Area%')
             ->first();
         return $data;
-    }
-    private function updateLocationStock($job_no)
-    {
-        $exception = DB::transaction(function () use ($job_no) {
-            try {
-                $data = $this->getDetail($job_no)->where('match_flag', 'No');
-
-                foreach ($data as $value) {
-                    $location = $this->getLocation($value->site_id);
-                    DB::table('iv_stock_ledger')
-                        ->where('id', $value->id_ledger)
-                        ->update([
-                            'location_id'   => $location->id,
-                            'area_id'       => $location->area_id,
-                            'location_code' => $location->location_code,
-                            'status'        => NULL,
-                        ]);
-                }
-
-                DB::commit();
-                $message = ['message' => 'Data has been successfully..'];
-                return $message;
-            } catch (\Exception $e) {
-                DB::rollBack();
-                $message = ['message' => $e->getMessage()];
-                return $message;
-            }
-        });
-        return response()->json($exception);
     }
 
     public function addLocationByChecker($site_id, $location_code)
@@ -749,5 +619,29 @@ class CycleCountController extends Controller
         $file = $request->file('excel');
         Excel::import(new ImportsCycleCountLocationImports($request->site_id), $file);
         return back();
+    }
+
+    public function reminder()
+    {
+        $branch = DB::table('sm_user_branch')
+            ->join('mt_branch as b', 'b.id',  'sm_user_branch.branch_id')
+            ->where('user_id', Auth::user()->id)
+            ->get();
+        $data = DB::table('iv_cyclecount_reminder')
+            ->where('branch_id', $this->myBranch())
+            ->whereDate('created_at', date('Y-m-d'))
+            ->get();
+
+        return view("new.CycleCount.reminder", compact('branch', 'data'));
+    }
+
+    public function getPrincipal($branch_id)
+    {
+        $data = DB::table('iv_principal_branch as a')
+            ->select('a.*', 'b.principal_name')
+            ->join('iv_principal as b', 'b.id', '=', 'a.principal_id')
+            ->where('branch_id', $branch_id)
+            ->get();
+        return response()->json($data);
     }
 }

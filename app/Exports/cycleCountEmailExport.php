@@ -43,8 +43,8 @@ class cycleCountEmailExport implements FromCollection, WithHeadings, ShouldAutoS
             ->whereBetween("icd.created_at", [$date_from, $date_to])
             ->where("icd.principal_id", $this->principal_id)
             ->where("icd.branch_id", $this->branch_id);
-            // ->toSql();
-            // dd($list->toSql(),$list->getBindings());
+        // ->toSql();
+        // dd($list->toSql(),$list->getBindings());
 
         return new Collection($list->get());
     }
@@ -137,7 +137,7 @@ class cycleCountEmailExport implements FromCollection, WithHeadings, ShouldAutoS
                     $string_date = $date_from . ' ' . $month_from . ' ' . $year_from . ' - ' . $date_to . ' ' . $month_to . ' ' . $year_to;
                 }
                 // dd($string_date);
-                $event->sheet->setCellValue('A5', "Periode ".$string_date);
+                $event->sheet->setCellValue('A5', "Periode " . $string_date);
                 $event->sheet->mergeCells('A5:I5');
 
                 $event->sheet->getDelegate()->getStyle('A7:I7')->getFont()->setBold(true);

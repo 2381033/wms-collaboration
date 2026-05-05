@@ -82,8 +82,10 @@
                                             <th rowspan="2">Batch No</th>
                                             <th rowspan="2">Mfg Date</th>
                                             <th rowspan="2">Exp Date</th>
-                                            <th rowspan="2">Volume</th>
-                                            <th rowspan="2">Gross Weight</th>
+                                            <th rowspan="2">Volume <p>(CBM)</p>
+                                            </th>
+                                            <th rowspan="2">Gross Weight<p> (KG)</p>
+                                            </th>
                                             <th colspan="6">Quantity</th>
                                             <th rowspan="2">Status</th>
                                         </tr>
@@ -104,8 +106,10 @@
                                             <th rowspan="2">Batch No</th>
                                             <th rowspan="2">Mfg Date</th>
                                             <th rowspan="2">Exp Date</th>
-                                            <th rowspan="2">Volume</th>
-                                            <th rowspan="2">Gross Weight</th>
+                                            <th rowspan="2">Volume <p>(CBM)</p>
+                                            </th>
+                                            <th rowspan="2">Gross Weight<p> (KG)</p>
+                                            </th>
                                             <th colspan="2">Quantity</th>
                                             <th rowspan="2">Status</th>
                                         </tr>
@@ -134,16 +138,16 @@
                                                 @endisset
                                             </td>
                                             {{-- @php
-                                                dd($detail->master_product->volume, $detail->master_detail->puom);
+                                                dd($detail->master_product->volume, $detail->master_product->puom);
                                             @endphp --}}
                                             <td rowspan="3" class="right">
-                                                {{ number_format($detail->qty_per_pallet * $detail->master_product->volume, 3, ',', '.') }}
+                                                {{ number_format($detail->qty_per_pallet * $detail->master_product->volume, 0, ',', '.') }}
                                             </td>
                                             <td rowspan="3" class="right">
-                                                {{ number_format($detail->master_product->gross_weight, 3, ',', '.') }}
+                                                {{ number_format($detail->master_product->gross_weight, 0, ',', '.') }}
                                             </td>
                                             {{-- <td class="right">{{number_format($detail->qty_per_pallet, 0, ",", ".")}}</td>
-                                            <td class="center">{{$detail->master_detail->puom}}</td>
+                                            <td class="center">{{$detail->master_product->puom}}</td>
                                             
                                             @if ($job_view->multi_level == 'Yes')   
                                                 <td class="right">{{number_format($detail->master_detail->mqty, 0, ",", ".")}}</td>
@@ -156,7 +160,7 @@
                                         <tr>
                                             <td class="right">
                                                 {{ number_format($detail->qty_per_pallet, 0, ',', '.') }}</td>
-                                            <td class="center">{{ $detail->master_detail->puom }}</td>
+                                            <td class="center">{{ $detail->master_product->puom }}</td>
                                             @if ($job_view->multi_level == 'Yes')
                                                 <td class="right">
                                                     {{ number_format($detail->master_detail->mqty, 0, ',', '.') }}</td>
@@ -171,7 +175,7 @@
                                             <td class="right">
                                                 {{ number_format($detail->master_detail->discrepancy_pqty, 0, ',', '.') }}
                                             </td>
-                                            <td class="center">{{ $detail->master_detail->puom }}</td>
+                                            <td class="center">{{ $detail->master_product->puom }}</td>
                                             @if ($job_view->multi_level == 'Yes')
                                                 <td class="right">
                                                     {{ number_format($detail->master_detail->discrepancy_mqty, 0, ',', '.') }}

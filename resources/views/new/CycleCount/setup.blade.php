@@ -23,10 +23,18 @@
                         <div class="row">
                             <div class="col-sm-5">
                                 <div class="form-group">
+                                    <select class="form-control" id="selectPrincipal" name="principal_id" required>
+                                        <option value="" disabled selected>Principal</option>
+                                        @foreach ($principal as $item)
+                                            <option value="{{ $item->id }}">{{ $item->principal_name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                {{-- <div class="form-group">
                                     <label for="my-input">Job No</label>
                                     <input id="my-input" class="form-control" type="text" name="job_no"
                                         value="{{ $job_no }}" readonly>
-                                </div>
+                                </div> --}}
                                 <div class="form-group">
                                     <select class="form-control" id="selectSite" name="site_id" onchange="siteSelect()"
                                         required>
@@ -79,41 +87,36 @@
                                                 <th>SITE AREA</th>
                                                 <th>LOCATION/SKU</th>
                                                 <th>DESCRIPTION</th>
-                                                @if ($validate_tools)
-                                                    <th>#</th>
-                                                @endif
+                                                <th>#</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach ($list_today as $item)
-                                                <tr class="text-center">
-                                                    <td>{{ $loop->iteration }}</td>
-                                                    <td>{{ $item->job_no }}</td>
-                                                    <td>{{ $item->site_name }}</td>
-                                                    <td
-                                                        style="word-wrap: break-word;
+                                            @foreach ($list_today->groupBy('job_no') as $key => $value)
+                                                @foreach ($value as $item)
+                                                    <tr class="text-center">
+                                                        <td>{{ $loop->iteration }}</td>
+                                                        <td>{{ $item->job_no }}</td>
+                                                        <td>{{ $item->site_name }}</td>
+                                                        <td
+                                                            style="word-wrap: break-word;
                                                         word-break: break-all;  
                                                         white-space: normal !important;
                                                         text-align: justify;">
-                                                        @if ($item->type == 'sku')
-                                                            {{ implode(', ', array_unique($detail->pluck('product_code')->toArray())) }}
-                                                        @else
-                                                            {{ implode(', ', array_unique($detail->pluck('location_code')->toArray())) }}
-                                                        @endif
-                                                    </td>
-                                                    <td>{{ $item->description }}</td>
-                                                    @if ($validate_tools)
+                                                            @if ($item->type == 'sku')
+                                                                {{ implode(', ', array_unique($detail[$key]->pluck('product_code')->toArray())) }}
+                                                            @else
+                                                                {{ implode(', ', array_unique($detail[$key]->pluck('location_code')->toArray())) }}
+                                                            @endif
+                                                        </td>
+                                                        <td>{{ $item->description }}</td>
                                                         <td>
-                                                            <a href="#" onclick="editJob('{{ $item->id }}')"
-                                                                class="btn btn-dark btn-sm"><i class="fas fa-edit"></i>
-                                                            </a>
-                                                            <a href="#" onclick="deleteJob('{{ $item->id }}')"
+                                                            <a href="#" onclick="deleteJob('{{ $item->job_no }}')"
                                                                 class="btn btn-danger btn-sm"><i
                                                                     class="fas fa-trash-alt"></i>
                                                             </a>
                                                         </td>
-                                                    @endif
-                                                </tr>
+                                                    </tr>
+                                                @endforeach
                                             @endforeach
                                         </tbody>
                                     </table>
@@ -143,8 +146,8 @@
                                 @csrf
                                 <input class="form-control" type="text" name="job_no" value="" id="jobNoValue"
                                     hidden>
-                                <input class="form-control" type="text" name="site_id" value=""
-                                    id="siteIdValue" hidden>
+                                <input class="form-control" type="text" name="site_id" value="" id="siteIdValue"
+                                    hidden>
                                 <input class="form-control" type="text" name="type" value=""
                                     id="typeValueJob" hidden>
                                 <div class="row">
@@ -282,6 +285,12 @@
             });
         }
 
+        $('#selectPrincipal').select2({
+            'placeholder': {
+                text: 'Select Principal..'
+            }
+        });
+
         function selectType(val) {
             var site = $('#selectSite').val();
             if (site == "" || site == null) {
@@ -299,8 +308,9 @@
                     $('.btnExcelLocation').removeClass('hide')
                     $('.btnExcel').addClass('hide')
                 }
+                var principalId = $('#selectPrincipal').val()
                 $.ajax({
-                    url: "{{ url('inventory/cycleCount/getList') }}/" + val + '/' + site,
+                    url: "{{ url('inventory/cycleCount/getList') }}/" + val + '/' + site + '/' + principalId,
                     method: 'GET',
                     success: function(data) {
                         $('.contentSelect').html("")
@@ -316,7 +326,7 @@
                         $.each(data, function(index, value) {
                             if (val == 'sku') {
                                 $('#selectResult').append(`
-                                <option value="${value.product_id}">${value.product_code + '-'+ value.principal}</option>
+                                <option value="${value.product_id}">${value.product_code + '-'+ value.principal_name}</option>
                             `)
                             } else {
                                 $('#selectResult').append(`

@@ -47,11 +47,11 @@
                                             <tr class="center">
                                                 @if ($_key == 0)
                                                     <td class="center" rowspan="{{ $value->count() }}">
-                                                        {{ $value[0]->stock->id_cargo }}
+                                                        {{ $v->id_cargo }}
                                                     </td>
                                                 @endif
-                                                <td class="center">{{ $v->stock->description }}</td>
-                                                <td class="center">{{ $v->qty . ' ' . $v->stock->unit }}</td>
+                                                <td class="center">{{ $v->stock_description }}</td>
+                                                <td class="center">{{ $v->qty . ' ' . $v->stock_unit }}</td>
                                                 <td class="center">
                                                     {{ $v->scan_at == null ? '-' : formatTanggalWaktuIndonesia2($v->scan_at) }}
                                                 </td>

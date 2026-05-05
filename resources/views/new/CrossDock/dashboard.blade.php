@@ -29,8 +29,8 @@
                                                 Cargo</span>
                                             <span class="font-weight-bold text-dark font-size-xl">Spot Order</span>
                                         </div>
-                                        <img src="{{ asset('images/scan.png') }}" alt=""
-                                            class="align-self-end h-120px">
+                                        <img src="{{ asset('images/scan.png') }}" alt="" class="align-self-end"
+                                            style="width: 100px; height: 100px;">
                                     </div>
                                 </div>
                             </div>
@@ -45,8 +45,8 @@
                                                 class="card-title font-weight-bolder text-dark font-size-h5 mb-2 text-hover-primary">Inbound</span>
                                             <span class="font-weight-bold text-muted  font-size-lg">Spot Order</span>
                                         </div>
-                                        <img src="{{ asset('images/inbound.png') }}" alt=""
-                                            class="align-self-end h-120px">
+                                        <img src="{{ asset('images/inbound.png') }}" alt="" class="align-self-end"
+                                            style="width: 100px; height: 100px;">
                                     </div>
                                 </div>
                             </div>
@@ -61,8 +61,8 @@
                                                 class="card-title font-weight-bolder text-dark font-size-h5 mb-2 text-hover-primary">Outbound</span>
                                             <span class="font-weight-bold text-muted  font-size-lg">Spot Order</span>
                                         </div>
-                                        <img src="{{ asset('images/outbound.png') }}" alt=""
-                                            class="align-self-end h-120px">
+                                        <img src="{{ asset('images/outbound.png') }}" alt="" class="align-self-end"
+                                            style="width: 100px; height: 100px;">
                                     </div>
                                 </div>
                             </div>
@@ -79,8 +79,8 @@
                                                 Report</span>
                                             <span class="font-weight-bold text-white  font-size-xl">Spot Order</span>
                                         </div>
-                                        <img src="{{ asset('images/stock.png') }}" alt=""
-                                            class="align-self-end h-120px">
+                                        <img src="{{ asset('images/stock.png') }}" alt="" class="align-self-end"
+                                            style="width: 100px; height: 100px;">
                                     </div>
                                 </div>
                             </div>
@@ -97,8 +97,8 @@
                                                 Report</span>
                                             <span class="font-weight-bold text-white font-size-xl">Spot Order</span>
                                         </div>
-                                        <img src="{{ asset('images/stocks.png') }}" alt=""
-                                            class="align-self-end h-120px">
+                                        <img src="{{ asset('images/stocks.png') }}" alt="" class="align-self-end"
+                                            style="width: 100px; height: 100px;">
                                     </div>
                                 </div>
                             </div>
@@ -116,7 +116,7 @@
                                             <span class="font-weight-bold text-white font-size-xl">Spot Order</span>
                                         </div>
                                         <img src="{{ asset('images/inout.png') }}" alt=""
-                                            class="align-self-end h-100px mb-4">
+                                            class="align-self-end mb-4" style="width: 100px; height: 100px;">
                                     </div>
                                 </div>
                             </div>
@@ -133,8 +133,8 @@
                                                 Report</span>
                                             <span class="font-weight-bold text-white font-size-xl">Spot Order</span>
                                         </div>
-                                        <img src="{{ asset('images/cbm.png') }}" alt=""
-                                            class="align-self-end h-100px mb-4">
+                                        <img src="{{ asset('images/cbm.png') }}" alt="" class="align-self-end mb-4"
+                                            style="width: 100px; height: 100px;">
                                     </div>
                                 </div>
                             </div>
@@ -152,7 +152,7 @@
                                             <span class="font-weight-bold text-white font-size-xl">Spot Order</span>
                                         </div>
                                         <img src="{{ asset('images/reporting.png') }}" alt=""
-                                            class="align-self-end h-100px mb-4">
+                                            class="align-self-end mb-4" style="width: 100px; height: 100px;">
                                     </div>
                                 </div>
                             </div>
@@ -168,7 +168,7 @@
                                         <span class="font-weight-bold text-white font-size-xl">Spot Order</span>
                                     </div>
                                     <img src="{{ asset('images/tools.png') }}" alt=""
-                                        class="align-self-end h-100px mb-4">
+                                        class="align-self-end mb-4" style="width: 100px; height: 100px;">
                                 </div>
                             </div>
                         </div> --}}
@@ -246,7 +246,8 @@
                 <div class="modal-body">
                     <div class="card">
                         <div class="card-body">
-                            <form action="{{ url('crossDock/report') }}" method="post" id="form-stock-ledger">
+                            <form action="{{ url('crossDock/report') }}" method="post" id="form-stock-ledger"
+                                target="_blank">
                                 @csrf
                                 <div class="row">
                                     <input type="hidden" name="type" id="typeValue-stock-ledger">
@@ -320,8 +321,7 @@
                                             </div>
                                         </div>
                                         <div class="float-right">
-                                            <button type="submit" onclick="searchStockReport()"
-                                                class="btn btn-md btn-primary" id="submitStockLedger">
+                                            <button type="submit" class="btn btn-md btn-primary" id="submitStockLedger">
                                                 <i class="flaticon-download"></i>
                                                 Download
                                             </button>
@@ -683,12 +683,12 @@
                         },
                     },
                     {
-                        data: 'warehouse',
-                        name: 'warehouse'
+                        data: 'warehouse_name',
+                        name: 'warehouse_name'
                     },
                     {
-                        data: 'customer',
-                        name: 'customer'
+                        data: 'customer_name',
+                        name: 'customer_name'
                     },
                     {
                         data: null,
@@ -711,16 +711,16 @@
             });
         }
 
-        $('#inoutDaily').on('submit', function() {
-            $('#submitInOutDaily').hide();
-        });
+        // $('#inoutDaily').on('submit', function() {
+        //     $('#submitInOutDaily').hide();
+        // });
 
-        $('#form-stock-ledger').on('submit', function() {
-            $('#submitStockLedger').hide();
-        });
+        // $('#form-stock-ledger').on('submit', function() {
+        //     $('#submitStockLedger').attr('disabled', true);
+        // });
 
-        $('#formTransactionReport').on('submit', function() {
-            $('#submitTransactionReport').hide();
-        });
+        // $('#formTransactionReport').on('submit', function() {
+        //     $('#submitTransactionReport').hide();
+        // });
     </script>
 @endpush

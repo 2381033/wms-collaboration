@@ -18,7 +18,8 @@ class OutboundEmailExport implements FromCollection, WithHeadings, ShouldAutoSiz
 {
     protected $id = null;
 
-    public function __construct($id) {
+    public function __construct($id)
+    {
         $this->id = $id;
     }
 
@@ -27,217 +28,218 @@ class OutboundEmailExport implements FromCollection, WithHeadings, ShouldAutoSiz
         $job = OutboundJob::find($this->id);
         $principal = MasterPrincipal::find($job->principal_id);
 
-        if ( $principal->multi_level == "Yes" ) {
-            if ( $principal->id == 1 ) {
+        if ($principal->multi_level == "Yes") {
+            if ($principal->id == 1) {
                 $list = DB::table("iv_outbound_batch as a")
-                            ->select(
-                                "c.principal_name",
-                                "d.ata",
-                                "e.customer_name",
-                                "a.order_no",
-                                "a.product_code",
-                                "b.product_name",
-                                "a.lot_no",
-                                "a.document_ref",
-                                "a.mfg_date",
-                                "a.exp_date",
-                                "f.site_name",
-                                "g.area_name",
-                                "a.location_code",
-                                "a.pqty",
-                                "a.mqty",
-                                "a.bqty",
-                                "b.puom",
-                                "b.muom",
-                                "b.buom",
-                                DB::raw("a.qty * b.gross_weight as gross_weight"),
-                                DB::raw("a.qty * b.volume as volume"),
-                                )
-                            ->join("iv_product as b", "a.product_id", "b.id")
-                            ->join("iv_principal as c", "a.principal_id", "c.id")
-                            ->join("iv_outbound_job as d", "a.outbound_id", "d.id")
-                            ->join("iv_customer as e", "a.customer_id", "e.id")
-                            ->leftjoin("iv_site as f", "a.site_id", "f.id")
-                            ->leftjoin("iv_site_area as g", "a.area_id", "g.id")
-                            ->where("a.outbound_id", $this->id)
-                            ->get();
+                    ->select(
+                        "c.principal_name",
+                        "d.ata",
+                        "e.customer_name",
+                        "a.order_no",
+                        "a.product_code",
+                        "b.product_name",
+                        "a.lot_no",
+                        "a.document_ref",
+                        "a.mfg_date",
+                        "a.exp_date",
+                        "f.site_name",
+                        "g.area_name",
+                        "a.location_code",
+                        "a.pqty",
+                        "a.mqty",
+                        "a.bqty",
+                        "b.puom",
+                        "b.muom",
+                        "b.buom",
+                        DB::raw("a.qty * b.gross_weight as gross_weight"),
+                        DB::raw("a.qty * b.volume as volume"),
+                    )
+                    ->join("iv_product as b", "a.product_id", "b.id")
+                    ->join("iv_principal as c", "a.principal_id", "c.id")
+                    ->join("iv_outbound_job as d", "a.outbound_id", "d.id")
+                    ->join("iv_customer as e", "a.customer_id", "e.id")
+                    ->leftjoin("iv_site as f", "a.site_id", "f.id")
+                    ->leftjoin("iv_site_area as g", "a.area_id", "g.id")
+                    ->where("a.outbound_id", $this->id)
+                    ->get();
             } else if ($principal->id == 3) {
                 $list = DB::table("iv_outbound_batch as a")
-                        ->select(
-                            "c.principal_name",
-                            "d.job_no",
-                            "d.job_date",
-                            "e.customer_code",
-                            "e.customer_name",
-                            "a.order_no",
-                            "a.product_code",
-                            "b.product_name",
-                            DB::raw("sum(a.pqty) as pqty"),
-                            "b.puom"
-                            )
-                        ->join("iv_product as b", "a.product_id", "b.id")
-                        ->join("iv_principal as c", "a.principal_id", "c.id")
-                        ->join("iv_outbound_job as d", "a.outbound_id", "d.id")
-                        ->join("iv_customer as e", "a.customer_id", "e.id")
-                        ->where("a.outbound_id", $this->id)
-                        ->groupBy(
-                            "c.principal_name",
-                            "d.job_no",
-                            "d.job_date",
-                            "e.customer_code",
-                            "e.customer_name",
-                            "a.order_no",
-                            "a.product_code",
-                            "b.product_name",
-                            "b.puom"
-                        )
-                        ->get();
+                    ->select(
+                        "c.principal_name",
+                        "d.job_no",
+                        "d.job_date",
+                        "e.customer_code",
+                        "e.customer_name",
+                        "a.order_no",
+                        "a.product_code",
+                        "b.product_name",
+                        DB::raw("sum(a.pqty) as pqty"),
+                        "b.puom"
+                    )
+                    ->join("iv_product as b", "a.product_id", "b.id")
+                    ->join("iv_principal as c", "a.principal_id", "c.id")
+                    ->join("iv_outbound_job as d", "a.outbound_id", "d.id")
+                    ->join("iv_customer as e", "a.customer_id", "e.id")
+                    ->where("a.outbound_id", $this->id)
+                    ->groupBy(
+                        "c.principal_name",
+                        "d.job_no",
+                        "d.job_date",
+                        "e.customer_code",
+                        "e.customer_name",
+                        "a.order_no",
+                        "a.product_code",
+                        "b.product_name",
+                        "b.puom"
+                    )
+                    ->get();
             } else {
                 $list = DB::table("iv_outbound_batch as a")
-                        ->select(
-                            "c.principal_name",
-                            "d.ata",
-                            "e.customer_name",
-                            "a.order_no",
-                            "a.product_code",
-                            "b.product_name",
-                            "a.lot_no",
-                            "a.document_ref",
-                            "a.mfg_date",
-                            "a.exp_date",
-                            DB::raw("sum(a.pqty) as pqty"),
-                            DB::raw("sum(a.mqty) as mqty"),
-                            DB::raw("sum(a.bqty) as bqty"),
-                            "b.puom",
-                            "b.muom",
-                            "b.buom",
-                            DB::raw("sum(a.qty) * b.gross_weight as gross_weight"),
-                            DB::raw("sum(a.qty) * b.volume as volume"),
-                            )
-                        ->join("iv_product as b", "a.product_id", "b.id")
-                        ->join("iv_principal as c", "a.principal_id", "c.id")
-                        ->join("iv_outbound_job as d", "a.outbound_id", "d.id")
-                        ->join("iv_customer as e", "a.customer_id", "e.id")
-                        ->where("a.outbound_id", $this->id)
-                        ->groupBy(
-                            "c.principal_name",
-                            "d.ata",
-                            "e.customer_name",
-                            "a.order_no",
-                            "a.product_code",
-                            "b.product_name",
-                            "a.lot_no",
-                            "a.document_ref",
-                            "a.mfg_date",
-                            "a.exp_date",
-                            "b.puom",
-                            "b.muom",
-                            "b.buom",
-                            "b.gross_weight",
-                            "b.volume"
-                        )
-                        ->get();
+                    ->select(
+                        "c.principal_name",
+                        "d.ata",
+                        "e.customer_name",
+                        "a.order_no",
+                        "a.product_code",
+                        "b.product_name",
+                        "a.lot_no",
+                        "a.document_ref",
+                        "a.mfg_date",
+                        "a.exp_date",
+                        DB::raw("sum(a.pqty) as pqty"),
+                        DB::raw("sum(a.mqty) as mqty"),
+                        DB::raw("sum(a.bqty) as bqty"),
+                        "b.puom",
+                        "b.muom",
+                        "b.buom",
+                        DB::raw("sum(a.qty) * b.gross_weight as gross_weight"),
+                        DB::raw("sum(a.qty) * b.volume as volume"),
+                    )
+                    ->join("iv_product as b", "a.product_id", "b.id")
+                    ->join("iv_principal as c", "a.principal_id", "c.id")
+                    ->join("iv_outbound_job as d", "a.outbound_id", "d.id")
+                    ->join("iv_customer as e", "a.customer_id", "e.id")
+                    ->where("a.outbound_id", $this->id)
+                    ->groupBy(
+                        "c.principal_name",
+                        "d.ata",
+                        "e.customer_name",
+                        "a.order_no",
+                        "a.product_code",
+                        "b.product_name",
+                        "a.lot_no",
+                        "a.document_ref",
+                        "a.mfg_date",
+                        "a.exp_date",
+                        "b.puom",
+                        "b.muom",
+                        "b.buom",
+                        "b.gross_weight",
+                        "b.volume"
+                    )
+                    ->get();
             }
         } else {
-            if ( $principal->id == 1 ) {
+            if ($principal->id == 1) {
                 $list = DB::table("iv_outbound_batch as a")
-                            ->select(
-                                "c.principal_name",
-                                "d.ata",
-                                "e.customer_name",
-                                "a.order_no",
-                                "a.product_code",
-                                "b.product_name",
-                                "a.lot_no",
-                                "a.document_ref",
-                                "a.mfg_date",
-                                "a.exp_date",
-                                "f.site_name",
-                                "g.area_name",
-                                "a.location_code",
-                                "a.pqty",
-                                "b.puom",
-                                DB::raw("a.qty * b.gross_weight as gross_weight"),
-                                DB::raw("a.qty * b.volume as volume"),
-                                )
-                            ->join("iv_product as b", "a.product_id", "b.id")
-                            ->join("iv_principal as c", "a.principal_id", "c.id")
-                            ->join("iv_outbound_job as d", "a.outbound_id", "d.id")
-                            ->join("iv_customer as e", "a.customer_id", "e.id")
-                            ->leftjoin("iv_site as f", "a.site_id", "f.id")
-                            ->leftjoin("iv_site_area as g", "a.area_id", "g.id")
-                            ->where("a.outbound_id", $this->id)
-                            ->get();
+                    ->select(
+                        "c.principal_name",
+                        "d.ata",
+                        "e.customer_name",
+                        "a.order_no",
+                        "a.product_code",
+                        "b.product_name",
+                        "a.lot_no",
+                        "a.document_ref",
+                        "a.mfg_date",
+                        "a.exp_date",
+                        "f.site_name",
+                        "g.area_name",
+                        "a.location_code",
+                        "a.pqty",
+                        "b.puom",
+                        DB::raw("a.qty * b.gross_weight as gross_weight"),
+                        DB::raw("a.qty * b.volume as volume"),
+                    )
+                    ->join("iv_product as b", "a.product_id", "b.id")
+                    ->join("iv_principal as c", "a.principal_id", "c.id")
+                    ->join("iv_outbound_job as d", "a.outbound_id", "d.id")
+                    ->join("iv_customer as e", "a.customer_id", "e.id")
+                    ->leftjoin("iv_site as f", "a.site_id", "f.id")
+                    ->leftjoin("iv_site_area as g", "a.area_id", "g.id")
+                    ->where("a.outbound_id", $this->id)
+                    ->get();
             } else if ($principal->id == 3) {
                 $list = DB::table("iv_outbound_batch as a")
-                        ->select(
-                            "c.principal_name",
-                            "d.job_no",
-                            "d.job_date",
-                            "e.customer_code",
-                            "e.customer_name",
-                            "a.order_no",
-                            "a.product_code",
-                            "b.product_name",
-                            DB::raw("sum(a.pqty) as pqty"),
-                            "b.puom"
-                            )
-                        ->join("iv_product as b", "a.product_id", "b.id")
-                        ->join("iv_principal as c", "a.principal_id", "c.id")
-                        ->join("iv_outbound_job as d", "a.outbound_id", "d.id")
-                        ->join("iv_customer as e", "a.customer_id", "e.id")
-                        ->where("a.outbound_id", $this->id)
-                        ->groupBy(
-                            "c.principal_name",
-                            "d.job_no",
-                            "d.job_date",
-                            "e.customer_code",
-                            "e.customer_name",
-                            "a.order_no",
-                            "a.product_code",
-                            "b.product_name",
-                            "b.puom"
-                        )
-                        ->get();
+                    ->select(
+                        "c.principal_name",
+                        "d.job_no",
+                        "d.job_date",
+                        "e.customer_code",
+                        "e.customer_name",
+                        "a.order_no",
+                        "a.product_code",
+                        "b.product_name",
+                        DB::raw("sum(a.pqty) as pqty"),
+                        "b.puom",
+                        "a.ean_code"
+                    )
+                    ->join("iv_product as b", "a.product_id", "b.id")
+                    ->join("iv_principal as c", "a.principal_id", "c.id")
+                    ->join("iv_outbound_job as d", "a.outbound_id", "d.id")
+                    ->join("iv_customer as e", "a.customer_id", "e.id")
+                    ->where("a.outbound_id", $this->id)
+                    ->groupBy(
+                        "c.principal_name",
+                        "d.job_no",
+                        "d.job_date",
+                        "e.customer_code",
+                        "e.customer_name",
+                        "a.order_no",
+                        "a.product_code",
+                        "b.product_name",
+                        "b.puom"
+                    )
+                    ->get();
             } else {
                 $list = DB::table("iv_outbound_batch as a")
-                            ->select(
-                                "c.principal_name",
-                                "d.ata",
-                                "e.customer_name",
-                                "a.order_no",
-                                "a.product_code",
-                                "b.product_name",
-                                "a.lot_no",
-                                "a.document_ref",
-                                "a.mfg_date",
-                                "a.exp_date",
-                                DB::raw("sum(a.pqty) as pqty"),
-                                "b.puom",
-                                DB::raw("sum(a.qty) * b.gross_weight as gross_weight"),
-                                DB::raw("sum(a.qty) * b.volume as volume"),
-                                )
-                            ->join("iv_product as b", "a.product_id", "b.id")
-                            ->join("iv_principal as c", "a.principal_id", "c.id")
-                            ->join("iv_outbound_job as d", "a.outbound_id", "d.id")
-                            ->join("iv_customer as e", "a.customer_id", "e.id")
-                            ->where("a.outbound_id", $this->id)
-                            ->groupBy(
-                                "c.principal_name",
-                                "d.ata",
-                                "e.customer_name",
-                                "a.order_no",
-                                "a.product_code",
-                                "b.product_name",
-                                "a.lot_no",
-                                "a.document_ref",
-                                "a.mfg_date",
-                                "a.exp_date",
-                                "b.puom",
-                                "b.gross_weight",
-                                "b.volume"
-                            )
-                            ->get();
+                    ->select(
+                        "c.principal_name",
+                        "d.ata",
+                        "e.customer_name",
+                        "a.order_no",
+                        "a.product_code",
+                        "b.product_name",
+                        "a.lot_no",
+                        "a.document_ref",
+                        "a.mfg_date",
+                        "a.exp_date",
+                        DB::raw("sum(a.pqty) as pqty"),
+                        "b.puom",
+                        DB::raw("sum(a.qty) * b.gross_weight as gross_weight"),
+                        DB::raw("sum(a.qty) * b.volume as volume"),
+                    )
+                    ->join("iv_product as b", "a.product_id", "b.id")
+                    ->join("iv_principal as c", "a.principal_id", "c.id")
+                    ->join("iv_outbound_job as d", "a.outbound_id", "d.id")
+                    ->join("iv_customer as e", "a.customer_id", "e.id")
+                    ->where("a.outbound_id", $this->id)
+                    ->groupBy(
+                        "c.principal_name",
+                        "d.ata",
+                        "e.customer_name",
+                        "a.order_no",
+                        "a.product_code",
+                        "b.product_name",
+                        "a.lot_no",
+                        "a.document_ref",
+                        "a.mfg_date",
+                        "a.exp_date",
+                        "b.puom",
+                        "b.gross_weight",
+                        "b.volume"
+                    )
+                    ->get();
             }
         }
 
@@ -249,8 +251,8 @@ class OutboundEmailExport implements FromCollection, WithHeadings, ShouldAutoSiz
         $job = OutboundJob::find($this->id);
         $principal = MasterPrincipal::find($job->principal_id);
 
-        if ( $principal->multi_level == "Yes" ) {
-            if ( $principal->id == 1 ) {
+        if ($principal->multi_level == "Yes") {
+            if ($principal->id == 1) {
                 return [
                     "Principal Name",
                     "ATD",
@@ -274,7 +276,7 @@ class OutboundEmailExport implements FromCollection, WithHeadings, ShouldAutoSiz
                     "Gross Weight",
                     "Volume"
                 ];
-            } else if ( $principal->id == 3 ){
+            } else if ($principal->id == 3) {
                 return [
                     "Principal Name",
                     "Job No",
@@ -310,7 +312,7 @@ class OutboundEmailExport implements FromCollection, WithHeadings, ShouldAutoSiz
                 ];
             }
         } else {
-            if ( $principal->id == 1 ) {
+            if ($principal->id == 1) {
                 return [
                     "Principal Name",
                     "ATD",
@@ -330,7 +332,7 @@ class OutboundEmailExport implements FromCollection, WithHeadings, ShouldAutoSiz
                     "Gross Weight",
                     "Volume"
                 ];
-            } else if ( $principal->id == 3 ){
+            } else if ($principal->id == 3) {
                 return [
                     "Principal Name",
                     "Job No",
@@ -341,7 +343,8 @@ class OutboundEmailExport implements FromCollection, WithHeadings, ShouldAutoSiz
                     "SKU No",
                     'SKU Name',
                     "Qty",
-                    "Unit"
+                    "Unit",
+                    "Carton ID",
                 ];
             } else {
                 return [

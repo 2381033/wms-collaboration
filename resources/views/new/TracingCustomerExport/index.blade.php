@@ -63,7 +63,7 @@
         <section id="hero">
             <div id="heroCarousel" class="carousel slide carousel-fade" data-ride="carousel">
                 <div class="carousel-inner" role="listbox">
-                    <div class="carousel-item active" style="background-image: url(images/MKT4.jpg);">
+                    <div class="carousel-item active" style="background-image: url(images/MKT1.jpg);">
                         <div class="carousel-container text-center"
                             style="justify-content: end; width: 45%; margin-left: 15%;">
                             <div class="carousel-content">
@@ -141,6 +141,8 @@
         $('#modal-result').on('hidden.bs.modal', function() {
             $('#pebNo').focus();
         })
+
+        const username = localStorage.getItem('USERNAME');
 
         $('#form-search').on('submit', function(e) {
             e.preventDefault();

@@ -20,6 +20,7 @@ use App\Models\Master\Product as masterProduct;
 use App\Models\Master\StockStatus as masterStockStatus;
 use App\Imports\InboundPackingImport as InboundPackingImports;
 use App\Models\Transaction\Stock\Ledger as stockLedger;
+use App\Helpers\ProductResolver as convertSecondaryProduct;
 
 
 class DetailController extends Controller
@@ -30,11 +31,24 @@ class DetailController extends Controller
 
         if ($request->ajax()) {
             $list_data = inboundDetails::from('iv_inbound_detail as a')
-                ->select('a.*', 'b.product_name')
+                ->select('a.*', 'b.product_name', 'b.manufactur_code')
                 ->join('iv_product as b', 'a.product_id', 'b.id')
                 ->where('a.company_id', $company_id)
                 ->where('a.inbound_id', $request->inbound_id)
                 ->get();
+
+            $eanCountPerProduct = $list_data->filter(function ($detail) {
+                return !is_null($detail->ean_code) && $detail->ean_code !== ''; // Pastikan ean_code tidak null dan tidak kosong
+            })->groupBy('product_code')->map(function ($group) {
+                return $group->map(function ($detail) {
+                    return count(explode(',', $detail->ean_code));
+                })->sum();
+            });
+
+            $list_data->map(function ($detail) use ($eanCountPerProduct) {
+                $detail->ean_code_count = $eanCountPerProduct->get($detail->product_code, 0);
+                return $detail;
+            });
 
             return datatables()->of($list_data)
                 ->editColumn('exp_date', function ($data) {
@@ -51,9 +65,17 @@ class DetailController extends Controller
                     }
                     return $mfg_date;
                 })
+                ->addColumn('ean_code_count', function ($data) {
+                    if (is_null($data->manufactur_code)) {
+                        $countingActual = $data->pqty;
+                    } else {
+                        $countingActual = $data->ean_code_count;
+                    }
+                    return $countingActual;
+                })
                 ->addColumn('action', function ($data) {
                     $button = "";
-                    if ($data->received_flag == 'No') {
+                    if ($data->received_flag == 'No' && is_null($data->manufactur_code)) {
                         if (Gate::allows('gate-access', "warehouse/inbound")) {
                             $button .= '<a href="javascript:void(0)" data-toggle="tooltip"  data-id="' . $data->id . '" data-original-title="Edit" class="edit-packing btn btn-info btn-sm"><i class="far fa-edit"></i></a>';
                             $button .= '&nbsp;&nbsp;';
@@ -66,6 +88,88 @@ class DetailController extends Controller
                 ->addIndexColumn()
                 ->make(true);
         }
+    }
+
+    public function doScanEan($value, $job_id)
+    {
+        $exception = DB::transaction(function () use ($value, $job_id) {
+            try {
+                $manufactur_code = $this->extractDigits($value);
+                $masterProd = DB::table('iv_product')
+                    ->select('manufactur_code', 'product_code')
+                    ->where('manufactur_code', $manufactur_code)
+                    ->first();
+                if (is_null($masterProd)) {
+                    $message = ['message' => 'invalid'];
+                    DB::rollBack();
+                } else {
+                    $pluckArr = $this->getDetail($job_id)->pluck('product_code')->toArray();
+                    if (in_array($masterProd->product_code, $pluckArr)) {
+                        $pluckEan = $this->getDetail($job_id)->pluck('ean_code')->toArray();
+                        $filteredData = array_filter($pluckEan, function ($value) {
+                            return !is_null($value);
+                        });
+                        $eanCodes = array_map(function ($value) {
+                            return explode(',', $value); // Memisahkan berdasarkan koma
+                        }, $filteredData);
+                        $flattenedEanCodes = array_merge(...$eanCodes);
+                        if (in_array($value, $flattenedEanCodes)) {
+                            $message =  ['message' => 'duplicate'];
+                            DB::rollBack();
+                        } else {
+                            $eanCode = $this->getDetail($job_id)
+                                ->where('product_code', $masterProd->product_code)
+                                ->pluck('ean_code')
+                                ->toArray();
+                            array_push($eanCode, $value);
+                            // 01084303586758582171202501130082
+                            $filteredArray = array_filter($eanCode, function ($val) {
+                                return !empty($val); // Mengecek agar nilai yang kosong atau null dihapus
+                            });
+
+                            if (empty($filteredArray)) {
+                                $ean_code = $value;
+                            } else {
+                                $ean_code = implode(',', $filteredArray);
+                            }
+                            DB::table('iv_inbound_detail')
+                                ->where('inbound_id', $job_id)
+                                ->where('product_code', $masterProd->product_code)
+                                ->update([
+                                    'ean_code' => $ean_code
+                                ]);
+
+                            DB::commit();
+                            $counting = $this->getDetail($job_id)
+                                ->where('product_code', $masterProd->product_code)
+                                ->pluck('ean_code')
+                                ->map(function ($ean_code) {
+                                    return count(explode(',', $ean_code));
+                                })
+                                ->sum();
+                            $message = ['message' => 'success', 'sku' => $masterProd->product_code, 'counting' => $counting];
+                        }
+                    }
+                }
+                return $message;
+            } catch (\Exception $e) {
+                DB::rollBack();
+                $message = ['error' => [$e->getMessage()]];
+                return $message;
+            }
+        });
+        return response()->json($exception);
+    }
+
+    private function getDetail($job_id)
+    {
+        $data = DB::table('iv_inbound_detail')->where('inbound_id', $job_id)->get();
+        return $data;
+    }
+
+    private function extractDigits($input)
+    {
+        return substr($input, 3, 13);
     }
 
     public function edit(Request $request)
@@ -272,6 +376,14 @@ class DetailController extends Controller
         return response()->json($data);
     }
 
+    private function myBranch()
+    {
+        $data = DB::table('sm_user_branch')
+            ->where('user_id', Auth::user()->id)
+            ->get()->pluck('branch_id')->toArray();
+        return $data;
+    }
+
     public function import(Request $request)
     {
         // validasi
@@ -311,35 +423,41 @@ class DetailController extends Controller
             $qty_2 = $row["qty_2"];
             $qty_3 = $row["qty_3"];
             $pallet_id = $row["pallet_id"];
-            //validasi spasi
-            if (strlen($product_code) != strlen(trim($product_code))) {
-                DB::rollBack();
-                $error_flag = true;
-                $message[] = [
-                    "Line $line $product_code : Terdapat Spasi.."
-                ];
-            }
-
             $vehicle = inboundVehicle::where("inbound_id", $id)
                 ->where("vehicle_no", $vehicle_no)
                 ->count();
 
-            $product = masterProduct::where("principal_id", $job->principal_id)
-                ->where("product_code", $product_code)
-                ->first();
+            $product_code = trim($row["sku_no"]);
+
+            $result = convertSecondaryProduct::resolve(
+                $job->principal_id,
+                $product_code,
+                'inbound',
+                $this->myBranch()
+            );
+
+            if (!$result) {
+                $errors[] = [[
+                    "Line $line $product_code : Product not found or wrong code type (alias/primary mismatch)"
+                ]];
+                $line++;
+                continue;
+            }
+
+            $product   = $result['product'];
+            $finalCode = $result['final_code'];
+
+            $detail = DB::table("iv_inbound_detail as a")
+                ->where("a.inbound_id", $id)
+                ->where("a.product_id", $product->id)
+                ->where(DB::raw("COALESCE(a.lot_no, '')"), $batch_no)
+                ->where(DB::raw("COALESCE(a.mfg_date, null)"), $mfg_date)
+                ->where(DB::raw("COALESCE(a.exp_date, null)"), $exp_date)
+                ->count();
 
             $stock_status = masterStockStatus::where("principal_id", $job->principal_id)
                 ->where("status_name", $status)
                 ->first();
-
-            $detail = DB::table("iv_inbound_detail as a")
-                ->Where("a.inbound_id", $id)
-                ->Where("a.product_code", $product_code)
-                ->Where(DB::raw("COALESCE(a.lot_no, '')"), $batch_no)
-                ->Where(DB::raw("COALESCE(a.mfg_date, null)"), $mfg_date)
-                ->Where(DB::raw("COALESCE(a.exp_date, null)"), $exp_date)
-                ->count();
-
             $stock_id = isset($stock_status) ? $stock_status->id : null;
 
             if ($vehicle > 0 && isset($product) && $detail == 0) {
@@ -403,7 +521,7 @@ class DetailController extends Controller
                         "job_no" => $job->job_no,
                         "vehicle_no" => $vehicle_no,
                         "product_id" => $product->id,
-                        "product_code" => $product_code,
+                        "product_code" => $finalCode,
                         "po_number" => $row["do_no"],
                         "lot_no" => $batch_no,
                         "document_ref" => $row["document_ref"],

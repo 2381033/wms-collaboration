@@ -145,13 +145,14 @@ Route::group(['prefix' => 'CheckpointDriver/'], function () {
 
 Route::group(['prefix' => 'stuffingExport/'], function () {
     Route::post('login', 'Api\Export\Stuffing\StuffingController@login');
-    Route::get('getList/{branch}', 'Api\Export\Stuffing\StuffingController@getList');
-    Route::get('detailPallet/{job_id}', 'Api\Export\Stuffing\StuffingController@detailPallet');
-    Route::get('headerPallet/{id}', 'Api\Export\Stuffing\StuffingController@headerPallet');
-    Route::get('getCargoNotCompleted/{id}', 'Api\Export\Stuffing\StuffingController@getCargoNotCompleted');
-    Route::get('getCargoCompleted/{id}', 'Api\Export\Stuffing\StuffingController@getCargoCompleted');
+    Route::post('getList', 'Api\Export\Stuffing\StuffingController@getList');
+    Route::post('getCounting', 'Api\Export\Stuffing\StuffingController@getCounting');
     Route::post('scanPalletTag', 'Api\Export\Stuffing\StuffingController@scanPalletTag');
     Route::get('mybranch/{username}', 'Api\Export\UserController@mybranch');
+    // Route::get('detailPallet/{job_id}', 'Api\Export\Stuffing\StuffingController@detailPallet');
+    // Route::get('headerPallet/{id}', 'Api\Export\Stuffing\StuffingController@headerPallet');
+    // Route::get('getCargoNotCompleted/{id}', 'Api\Export\Stuffing\StuffingController@getCargoNotCompleted');
+    // Route::get('getCargoCompleted/{id}', 'Api\Export\Stuffing\StuffingController@getCargoCompleted');
 });
 
 Route::group(['prefix' => 'exportAndroid/'], function () {
@@ -161,6 +162,7 @@ Route::group(['prefix' => 'exportAndroid/'], function () {
     //MASTER DATA
     Route::group(['prefix' => 'master/'], function () {
         Route::get('getVehicleNo', 'Api\Export\Master\MasterController@getVehicleNo');
+        Route::get('getTransporter', 'Api\Export\Master\MasterController@getTransporter');
         Route::get('getForwarder/{username}', 'Api\Export\Master\MasterController@getForwarder');
         Route::get('getShipper/{username}', 'Api\Export\Master\MasterController@getShipper');
         Route::get('getConsignee/{username}', 'Api\Export\Master\MasterController@getConsignee');
@@ -186,12 +188,18 @@ Route::group(['prefix' => 'exportAndroid/'], function () {
 
         Route::get('getJobChecker/{username}', 'Api\Export\Inbound\JobController@getJobChecker');
         Route::POST('storeFotoCargo', 'Api\Export\Inbound\DetailController@storeFotoCargo');
-        Route::get('getFotoCargo/{job_id}', 'Api\Export\Inbound\DetailController@getFotoCargo');
-        Route::get('getDetailCargo/{job_id}', 'Api\Export\Inbound\DetailController@getDetailCargo');
+        Route::POST('storeFotoCargoDamage', 'Api\Export\Inbound\DetailController@storeFotoCargoDamage');
+        Route::get('getFotoCargo/{job_id}/{po}', 'Api\Export\Inbound\DetailController@getFotoCargo');
+        Route::get('getFotoCargoDamage/{job_id}/{po}', 'Api\Export\Inbound\DetailController@getFotoCargoDamage');
+        Route::get('getDetailCargo/{job_id}/{po}', 'Api\Export\Inbound\DetailController@getDetailCargo');
+        Route::get('resultPalletize/{job_id}/{po}', 'Api\Export\Inbound\DetailController@resultPalletize');
         Route::get('deletePallet/{job_id}/{id_detail}', 'Api\Export\Inbound\DetailController@deletePallet');
-        Route::get('perkalianPallet/{job_id}/{id_detail}/{perkalian}', 'Api\Export\Inbound\DetailController@perkalianPallet');
+        Route::get('perkalianPallet/{job_id}/{id_detail}/{perkalian}/{po_number}', 'Api\Export\Inbound\DetailController@perkalianPallet');
         Route::POST('storeDetail', 'Api\Export\Inbound\DetailController@storeDetail');
         Route::POST('storeSignature', 'Api\Export\Inbound\DetailController@storeSignature');
+        Route::get('listingPO/{job_id}', 'Api\Export\Inbound\DetailController@listingPO');
+        Route::POST('storeFotoTruck', 'Api\Export\Inbound\DetailController@storeFotoTruck');
+        Route::get('getFotoTruck/{job_id}', 'Api\Export\Inbound\DetailController@getFotoTruck');
 
         Route::get('getJobPutaway/{username}', 'Api\Export\Inbound\JobController@getJobPutaway');
         Route::get('detailPutaway/{job_id}', 'Api\Export\Inbound\JobController@detailPutaway');
@@ -200,7 +208,19 @@ Route::group(['prefix' => 'exportAndroid/'], function () {
         Route::POST('postScanPalletTag', 'Api\Export\Inbound\DetailController@postScanPalletTag');
         Route::POST('postScanLocation', 'Api\Export\Inbound\DetailController@postScanLocation');
         Route::get('cancelPutaway/{id_detail}', 'Api\Export\Inbound\JobController@cancelPutaway');
+        Route::get('cancelPutaway/{id_detail}', 'Api\Export\Inbound\JobController@cancelPutaway');
         Route::POST('confirmPutaway', 'Api\Export\Inbound\JobController@confirmPutaway');
+    });
+
+    //OB 
+    Route::group(['prefix' => 'ob/'], function () {
+        Route::get('getJobOB/{type}/{username}', 'Api\Export\OB\JobController@getJobOB');
+        Route::get('detailOB/{type}/{job_no}', 'Api\Export\OB\JobController@detailOB');
+        Route::post('postScanPalletTag', 'Api\Export\OB\JobController@postScanPalletTag');
+        Route::post('postScanLocation', 'Api\Export\OB\JobController@postScanLocation');
+        Route::get('getFoto/{job_no}', 'Api\Export\OB\JobController@getFoto');
+        Route::post('storeFoto', 'Api\Export\OB\JobController@storeFoto');
+        Route::GET('confirmJobChecker/{job_no}', 'Api\Export\OB\JobController@confirmJobChecker');
     });
 
     //GATEIN
@@ -226,4 +246,20 @@ Route::group(['prefix' => 'import/FotoManagement'], function () {
     Route::post('getFoto', 'Api\Import\FotoManagement\FotoManagementController@getFoto');
     Route::post('confirmJob', 'Api\Import\FotoManagement\FotoManagementController@confirmJob');
     Route::get('mybranch/{username}', 'Api\Export\UserController@mybranch');
+});
+
+Route::group(['prefix' => 'export/ScanCargoExport'], function () {
+    Route::post('login', 'Api\Export\ScanCargo\ScanCargoController@login');
+    Route::post('postReceive', 'Api\Export\ScanCargo\ScanCargoController@postReceive');
+    Route::GET('getListReceive/{username}', 'Api\Export\ScanCargo\ScanCargoController@getListReceive');
+    Route::GET('generateJobNoReceive/{username}', 'Api\Export\ScanCargo\ScanCargoController@generateJobNoReceive');
+    Route::GET('getListOutstanding/{job_no}', 'Api\Export\ScanCargo\ScanCargoController@getListOutstanding');
+    Route::GET('deleteListReceive/{id}', 'Api\Export\ScanCargo\ScanCargoController@deleteListReceive');
+    Route::GET('confirmJobReceive/{job_no}', 'Api\Export\ScanCargo\ScanCargoController@confirmJobReceive');
+    //STUFFING
+    Route::GET('generateJobNoStuffing/{username}', 'Api\Export\ScanCargo\ScanCargoController@generateJobNoStuffing');
+    Route::POST('postStuffing', 'Api\Export\ScanCargo\ScanCargoController@postStuffing');
+    Route::GET('getListStuffing/{job_no}', 'Api\Export\ScanCargo\ScanCargoController@getListStuffing');
+    Route::GET('deleteListStuffing/{pallet}', 'Api\Export\ScanCargo\ScanCargoController@deleteListStuffing');
+    Route::GET('confirmJobStuffing/{job_no}', 'Api\Export\ScanCargo\ScanCargoController@confirmJobStuffing');
 });

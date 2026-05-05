@@ -20,71 +20,68 @@ use App\Models\Master\AdjustmentType as MasterAdjustmentType;
 
 class AdjustmentController extends Controller
 {
-    public function index(Request $request) {
+    public function index(Request $request)
+    {
         $details = [];
         if ($request->ajax()) {
             if (!empty($request->take_id) && !empty($request->take_id)) {
                 $details = DB::table('iv_stocktake_detail as a')
-                            ->select('a.*', 'b.product_name', 'c.site_name', 'd.area_name')
-                            ->join('iv_product as b', 'a.product_id', 'b.id')
-                            ->join('iv_site as c', 'a.site_id', 'c.id')
-                            ->join('iv_site_area as d', 'a.area_id', 'd.id')
-                            ->where('a.stocktake_id', '=', $request->take_id)
-                            ->where('a.confirmed_flag', '=', 'No')
-                            ->where(DB::raw("CASE WHEN a.pqty <> a.actual_pqty OR a.mqty <> a.actual_mqty OR a.bqty <> a.actual_bqty OR a.lot_no <> a.actual_lot_no OR a.mfg_date <> a.actual_mfg_date OR a.exp_date <> a.actual_exp_date THEN 1 ELSE 0 END"), '=', 1)
-                            ->get();
+                    ->select('a.*', 'b.product_name', 'c.site_name', 'd.area_name')
+                    ->join('iv_product as b', 'a.product_id', 'b.id')
+                    ->join('iv_site as c', 'a.site_id', 'c.id')
+                    ->join('iv_site_area as d', 'a.area_id', 'd.id')
+                    ->where('a.stocktake_id', '=', $request->take_id)
+                    ->where('a.confirmed_flag', '=', 'No')
+                    ->where(DB::raw("CASE WHEN a.pqty <> a.actual_pqty OR a.mqty <> a.actual_mqty OR a.bqty <> a.actual_bqty OR a.lot_no <> a.actual_lot_no OR a.mfg_date <> a.actual_mfg_date OR a.exp_date <> a.actual_exp_date THEN 1 ELSE 0 END"), '=', 1)
+                    ->get();
             }
 
             return datatables()->of($details)
-            ->editColumn('mfg_date', function ($data)
-            {
-                $mfg_date = "";
-                if (isset($data->mfg_date)) {
-                    $mfg_date = date('d/m/Y', strtotime($data->mfg_date) );
-                }
-                return $mfg_date;
-            })
-            ->editColumn('exp_date', function ($data)
-            {
-                $exp_date = "";
-                if (isset($data->exp_date)) {
-                    $exp_date = date('d/m/Y', strtotime($data->exp_date) );
-                }
-                return $exp_date;
-            })
-            ->editColumn('actual_mfg_date', function ($data)
-            {
-                $actual_mfg_date = "";
-                if (isset($data->actual_mfg_date)) {
-                    $actual_mfg_date = date('d/m/Y', strtotime($data->actual_mfg_date) );
-                }
-                return $actual_mfg_date;
-            })
-            ->editColumn('actual_exp_date', function ($data)
-            {
-                $actual_exp_date = "";
-                if (isset($data->actual_exp_date)) {
-                    $actual_exp_date = date('d/m/Y', strtotime($data->actual_exp_date) );
-                }
-                return $actual_exp_date;
-            })
-            ->addColumn('check', function ($data) {
-                return '<input type="checkbox" required="required" name="adjust_id[]" class="confirm-check" id="' . $data->id . '" value="' . $data->id . '">';
-            })
-            ->rawColumns(['check'])
-            ->addIndexColumn()
-            ->make(true);
+                ->editColumn('mfg_date', function ($data) {
+                    $mfg_date = "";
+                    if (isset($data->mfg_date)) {
+                        $mfg_date = date('d/m/Y', strtotime($data->mfg_date));
+                    }
+                    return $mfg_date;
+                })
+                ->editColumn('exp_date', function ($data) {
+                    $exp_date = "";
+                    if (isset($data->exp_date)) {
+                        $exp_date = date('d/m/Y', strtotime($data->exp_date));
+                    }
+                    return $exp_date;
+                })
+                ->editColumn('actual_mfg_date', function ($data) {
+                    $actual_mfg_date = "";
+                    if (isset($data->actual_mfg_date)) {
+                        $actual_mfg_date = date('d/m/Y', strtotime($data->actual_mfg_date));
+                    }
+                    return $actual_mfg_date;
+                })
+                ->editColumn('actual_exp_date', function ($data) {
+                    $actual_exp_date = "";
+                    if (isset($data->actual_exp_date)) {
+                        $actual_exp_date = date('d/m/Y', strtotime($data->actual_exp_date));
+                    }
+                    return $actual_exp_date;
+                })
+                ->addColumn('check', function ($data) {
+                    return '<input type="checkbox" required="required" name="adjust_id[]" class="confirm-check" id="' . $data->id . '" value="' . $data->id . '">';
+                })
+                ->rawColumns(['check'])
+                ->addIndexColumn()
+                ->make(true);
         }
     }
 
 
-    public function submit(Request $request)
+    public function submitada(Request $request)
     {
-            $company_id = Auth::user()->company_id;
-            $user_id = Auth::user()->id;
-            $confirmed_by = Auth::user()->username;
-            $confirmed_date = \Carbon\Carbon::now();
-            $adjust_date = \Carbon\Carbon::today();
+        $company_id = Auth::user()->company_id;
+        $user_id = Auth::user()->id;
+        $confirmed_by = Auth::user()->username;
+        $confirmed_date = \Carbon\Carbon::now();
+        $adjust_date = \Carbon\Carbon::today();
         try {
             $dataapi = $request->confirm_id;
             $transfer_id = $request->transfer_id;
@@ -110,7 +107,8 @@ class AdjustmentController extends Controller
         return response()->json($message);
     }
 
-    public function submit2(Request $request) {
+    public function submit(Request $request)
+    {
         $exception = DB::transaction(function () use ($request) {
             $company_id = Auth::user()->company_id;
             $confirmed_by = Auth::user()->username;
@@ -154,8 +152,8 @@ class AdjustmentController extends Controller
                             $adjustmentType = MasterAdjustmentType::where('type_name', '=', 'Cycle Count Adjustment')->first();
 
                             $create_job = AdjustmentJob::where('company_id', '=', $company_id)
-                                        ->whereYear('adjust_date', '=', $year)
-                                        ->whereMonth('adjust_date', '=', $month)->max("adjust_no");
+                                ->whereYear('adjust_date', '=', $year)
+                                ->whereMonth('adjust_date', '=', $month)->max("adjust_no");
 
                             if (is_null($create_job)) {
                                 $increment = 1;
@@ -271,18 +269,18 @@ class AdjustmentController extends Controller
                     }
 
                     if ($detail->lot_no != $detail->actual_lot_no) {
-                        StockLedger::where('id', $detail->serial_id)->update(['lot_no'=>$detail->actual_lot_no]);
-                        StockTransaction::where('serial_no', $detail->serial_no)->update(['lot_no'=>$detail->actual_lot_no]);
+                        StockLedger::where('id', $detail->serial_id)->update(['lot_no' => $detail->actual_lot_no]);
+                        StockTransaction::where('serial_no', $detail->serial_no)->update(['lot_no' => $detail->actual_lot_no]);
                     }
 
                     if ($detail->mfg_date != $detail->actual_mfg_date) {
-                        StockLedger::where('id', $detail->serial_id)->update(['mfg_date'=>$detail->actual_mfg_date]);
-                        StockTransaction::where('serial_no', $detail->serial_no)->update(['mfg_date'=>$detail->actual_mfg_date]);
+                        StockLedger::where('id', $detail->serial_id)->update(['mfg_date' => $detail->actual_mfg_date]);
+                        StockTransaction::where('serial_no', $detail->serial_no)->update(['mfg_date' => $detail->actual_mfg_date]);
                     }
 
                     if ($detail->exp_date != $detail->actual_exp_date) {
-                        StockLedger::where('id', $detail->serial_id)->update(['exp_date'=>$detail->actual_exp_date]);
-                        StockTransaction::where('serial_no', $detail->serial_no)->update(['exp_date'=>$detail->actual_exp_date]);
+                        StockLedger::where('id', $detail->serial_id)->update(['exp_date' => $detail->actual_exp_date]);
+                        StockTransaction::where('serial_no', $detail->serial_no)->update(['exp_date' => $detail->actual_exp_date]);
                     }
 
                     $serial->freeze_flag = 'No';
@@ -296,8 +294,8 @@ class AdjustmentController extends Controller
 
                 $job = StockTakeJob::find($detail->stocktake_id);
                 $detail_count = StockTakeDetail::where('stocktake_id', '=', $detail->stocktake_id)
-                                    ->where('confirmed_flag', '=', 'No')
-                                    ->get();
+                    ->where('confirmed_flag', '=', 'No')
+                    ->get();
 
                 if (is_null($detail_count)) {
                     $count = 0;
@@ -314,14 +312,13 @@ class AdjustmentController extends Controller
 
                 DB::commit();
 
-                $message = ['success'=>"Sukses"];
+                $message = ['success' => "Sukses"];
 
                 return $message;
-            }
-            catch(\Exception $e) {
+            } catch (\Exception $e) {
                 DB::rollBack();
 
-                $message = ["error"=>$e->getMessage()];
+                $message = ["error" => $e->getMessage()];
 
                 return $message;
             }

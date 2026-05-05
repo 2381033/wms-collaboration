@@ -50,9 +50,27 @@ class StockLedgerReportExport implements FromCollection, WithHeadings, ShouldAut
     public function collection()
     {
         $company_id = Auth::user()->company_id;
-        $principal = \App\Models\Master\Principal::find($this->principal_id);
+        if ($this->principal_id === 'ALL') {
+            $principal = (object)[
+                'principal_name' => 'ALL PRINCIPAL',
+                'multi_level' => 'No' // atau default yg paling aman
+            ];
+        } else {
+            $principal = \App\Models\Master\Principal::find($this->principal_id);
+        }
+
+        $user = DB::table("users as a")
+            ->select(
+                "a.*",
+                "b.role_name"
+            )
+            ->join("sm_role as b", "a.role_id", "b.id")
+            ->where("a.username", Auth::user()->username)
+            ->first();
+        $isVendor = ($user->role_name == 'Vendor');
 
         if ($this->report_type == "summary") {
+            $principal_id = $this->principal_id;
             $stok = DB::table('iv_stock_transaction as a')
                 ->select(
                     'product_id',
@@ -61,17 +79,23 @@ class StockLedgerReportExport implements FromCollection, WithHeadings, ShouldAut
                 )
                 ->join('iv_product as b', 'a.product_id', 'b.id')
                 ->where('a.company_id', $company_id)
-                ->where('a.principal_id',  $this->principal_id)
+                ->when($this->principal_id !== 'ALL', function ($q) use ($principal_id) {
+                    $q->where('a.principal_id', $principal_id);
+                })
                 ->where('a.branch_id', $this->branch_id)
                 ->whereBetween('b.product_code', [$this->product_from, $this->product_to])
                 ->where(DB::raw("COALESCE(a.area_id, 0)"), "LIKE", $this->area_id)
                 ->whereBetween(DB::raw("COALESCE(a.location_code, '')"), [$this->location_from, $this->location_to])
                 ->groupBy('a.product_id')
-                ->orderBy("product_name", "asc")
-                ->get();
+                ->orderBy("product_name", "asc");
+            $stok_query = $stok->toSql();
+            $stok_bindings = $stok->getBindings();
+            $stok = $stok->get();
 
             $summary = DB::table("iv_stock_ledger as a")
                 ->select(
+                    "p.principal_name",
+                    "a.planning",
                     "a.product_code",
                     "a.product_id",
                     "b.product_name",
@@ -90,12 +114,14 @@ class StockLedgerReportExport implements FromCollection, WithHeadings, ShouldAut
                 ->join("iv_product as b", "a.product_id", "b.id")
                 ->join("iv_product_group as e", "b.group_id", "e.id")
                 ->join("iv_product_brand as f", "b.brand_id", "f.id")
+                ->join("iv_principal as p", "a.principal_id", "p.id")
                 ->leftjoin("iv_location as g", "a.location_id", "g.id")
                 ->where("a.company_id", $company_id)
-                ->where("a.principal_id", $this->principal_id)
+                ->when($this->principal_id !== 'ALL', function ($q) use ($principal_id) {
+                    $q->where('a.principal_id', $principal_id);
+                })
                 ->where("a.branch_id", $this->branch_id)
                 ->where("a.qtys", ">", 0)
-                ->where("a.qtya", ">", 0)
                 ->whereBetween("e.group_code", [$this->group_from, $this->group_to])
                 ->whereBetween("f.brand_code", [$this->brand_from, $this->brand_to])
                 ->whereBetween("b.product_code", [$this->product_from, $this->product_to])
@@ -104,8 +130,10 @@ class StockLedgerReportExport implements FromCollection, WithHeadings, ShouldAut
                 ->whereBetween(DB::raw("COALESCE(a.location_code, '')"), [$this->location_from, $this->location_to])
                 ->whereBetween(DB::raw("COALESCE(a.exp_date, now())"), [date($this->exp_from), date($this->exp_to)])
                 ->groupBy("a.product_id")
-                ->orderBy("b.product_name", "asc")
-                ->get();
+                ->orderBy("b.product_name", "asc");
+            $summary_query = $summary->toSql();
+            $summary_bindings = $summary->getBindings();
+            $summary = $summary->get();
 
             $arr_product = $summary->pluck('product_id')->toArray();
 
@@ -117,6 +145,7 @@ class StockLedgerReportExport implements FromCollection, WithHeadings, ShouldAut
             }
 
             if ($principal->multi_level == "Yes") {
+
                 $list = [];
                 foreach ($summary as $value) {
                     $list[] = [
@@ -140,20 +169,53 @@ class StockLedgerReportExport implements FromCollection, WithHeadings, ShouldAut
             } else {
                 $list = [];
                 foreach ($summary as $key => $value) {
-                    $list[] = [
-                        "product_code" => $value->product_code,
-                        "product_name" => $value->product_name,
-                        "pqtys" => $value->qtys,
-                        "pqtyp" => ($value->qtyp  - ($value->qtyp % $value->uppp)) / $value->uppp,
-                        "pqtya" => ABS($value->qtys - ($value->qtyp  - ($value->qtyp % $value->uppp)) / $value->uppp),
-                        "puom" => $value->puom,
-                        "status" => 'GOODS',
+                    $plans = [];
+                    if ($isVendor && !empty($value->planning)) {
+                        $plans = is_array($value->planning)
+                            ? $value->planning
+                            : json_decode($value->planning, true);
+                    }
+                    $plans = collect($plans)->sortBy('week')->values()->toArray();
+                    $max = 4;
+                    for ($i = 1; $i <= $max; $i++) {
+                        $value->{"ip_$i"} = '';
+                        $value->{"week_$i"} = '';
+                    }
+                    if ($isVendor) {
+                        foreach ($plans as $index => $plan) {
+                            if ($index < $max) {
+                                $value->{"ip_" . ($index + 1)} = $plan['ip'] ?? '';
+                                $value->{"week_" . ($index + 1)} = $plan['week'] ?? '';
+                            }
+                        }
+                    }
+                    $dataRow = [
+                        "principal_name" => $value->principal_name,
+                        "product_code"   => $value->product_code,
+                        "product_name"   => $value->product_name,
+                        "pqtys"          => $value->qtys,
+                        "pqtyp"          => ($value->qtyp  - ($value->qtyp % $value->uppp)) / $value->uppp,
+                        "pqtya"          => ($value->qtya  - ($value->qtya % $value->uppp)) / $value->uppp,
+                        "puom"           => $value->puom,
+                        "status"         => 'GOODS',
                     ];
+
+                    if ($isVendor) {
+                        for ($i = 1; $i <= $max; $i++) {
+                            $dataRow["IP $i"] = $value->{"ip_$i"};
+                            $dataRow["Week $i"] = $value->{"week_$i"};
+                        }
+                    }
+                    $list[] = $dataRow;
                 }
             }
         } else {
+            $stok_query = 0;
+            $stok_bindings = 0;
+            $principal_id = $this->principal_id;
             $summary = DB::table("iv_stock_ledger as a")
                 ->select(
+                    "p.principal_name",
                     "a.job_no",
                     "a.job_date",
                     "a.product_code",
@@ -175,20 +237,23 @@ class StockLedgerReportExport implements FromCollection, WithHeadings, ShouldAut
                     "b.gross_weight",
                     "b.uppp",
                     "b.muppp",
-                    DB::raw("CASE WHEN a.status = 'B' THEN 'BAD' ELSE 'GOODS' END as status_code")
+                    DB::raw("CASE WHEN a.status = 'K' THEN 'Quarantine' WHEN a.status = 'B' THEN 'Bad' ELSE 'Goods' END as status_code"),
+                    "vh.vehicle_no"
                 )
+                ->join("iv_principal as p", "p.id", "a.principal_id")
                 ->join("iv_product as b", "a.product_id", "b.id")
-                ->join("iv_site as c", "a.site_id", "c.id")
+                ->leftjoin("iv_site as c", "a.site_id", "c.id")
+                ->leftJoin("iv_inbound_vehicle as vh", "a.job_no", "vh.job_no")
                 ->leftJoin("iv_site_area as d", "a.area_id", "d.id")
                 ->join("iv_product_group as e", "b.group_id", "e.id")
                 ->join("iv_product_brand as f", "b.brand_id", "f.id")
                 ->leftjoin("iv_location as g", "a.location_id", "g.id")
                 ->where("a.company_id", $company_id)
-                ->where("a.principal_id", $this->principal_id)
+                ->when($this->principal_id !== 'ALL', function ($q) use ($principal_id) {
+                    $q->where('a.principal_id', $principal_id);
+                })
                 ->where("a.branch_id", $this->branch_id)
                 ->where("a.qtys", ">", 0)
-                ->where("a.qtya", ">", 0)
-                // ->where("a.location_code", "H3-4-4")
                 ->whereBetween("e.group_code", [$this->group_from, $this->group_to])
                 ->whereBetween("f.brand_code", [$this->brand_from, $this->brand_to])
                 ->whereBetween("b.product_code", [$this->product_from, $this->product_to])
@@ -196,17 +261,22 @@ class StockLedgerReportExport implements FromCollection, WithHeadings, ShouldAut
                 ->where(DB::raw("COALESCE(a.area_id, 0)"), "LIKE", $this->area_id)
                 ->whereBetween(DB::raw("COALESCE(a.location_code, '')"), [$this->location_from, $this->location_to])
                 ->whereBetween(DB::raw("COALESCE(a.exp_date, now())"), [date($this->exp_from), date($this->exp_to)])
-                ->orderBy("b.product_name", "asc")
-                ->get();
+                ->orderBy("b.product_name", "asc");
+            $summary_query = $summary->toSql();
+            $summary_bindings = $summary->getBindings();
+            $summary = $summary->get();
+
 
             if ($principal->multi_level == "Yes") {
                 $list = [];
                 foreach ($summary as $value) {
                     $list[] = [
+                        "container_no" => $value->vehicle_no,
                         "job_no" => $value->job_no,
                         "job_date" => $value->job_date,
                         "product_code" => $value->product_code,
                         "product_name" => $value->product_name,
+                        "conversi" => $value->muppp,
                         "lot_no" => $value->lot_no,
                         "mfg_date" => $value->mfg_date,
                         "exp_date" => $value->exp_date,
@@ -215,16 +285,15 @@ class StockLedgerReportExport implements FromCollection, WithHeadings, ShouldAut
                         "location_code" => $value->location_code,
                         "pqtys" => ($value->qtys  - ($value->qtys % $value->uppp)) / $value->uppp,
                         "mqtys" => (($value->qtys % $value->uppp) - (($value->qtys % $value->uppp) % $value->muppp)) / $value->muppp,
-                        "bqtys" => $value->qtys % $value->uppp % $value->muppp,
+                        "quantum_soh" => $value->qtys * $value->muppp,
                         "pqtyp" => ($value->qtyp  - ($value->qtyp % $value->uppp)) / $value->uppp,
                         "mqtyp" => (($value->qtyp % $value->uppp) - (($value->qtyp % $value->uppp) % $value->muppp)) / $value->muppp,
-                        "bqtyp" => $value->qtyp % $value->uppp % $value->muppp,
+                        "quantum_sob" => $value->qtyp * $value->muppp,
                         "pqtya" => ($value->qtya  - ($value->qtya % $value->uppp)) / $value->uppp,
                         "mqtya" => (($value->qtya % $value->uppp) - (($value->qtya % $value->uppp) % $value->muppp)) / $value->muppp,
-                        "bqtya" => $value->qtya % $value->uppp % $value->muppp,
+                        "quantum_soa" => $value->qtya * $value->muppp,
                         "puom" => $value->puom,
                         "muom" => $value->muom,
-                        "buom" => $value->buom,
                         "freeze_flag" => $value->freeze_flag,
                         "gross_weight" => $value->gross_weight,
                         "volume" => $value->volume,
@@ -235,6 +304,7 @@ class StockLedgerReportExport implements FromCollection, WithHeadings, ShouldAut
                 $list = [];
                 foreach ($summary as $value) {
                     $list[] = [
+                        "principal_name" => $value->principal_name,
                         "job_no" => $value->job_no,
                         "job_date" => $value->job_date,
                         "product_code" => $value->product_code,
@@ -253,17 +323,34 @@ class StockLedgerReportExport implements FromCollection, WithHeadings, ShouldAut
                         "gross_weight" => $value->gross_weight,
                         "volume" => $value->volume,
                         "status_code" => $value->status_code,
+                        // "container_no" => $value->vehicle_no,
                     ];
                 }
             }
         }
-
         return new Collection($list);
     }
 
     public function headings(): array
     {
-        $principal = \App\Models\Master\Principal::find($this->principal_id);
+        $company_id = Auth::user()->company_id;
+        if ($this->principal_id === 'ALL') {
+            $principal = (object)[
+                'principal_name' => 'ALL PRINCIPAL',
+                'multi_level' => 'No' // atau default yg paling aman
+            ];
+        } else {
+            $principal = \App\Models\Master\Principal::find($this->principal_id);
+        }
+        $user = DB::table("users as a")
+            ->select(
+                "a.*",
+                "b.role_name"
+            )
+            ->join("sm_role as b", "a.role_id", "b.id")
+            ->where("a.username", Auth::user()->username)
+            ->first();
+        $isVendor = ($user->role_name == 'Vendor');
 
         if ($this->report_type == "summary") {
             if ($principal->multi_level == "Yes") {
@@ -286,6 +373,7 @@ class StockLedgerReportExport implements FromCollection, WithHeadings, ShouldAut
                 ];
             } else {
                 $header = [
+                    "Principal",
                     "SKU No",
                     "SKU Name",
                     "SOH",
@@ -294,16 +382,23 @@ class StockLedgerReportExport implements FromCollection, WithHeadings, ShouldAut
                     "Unit",
                     "Status",
                 ];
+                if ($isVendor) {
+                    for ($i = 1; $i <= 4; $i++) {
+                        $header[] = "IP $i";
+                        $header[] = "Week $i";
+                    }
+                }
             }
-
             return $header;
         } else {
             if ($principal->multi_level == "Yes") {
                 return [
+                    "Container No",
                     "Job No",
                     "Job Date",
                     "SKU No",
                     "SKU Name",
+                    "Conversi Qty",
                     "Batch No",
                     "Mfg Date",
                     "Exp Date",
@@ -312,16 +407,15 @@ class StockLedgerReportExport implements FromCollection, WithHeadings, ShouldAut
                     "Location",
                     "1st SOH",
                     "2nd SOH",
-                    "3rd SOH",
+                    "Quantum",
                     "1st SOB",
                     "2nd SOB",
-                    "3rd SOB",
+                    "Quantum",
                     "1st SOA",
                     "2nd SOA",
-                    "3rd SOA",
+                    "Quantum",
                     "1st Unit",
                     "2nd Unit",
-                    "3rd Unit",
                     "Freeze",
                     "Gross Weight",
                     "Volume",
@@ -329,6 +423,7 @@ class StockLedgerReportExport implements FromCollection, WithHeadings, ShouldAut
                 ];
             } else {
                 $header = [
+                    "Principal",
                     "Job No",
                     "Job Date",
                     "SKU No",

@@ -86,6 +86,19 @@
 </head>
 
 <body>
+    <div id="ajax-overlay" style="display: none;">
+        <div
+            style="
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 24px;">
+            Loading...
+        </div>
+    </div>
+
     <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
         @csrf
     </form>
@@ -178,7 +191,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"
         integrity="sha512-2ImtlRlf2VVmiGZsjm9bEyhjGW4dU7B6TNwh/hx/iSByxNENtj3WVE6o/9Lj4TJeVXPi4bnOIMXFIJJAeufa0A=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    {{-- <script src="https://unpkg.com/html5-qrcode@2.0.9/dist/html5-qrcode.min.js"></script> --}}
 
     <script>
         function logout() {

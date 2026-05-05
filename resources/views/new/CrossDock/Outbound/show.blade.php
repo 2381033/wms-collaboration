@@ -136,7 +136,7 @@
                                                         <label>DO Number:</label>
                                                         <input type="text" class="form-control form-control" required
                                                             placeholder="Silahkan isi.." disabled name="do_no"
-                                                            value="{{ $header->po_no }}" />
+                                                            value="{{ $header->do_no }}" />
                                                     </div>
                                                 </div>
                                                 <div class="col-sm-12">
@@ -879,44 +879,82 @@
                                             value="{{ $header->po_no }}">
                                     </div>
                                 </div>
-                                <div class="col-sm-4">
+                                <div class="col-sm-3">
                                     <div class="form-group">
                                         <label for="my-input">Carrier Name</label>
                                         <input id="my-input" class="form-control" type="text"
                                             name="carrier_name" required  value="${data.carrier_name}"
                                             placeholder="Silahkan isi..">
                                     </div>
-                                    <div class="form-group">
+                                </div>
+                                <div class="col-sm-3">
+                                       <div class="form-group">
                                         <label for="my-input">ETD</label>
                                         <input id="my-input" class="form-control" type="date"
                                             name="etd" value="${data.etd}"  required
                                             placeholder="Silahkan isi..">
                                     </div>
                                 </div>
-                                <div class="col-sm-4">
-                                    <div class="form-group">
-                                        <label for="my-input">Vehicle No</label>
-                                        <input id="my-input" class="form-control" type="text"
-                                            name="vehicle_no" required value="${data.vehicle_no}"
-                                            placeholder="Silahkan isi..">
-                                    </div>
+                                <div class="col-sm-3">
                                     <div class="form-group">
                                         <label for="my-input">AWB No</label>
                                         <input id="my-input" class="form-control" type="text" value="${data.awb_no}"
                                             name="awb_no" required placeholder="Silahkan isi..">
                                     </div>
                                 </div>
-                                <div class="col-sm-4">
+                                <div class="col-sm-3">
+                                   <div class="form-group">
+                                        <label for="my-input">AWB Date</label>
+                                        <input id="my-input" class="form-control" type="date"
+                                            name="awb_date" value="${data.awb_date}" required
+                                            placeholder="Silahkan isi..">
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        <label for="my-input">Vehicle No</label>
+                                        <input id="my-input" class="form-control" type="text"
+                                            name="vehicle_no" required value="${data.vehicle_no}"
+                                            placeholder="Silahkan isi..">
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        <label for="my-select">Vehicle Type</label>
+                                        <select class="form-control" name="vehicle"
+                                            id="my-select" required>
+                                            <option value="" selected disabled>Silahkan
+                                                Pilih
+                                            </option>
+                                            @foreach ($vehicle as $item)
+                                                <option value="{{ $item->name }}">
+                                                    {{ $item->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        <label for="my-select">Size</label>
+                                        <select class="form-control" name="size"
+                                            id="my-select" required>
+                                            <option value="" selected disabled>Silahkan
+                                                Pilih
+                                            </option>
+                                            @foreach ($vehicleSize as $item)
+                                                <option value="{{ $item->name }}">
+                                                    {{ $item->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
                                     <div class="form-group">
                                         <label for="my-input">Driver Name</label>
                                         <input id="my-input" class="form-control" type="text" value="${data.driver_name}"
                                             name="driver_name" required
-                                            placeholder="Silahkan isi..">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="my-input">AWB Date</label>
-                                        <input id="my-input" class="form-control" type="date"
-                                            name="awb_date" value="${data.awb_date}" required
                                             placeholder="Silahkan isi..">
                                     </div>
                                 </div>

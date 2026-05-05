@@ -30,7 +30,7 @@ class BatchController extends Controller
 
         if ($request->ajax()) {
             $list_data = inboundBatch::from('iv_inbound_batch as a')
-                ->select('a.*', 'b.product_name', "d.class_name")
+                ->select('a.*', 'b.product_name', 'b.length', 'b.width', 'b.height', 'b.volume', 'd.class_name')
                 ->join('iv_product as b', 'a.product_id', 'b.id')
                 ->join('iv_inbound_job as c', 'a.inbound_id', 'c.id')
                 ->join('iv_job_class as d', 'c.class_id', 'd.id')
@@ -38,6 +38,10 @@ class BatchController extends Controller
                 ->where('a.inbound_id', $request->inbound_id)
                 ->where('a.confirmed_flag', 'No')
                 ->get();
+
+            $has_zero_volume = $list_data->contains(function ($item) {
+                return (float)$item->volume == 0;
+            });
 
             return datatables()->of($list_data)
                 ->editColumn('exp_date', function ($data) {
@@ -55,7 +59,7 @@ class BatchController extends Controller
                     return $mfg_date;
                 })
                 ->addColumn('action', function ($data) {
-                    $button = '<a href="javascript:void(0)" onClick="getEditLokasiBatch(' . $data->id . ')" data-id="' . $data->id . '" class="btn btn-dark btn-sm"> Edit</a>';
+                    $button = '<a href="javascript:void(0)" onClick="getEditLokasiBatch(' . $data->id . ')" data-id="' . $data->id . '" class="btn btn-dark btn-sm"> Edit Loc</a>';
                     return $button;
                 })
                 ->addColumn('check', function ($data) {
@@ -71,6 +75,9 @@ class BatchController extends Controller
                     }
                     return $check;
                 })
+                ->with([
+                    'has_zero_volume' => $has_zero_volume
+                ])
                 ->rawColumns(['action', 'check'])
                 ->addIndexColumn()
                 ->make(true);
@@ -228,7 +235,7 @@ class BatchController extends Controller
         return response()->json($exception);
     }
 
-    public function submit(Request $request)
+    public function submit2(Request $request)
     {
         $user_id = Auth::user()->id;
         $confirmed_by = Auth::user()->username;
@@ -282,7 +289,7 @@ class BatchController extends Controller
         return response()->json($message);
     }
 
-    public function submit2(Request $request)
+    public function submit(Request $request)
     {
         $exception = DB::transaction(function () use ($request) {
             $user_id = Auth::user()->id;
@@ -348,7 +355,6 @@ class BatchController extends Controller
                     }
 
                     $product = masterProduct::find($batch->product_id);
-
                     if ($product->freeze_flag == "Yes") {
                         $freeze_flag = "Yes";
                         $freeze_by = $confirmed_by;
@@ -507,7 +513,6 @@ class BatchController extends Controller
                     }
                 } else {
                     $batchin = inboundBatch::where('inbound_id', $batch->inbound_id)->where('confirmed_flag', 'No')->get();
-
                     if ($batchin->count() == 0) {
                         $job = inboundJob::find($batch->inbound_id);
 
@@ -521,14 +526,13 @@ class BatchController extends Controller
                         $job->save();
                     }
                 }
-
                 DB::commit();
 
                 $message = ['success' => 'Data Successfully Saved'];
-                if ($batch->principal_id == 32) {
-                    $dataapi = $request->confirm_id;
-                    $this->sendAPI($dataapi);
-                }
+                // if ($batch->principal_id == 32) {
+                //     $dataapi = $request->confirm_id;
+                //     // $this->sendAPI($dataapi);
+                // }
 
                 return $message;
             } catch (\Exception $e) {

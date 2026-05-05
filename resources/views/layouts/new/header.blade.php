@@ -5,12 +5,8 @@
         ->get()
         ->pluck('auth_permission_id')
         ->toArray();
-    
-    $permissions = DB::table('auth_permission')
-        ->whereIn('id', $permissions)
-        ->get()
-        ->pluck('name')
-        ->toArray();
+
+    $permissions = DB::table('auth_permission')->whereIn('id', $permissions)->get()->pluck('name')->toArray();
 @endphp
 
 <div id="kt_header" class="header header-fixed hide-print">
@@ -36,14 +32,14 @@
                                         @if (in_array('cyclecount_setup', $permissions))
                                             <li class="menu-item" aria-haspopup="true">
                                                 <a href="{{ url('inventory/cycleCount/setup') }}" class="menu-link">
-                                                    <span class="menu-text">SETUP</span>
+                                                    <span class="menu-text">Setup</span>
                                                 </a>
                                             </li>
                                         @endif
                                         @if (in_array('cyclecount_proses', $permissions))
                                             <li class="menu-item" aria-haspopup="true">
                                                 <a href="{{ url('inventory/cycleCount/') }}" class="menu-link">
-                                                    <span class="menu-text">PROSES PERHITUNGAN</span>
+                                                    <span class="menu-text">Counting Process</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -51,7 +47,15 @@
                                             <li class="menu-item" aria-haspopup="true">
                                                 <a href="{{ url('inventory/cycleCount/monitoring') }}"
                                                     class="menu-link">
-                                                    <span class="menu-text">MONITORING</span>
+                                                    <span class="menu-text">Monitoring</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                        @if (in_array('cyclecount_monitoring', $permissions))
+                                            <li class="menu-item" aria-haspopup="true">
+                                                <a href="{{ url('inventory/cycleCount/monitoring') }}"
+                                                    class="menu-link">
+                                                    <span class="menu-text">Schedule Email</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -61,7 +65,7 @@
                         @endif
                         @can('vm-cost-checking', 'vm-cost-checking')
                             <li class="menu-item menu-item-submenu menu-item-rel" data-menu-toggle="click"
-                            aria-haspopup="true">
+                                aria-haspopup="true">
                                 <a href="javascript:;" class="menu-link menu-toggle">
                                     <span class="menu-text">VM MASTER<i
                                             class="ml-1 ki ki-bold-triangle-bottom icon-xs text-dark-50"></i></span>
@@ -74,6 +78,11 @@
                                             </a>
                                         </li>
                                         <li class="menu-item" aria-haspopup="true">
+                                            <a href="{{ url('vm-price/checking-cost') }}" class="menu-link">
+                                                <span class="menu-text">Checking Cost</span>
+                                            </a>
+                                        </li>
+                                        <li class="menu-item" aria-haspopup="true">
                                             <a href="{{ url('vm-price/priceActivity') }}" class="menu-link">
                                                 <span class="menu-text">User Activity</span>
                                             </a>
@@ -82,6 +91,14 @@
                                 </div>
                             </li>
                         @endcan
+                        @if (in_array('spot-order', $permissions))
+                            <li class="menu-item menu-item-submenu menu-item-rel" data-menu-toggle="click"
+                                aria-haspopup="true">
+                                <a href="{{ url('crossDock') }}" class="menu-link">
+                                    <span class="menu-text">SPOT ORDER </span>
+                                </a>
+                            </li>
+                        @endif
                     </ul>
                 @else
                     <ul class="menu-nav">

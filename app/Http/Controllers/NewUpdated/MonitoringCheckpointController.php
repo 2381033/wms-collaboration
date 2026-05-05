@@ -24,6 +24,7 @@ class MonitoringCheckpointController extends Controller
             ->where('confirmed_flag', 'No')
             ->where('status_job', '!=', 'deleted')
             ->where('confirmed_flag', 'No')
+            ->where('branch_id', $this->myBranch())
             ->count();
         $today = \Carbon\Carbon::now(); //Current Date and Time
         $start =    \Carbon\Carbon::parse($today)->firstOfMonth()->toDateString();
@@ -38,6 +39,7 @@ class MonitoringCheckpointController extends Controller
         $allJob = DB::table('cp_driver_job')
             ->where('confirmed_flag', 'No')
             ->where('status_job', '!=', 'deleted')
+            ->where('branch_id', $this->myBranch())
             ->get();
         // dd($allJob);
         $onProgress = $allJob->where('confirmed_flag', 'No')->count();
@@ -110,6 +112,7 @@ class MonitoringCheckpointController extends Controller
     {
         $data = DB::table('cp_driver_armada')
             ->orderBy('armada', 'asc')
+            ->where('branch_id', $this->myBranch())
             ->where('active', 'Yes')
             ->get();
         return $data;
@@ -117,12 +120,18 @@ class MonitoringCheckpointController extends Controller
 
     private function getDriver()
     {
+        $userID         = DB::table('sm_user_branch')
+            ->where('branch_id', $this->myBranch())
+            ->get()->pluck('user_id')->toArray();
         $authID = DB::table('auth_group')
-                    ->where('name', 'Driver')->value('id');
+            ->where('name', 'Driver')
+            ->value('id');
         $data = DB::table('users')
+            ->select('id', 'name')
             ->orderBy('name', 'asc')
             ->where('active', 'Yes')
             ->where('auth_group_id', $authID)
+            ->whereIn('id', $userID)
             ->get();
         return $data;
     }
@@ -131,6 +140,7 @@ class MonitoringCheckpointController extends Controller
     {
         $data = DB::table('cp_driver_job')
             ->whereDate('created_at', date('Y-m-d'))
+            ->where('branch_id', $this->myBranch())
             ->get();
         return $data;
     }
@@ -182,13 +192,11 @@ class MonitoringCheckpointController extends Controller
                             'no_mobil' => Str::upper($request->no_mobil),
                             'branch_id' => $this->myBranch(),
                             'driver' => $request->driver,
-                            'created_at' => date('Y-m-d H:i:s'),
+                            'created_at' => $this->logicWaktu(),
                             'created_by' => Auth::user()->username,
                             'user_id' => Auth::user()->id,
                             'jumlah_loc_muat' => count($lokasi_muat),
                             'jumlah_loc_bongkar' => count($lokasi_bongkar),
-                            // 'revenue' => intval(str_replace('.', '', $request->revenue)),
-                            // 'cost' => intval(str_replace('.', '', $request->cost)),
                             'status_job' => 'on_garage'
                         ]);
 
@@ -254,6 +262,16 @@ class MonitoringCheckpointController extends Controller
 
         return $data;
     }
+    private function logicWaktu()
+    {
+        $branch = $this->myBranch();
+
+        if ($branch == 5) {
+            return date('Y-m-d H:i:s', strtotime('+1 hour'));
+        } else {
+            return date('Y-m-d H:i:s');
+        }
+    }
 
     private function detailUser($id_user)
     {
@@ -306,6 +324,7 @@ class MonitoringCheckpointController extends Controller
     {
         $data = DB::table('cp_driver_job')
             ->whereBetween(\DB::raw('DATE(created_at)'), [$start, $end])
+            ->where('branch_id', $this->myBranch())
             ->where('confirmed_flag', $status)
             ->get();
         $data->map(function ($value) {
@@ -402,10 +421,9 @@ class MonitoringCheckpointController extends Controller
             ];
             $filezip = Arr::collapse([$filesToZip, $file_gate_in_loc_muat, $file_gate_out_loc_muat, $file_gate_in_loc_bongkar, $file_gate_out_loc_bongkar]);
             //dump foto zip jika gagal
-            // foreach ($filezip as $file) {
-            //     $dump[] = is_file($file) ? 'true' : 'false' . '-->' . basename($file);
-            // }
-            // dd($dump);
+            foreach ($filezip as $file) {
+                $dump[] = is_file($file) ? 'true' : 'false' . '-->' . basename($file);
+            }
             foreach ($filezip as $file) {
                 $zip->addFile($file, basename($file));
             }

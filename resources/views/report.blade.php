@@ -74,12 +74,23 @@
             @if ($title === 'Product Wise - Stock Report ( Summary )' && $principal->multi_level == 'No')
                 @foreach ($stockKosong as $item)
                     <tr>
+                        <td style="text-align: left">{{ $item->principal_name }}</td>
                         <td style="text-align: left">{{ $item->product_code }}</td>
                         <td style="text-align: left">{{ $item->product_name }}</td>
                         <td style="text-align: right">{{ '0' }}</td>
                         <td style="text-align: right">{{ '0' }}</td>
                         <td style="text-align: right">{{ '0' }}</td>
                         <td style="text-align: center">{{ $item->puom }}</td>
+                        @if ($isVendor)
+                            @for ($i = 1; $i <= 4; $i++)
+                                <td style="text-align: right">
+                                    {{ $item->{'ip_' . $i} ?? '' }}
+                                </td>
+                                <td style="text-align: right">
+                                    {{ $item->{'week_' . $i} ?? '' }}
+                                </td>
+                            @endfor
+                        @endif
                     </tr>
                 @endforeach
             @endif

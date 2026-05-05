@@ -47,60 +47,92 @@ class StockLedgerController extends Controller
 
     public function search(Request $request)
     {
-        $type = str_replace("-", '_', $request->type);
-        $data = DB::table('cross_' . $type)
-            ->where('id_branch', $request->id_branch)
-            ->where('id_warehouse', $request->id_warehouse)
-            ->get();
+        $type = str_replace('-', '_', $request->type);
 
-        $id_customer = is_numeric($request->id_customer);
-        if ($id_customer) {
-            $data = $data->where('id_customer', $request->id_customer);
+        $baseQuery = DB::table('cross_' . $type . ' as c')
+            ->join('cross_mt_warehouse as w', 'w.id', '=', 'c.id_warehouse')
+            ->join('cross_mt_customer as cu', 'cu.id', '=', 'c.id_customer')
+            ->leftJoin('cross_inbound_header as ih', 'ih.id', '=', 'c.id_inbound')
+            ->where('c.id_branch', $request->id_branch)
+            ->where('c.id_warehouse', $request->id_warehouse)
+            ->where('c.on_hand', '>', 0);
+
+        if (is_numeric($request->id_customer)) {
+            $baseQuery->where('c.id_customer', $request->id_customer);
             $id_customer = $request->id_customer;
         } else {
             $id_customer = 0;
         }
 
-        $tittle = '';
-        $report_type = $request->report_type;
-        if ($data->count() > 0) {
-            //jika pdf
-            if ($request->has('print')) {
-                $tittle = 'Stock Ledger Report ' . '(' . ucwords($report_type) . ')';
-                $data->where('on_hand', '>', 0);
-                $data->map(function ($value) {
-                    $value->header = $this->getHeaderInbound($value->id_inbound);
-                    $value->warehouse = $this->getWarehouse($value->id_warehouse)->first()->name ?? '-';
-                    $value->customer = $this->getCustomer($value->id_customer);
-                });
+        $data = (clone $baseQuery)
+            ->select([
+                'c.job_no',
+                'c.id_cargo',
+                'c.on_hand',
+                'c.on_actual',
+                'c.on_booking',
+                'c.p',
+                'c.l',
+                'c.t',
+                'c.w',
+                'c.cbm_per_unit',
+                'c.unit',
+                'c.created_at',
+                'cu.name as customer',
+                'w.name as warehouse',
+                'ih.remarks as inbound_remark',
+            ])
+            ->orderBy('cu.name')
+            ->orderBy('c.sku')
+            ->get();
 
-                $groupBy = $data->groupBy('id_customer');
-                foreach ($groupBy as $key => $value) {
-                    foreach ($value->where('id_customer', $key) as $k => $v) {
-                        $w[$key][] = $v->on_hand * $v->w;
-                        $cbm[$key][] = $v->on_hand * $v->cbm_per_unit;
-                    }
-                    $w_sum[$key] = array_sum($w[$key]);
-                    $cbm_sum[$key] = array_sum($cbm[$key]);
-                    $customer[$key] = $value->first()->customer ?? '-';
-                    $warehouse[$key] = $value->first()->warehouse ?? '-';
-                    $total_sku[$key] = array_sum($value->pluck('on_hand')->toArray());
-                }
+        if ($data->isEmpty()) {
+            return redirect()->back()->with('warning', 'Data Not Found');
+        }
 
-                return view('new.CrossDock.Report.' . $type . '.index', compact('data', 'tittle', 'report_type', 'id_customer', 'groupBy', 'customer', 'warehouse', 'total_sku', 'w_sum', 'cbm_sum'));
-            }
-            //jika excel
-            else {
-                if (is_numeric($id_customer)) {
-                    $filename = 'Stock-' . $this->getCustomer($id_customer) . '.xlsx';
+        $summary = (clone $baseQuery)
+            ->selectRaw('
+                c.id_customer,
+                cu.name as customer,
+                w.name as warehouse,
+                COUNT(DISTINCT c.sku) as total_item,
+                SUM(c.on_hand) as on_hand,
+                SUM(c.on_booking) as on_booking,
+                SUM(c.on_actual) as on_actual,
+                SUM(c.w) as w_sum,
+                SUM(c.on_hand * c.cbm_per_unit) as total_cbm
+            ')
+            ->groupBy('c.id_customer', 'cu.name', 'w.name')
+            ->orderBy('cu.name')
+            ->get();
+        if ($request->has('excel')) {
+            if ($data->isEmpty()) {
+                return redirect()->back()->with('warning', 'Data Not Found');
+            } else {
+                if ($id_customer) {
+                    $customerName = $this->getCustomer($id_customer);
+                    $filename = 'Stock-' . $customerName . '.xlsx';
                 } else {
-                    $filename = 'Stock - ALL CUSTOMER' . '.xlsx';
+                    $filename = 'Stock-ALL-CUSTOMER.xlsx';
                 }
-                return Excel::download(new StockLedgerExport($request->id_branch, $id_customer, $request->id_warehouse), $filename);
+                return Excel::download(
+                    new StockLedgerExport(
+                        $request->id_branch,
+                        $request->id_warehouse,
+                        $request->id_customer,
+                        $request->report_type,
+                    ),
+                    $filename
+                );
             }
         } else {
-            Session::flash('warning', 'Data Not Found..');
-            return back();
+            return view('new.CrossDock.Report.' . $type . '.index', [
+                'data'         => $data,
+                'summary'      => $summary,
+                'id_customer'  => $id_customer,
+                'report_type'  => $request->report_type,
+                'tittle'       => 'Stock Ledger Report (' . ucwords($request->report_type) . ')'
+            ]);
         }
     }
 }

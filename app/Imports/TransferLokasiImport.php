@@ -23,10 +23,10 @@ class TransferLokasiImport implements ToCollection, WithHeadingRow
 
     public function collection(Collection $rows)
     {
-       DB::transaction(function () use ($rows) {
+        DB::transaction(function () use ($rows) {
             try {
                 foreach ($rows as $val) {
-                    if(is_null($val['id']) || $val['id'] == "" ){
+                    if (is_null($val['id']) || $val['id'] == "") {
                         DB::rollBack();
                         Session::flash('error', 'Column ID tidak boleh kosong, periksa kembali file excel');
                         return back();
@@ -34,19 +34,19 @@ class TransferLokasiImport implements ToCollection, WithHeadingRow
                 }
                 foreach ($rows as $val) {
                     $stock = StockLedger::find($val['id']);
-                    if(!is_null($stock)){
-                        if($stock->product_code != $val['product_code']){
+                    if (!is_null($stock)) {
+                        if ($stock->product_code != $val['product_code']) {
                             DB::rollBack();
-                            Session::flash('error', 'ID ' .  $val['id'] . ' In Stock: ' . $stock->product_code.  ' -> In Excel: ' . $val['product_code'] .' Periksa kembali file excel');
+                            Session::flash('error', 'ID ' .  $val['id'] . ' In Stock: ' . $stock->product_code .  ' -> In Excel: ' . $val['product_code'] . ' Periksa kembali file excel');
                             return back();
                         }
-                    }else{
+                    } else {
                         Session::flash('error', 'Column ID ' .  $val['id'] . ' Tidak Ditemukan, Periksa kembali file excel');
                         return back();
                     }
                 }
                 foreach ($rows as $val) {
-                    if(is_null($val['location_code_to']) || is_null($val['qty_move'])){
+                    if (is_null($val['location_code_to']) || is_null($val['qty_move'])) {
                         DB::rollBack();
                         Session::flash('error', 'Column Location Code to Atau Qty Move tidak boleh kosong..');
                         return back();
@@ -54,15 +54,15 @@ class TransferLokasiImport implements ToCollection, WithHeadingRow
                 }
                 foreach ($rows as $val) {
                     $stock = StockLedger::find($val['id']);
-                    if($val['qty_move'] > $stock->qtya){
+                    if ($val['qty_move'] > $stock->qtya) {
                         DB::rollBack();
-                        Session::flash('error', 'Stock ' . $stock->product_code. ' in system: '  . $stock->qtya . 'CTN ->  in excel: '.  $val['qty_move'] . 'CTN');
+                        Session::flash('error', 'Stock ' . $stock->product_code . ' in system: '  . $stock->qtya . 'CTN ->  in excel: ' .  $val['qty_move'] . 'CTN');
                         return back();
                     }
                 }
                 foreach ($rows as $val) {
-                    $site = DB::table('iv_site')->where('site_name', $val['site'])->count();
-                    if($site == 0){
+                    $site[] = DB::table('iv_site')->where('site_name', $val['site'])->count();
+                    if ($site == 0) {
                         DB::rollBack();
                         Session::flash('error', 'Site Tidak di temukan, silahkan periksa kembali file excel');
                         return back();
@@ -72,14 +72,19 @@ class TransferLokasiImport implements ToCollection, WithHeadingRow
                     $stock = StockLedger::find($val['id']);
                     $site_id = DB::table('iv_site')->where('site_name', $val['site'])->value('id');
                     $destLocation = DB::table('iv_location')
-                            ->where('site_id', $site_id)
-                            ->where('location_code', $val['location_code_to'])
-                            ->first();
+                        ->where('site_id', $site_id)
+                        ->where('location_code', $val['location_code_to'])
+                        ->first();
+                    if (is_null($destLocation)) {
+                        DB::rollBack();
+                        Session::flash('error', 'Location Code ' . $val['location_code_to'] . ' Tidak di temukan, silahkan periksa kembali file excel');
+                        return back();
+                    }
 
                     TransferDetail::create([
-                        'company_id'=>$stock->company_id,
-                        'principal_id'=>$stock->principal_id,
-                        'transfer_id'=>$this->job_id,
+                        'company_id' => $stock->company_id,
+                        'principal_id' => $stock->principal_id,
+                        'transfer_id' => $this->job_id,
                         'job_no' => $stock->job_no,
                         'serial_id' => $stock->id,
                         'serial_no' => $stock->serial_no,
@@ -127,8 +132,7 @@ class TransferLokasiImport implements ToCollection, WithHeadingRow
                 }
                 DB::commit();
                 Session::flash('success', 'Good Job, Data has been saved successfully..');
-            }
-            catch(\Exception $e) {
+            } catch (\Exception $e) {
                 DB::rollBack();
                 Session::flash('error', $e->getMessage() . ' -> Netwok Connection Failed ');
             }
