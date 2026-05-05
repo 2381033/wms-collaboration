@@ -1,0 +1,153 @@
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #FAFAFA;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+* {
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+}
+
+.page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 10mm;
+    margin: 10mm auto;
+    border: 1px #333 solid;
+    border-radius: 5px;
+    background: white;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    page-break-after: always;
+    page-break-inside: avoid;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    -ms-border-radius: 5px;
+    -o-border-radius: 5px;
+}
+
+@page {
+    size: A4;
+    margin: 10px; 
+}
+
+@media print {
+    @page {
+        size: A4;
+    }
+
+    html, body {
+        padding: 0;     
+        margin: 0;     
+    }     
+
+    .page {
+        margin: 0;
+        border: initial;
+        border-radius: initial;
+        width: initial;
+        min-height: initial;
+        box-shadow: initial;
+        background: initial;
+        page-break-after: always;
+        page-break-inside: avoid;
+        -webkit-border-radius: initial;
+        -moz-border-radius: initial;
+        -ms-border-radius: initial;
+        -o-border-radius: initial;
+    }
+}
+
+.container {
+    width: 100%;
+    margin: 0px auto;
+}
+
+.row:after {
+    content: "";
+    display: grid;
+    clear: both;
+}
+
+.column {
+    float: left;
+}
+
+.col-30 {
+    width: 33%;
+}
+
+.col-50 {
+    width: 49%;
+}
+
+.col-100 {
+    width: 100%;
+}
+
+.col-break {
+    width: 100%;
+    padding: 5pt;
+}
+
+.center {
+    text-align: center;
+}
+
+.logo-left {
+    float: left;
+    text-align: left;
+}
+
+.barcode-center {
+    float: left;
+    text-align: center;
+}
+
+.title {    
+    padding-top: 10pt;
+    text-align: center;
+    padding-bottom: 8pt;
+    font-size: 22pt;
+    font-weight: bold;
+}
+
+.table {
+    table-layout: auto;
+    margin-top: 10px;
+    font-size: 16px;
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+    border: 1px solid rgb(0, 0, 0);
+}
+
+.table tr td {
+    text-align: left;
+    padding: 6px;
+    border: 1px solid rgb(0, 0, 0);
+    width: 1px;
+}
+
+.table .center {
+    text-align: center;
+}
+
+.table .left {
+    text-align: left;
+}
+
+.table .right {
+    text-align: right;
+}
+
+.text-bold {    
+    font-size: 18pt;
+    font-weight: bold;
+}
+
+.barcode {
+    width: 80px;
+}

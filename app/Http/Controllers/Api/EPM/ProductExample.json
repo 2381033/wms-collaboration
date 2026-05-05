@@ -1,0 +1,82 @@
+curl --location 'https://mkt-wms.samudera.id/development/api/EPM/product/submit' \
+--header 'Authorization: fWRQU4WNLqNdaqJ' \
+--header 'Content-Type: application/json' \
+--data '{
+    "data": [
+        {
+            "batch_no": "20230814Batch1",
+            "product": [
+                {
+                    "item_code": "CKP25",
+                    "item_name": "CHIL KID PLAT VAN 200 G",
+                    "primary_uom": "Box",
+                    "primary_uom_code": "BX",
+                    "secondary_uom": "Cartoon",
+                    "secondary_uom_code": "CT",
+                    "conversi_rate": 24,
+                    "unit_volume": "Cubicmeter",
+                    "volume": 0.0012,
+                    "unit_weight": "Kilograms",
+                    "net_weight": 0.2,
+                    "plt": 10.62658569
+                },
+                {
+                    "item_code": "PPU01",
+                    "item_name": "PRENAGEN UHT ALMONDSOY 200ML",
+                    "primary_uom": "Box",
+                    "primary_uom_code": "BX",
+                    "secondary_uom": "Cartoon",
+                    "secondary_uom_code": "CT",
+                    "conversi_rate": 24,
+                    "unit_volume": "Cubicmeter",
+                    "volume": 0.00028,
+                    "unit_weight": "Kilograms",
+                    "net_weight": 0.2,
+                    "plt": 6.54213262
+                },
+                {
+                    "item_code": "PPU01",
+                    "item_name": "PRENAGEN UHT ASO 185 ML",
+                    "primary_uom": "Each",
+                    "primary_uom_code": "EA",
+                    "secondary_uom": "Cartoon",
+                    "secondary_uom_code": "CT",
+                    "conversi_rate": 24,
+                    "unit_volume": "Cubicmeter",
+                    "volume": 0.0003209,
+                    "unit_weight": "Kilograms",
+                    "net_weight": 0.2166,
+                    "plt": 6.846310194
+                },
+                {
+                    "item_code": "HCO02",
+                    "item_name": "PRENAGEN UHT STR 185 ML",
+                    "primary_uom": "Each",
+                    "primary_uom_code": "EA",
+                    "secondary_uom": "Cartoon",
+                    "secondary_uom_code": "CT",
+                    "conversi_rate": 24,
+                    "unit_volume": "Cubicmeter",
+                    "volume": 0.0003209,
+                    "unit_weight": "Kilograms",
+                    "net_weight": 0.2166,
+                    "plt": 6.846310194
+                },
+                {
+                    "item_code": "HCO02",
+                    "item_name": "PRENAGEN UHT COK 185 ML",
+                    "primary_uom": "Each",
+                    "primary_uom_code": "EA",
+                    "secondary_uom": "Cartoon",
+                    "secondary_uom_code": "CT",
+                    "conversi_rate": 24,
+                    "unit_volume": "Cubicmeter",
+                    "volume": 0.0003209,
+                    "unit_weight": "Kilograms",
+                    "net_weight": 0.2166,
+                    "plt": 6.846310194
+                }
+            ]
+        }
+    ]
+}'

@@ -1,0 +1,26 @@
+{
+    "data": [
+        {
+            "site_id": "string",
+	        "created_at": "2020-01-01 23:59:59",
+            "description": "string",
+            "product": [
+                {
+                    "product_code": "string",
+                    "lot_no": "string",
+                    "mqty": "string",
+                    "muom": "string",
+                    "from_subinventory": "string",
+                    "location_code_from_row": "string",
+                    "location_code_from_bin": "string",
+                    "location_code_from_level": "string",
+                    "to_subinventory": "string",
+                    "location_code_to_row": "string",
+                    "location_code_to_bin": "string",
+                    "location_code_to_level": "string",
+                    "confirmed_flag": "string"
+                }
+            ]
+        }
+    ]
+}

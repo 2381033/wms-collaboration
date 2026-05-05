@@ -1,0 +1,30 @@
+curl --location 'https://mkt-wms.samudera.id/development/api/EPM/inbound/job/submit' \
+--header 'Authorization: fWRQU4WNLqNdaqJ' \
+--header 'Content-Type: application/json' \
+--data '{
+    "data": [
+        {
+            "po_do_no": "12022092869Test1",
+            "manufactur": "DC1",
+            "site": "Belawan",
+            "description": "SL12022092869",
+            "entry_date": "16-05-2023",
+            "product": [
+                {
+                    "product_code": "HCO02",
+                    "lot_no": "23P10Q",
+                    "mqty": 877,
+                    "muom": "PH",
+                    "exp_date": "16-05-2023"
+                },
+                {
+                    "product_code": "HCV01",
+                    "lot_no": "23P14Q",
+                    "mqty": 120,
+                    "muom": "PH",
+                    "exp_date": "16-05-2023"
+                }
+            ]
+        }
+    ]
+}'

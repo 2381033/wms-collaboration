@@ -1,0 +1,371 @@
+<?php
+
+namespace App\Http\Controllers\Transaction\Inbound;
+
+use App\Helpers\GlobalHelpers;
+use App\Http\Controllers\Controller;
+use App\Models\Transaction\Export\InboundDetail;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
+use Session;
+
+use App\Models\Transaction\Inbound\Job as inboundJob;
+use App\Models\Transaction\Inbound\Detail as InboundDetails;
+
+class JobController extends Controller
+{
+    public function __construct()
+    {
+        if (!GlobalHelpers::checkLogin()) {
+            return response()->redirectTo("login");
+        }
+    }
+
+    public $menu_name = "warehouse/inbound";
+
+    public function index(Request $request)
+    {
+        if (!GlobalHelpers::isAccess($this->menu_name)) {
+            abort(403);
+        }
+
+        $company_id = Auth::user()->company_id;
+        $user_id = Auth::user()->id;
+
+        if ($request->ajax()) {
+            $dateObject = \Carbon\Carbon::createFromFormat('d/m/Y', $request->date_from);
+            $date_from = \Carbon\Carbon::parse($dateObject)->format('Y-m-d');
+
+            $dateObject = \Carbon\Carbon::createFromFormat('d/m/Y', $request->date_to);
+            $date_to = \Carbon\Carbon::parse($dateObject)->format('Y-m-d');
+
+            $list_data = inboundJob::from('iv_inbound_job as a')
+                ->select('a.*')
+                ->join('iv_principal as b', 'a.principal_id', 'b.id')
+                ->join('users_principal as c', 'a.principal_id', 'c.principal_id')
+                ->where('a.company_id', $company_id)
+                ->where('c.user_id', $user_id)
+                ->where('a.branch_id', $request->branch_id)
+                ->where('a.principal_id', $request->principal_id)
+                ->whereBetween('a.job_date', [$date_from, $date_to])
+                ->where("a.confirmed_flag", "<>", "Cancel")
+                ->where(DB::raw("case when a.confirmed_flag = 'Yes' then 'A' else 'O' end"), $request->status_code)
+                ->get();
+
+            return datatables()->of($list_data)
+                ->editColumn('job_date', function ($data) {
+                    return date('d/m/Y', strtotime($data->job_date));
+                })
+                ->editColumn('eta', function ($data) {
+                    return date('d/m/Y', strtotime($data->eta));
+                })
+                ->editColumn('confirmed_flag', function ($data) {
+                    if ($data->confirmed_flag == 'Yes') {
+                        $status = '<div class="btn btn-sm btn-success">Completed</div>';
+                    } else {
+                        if ($data->received_flag == 'Yes' && $data->allocated_flag == "No") {
+                            $status = '<div class="btn btn-sm btn-info">Received</div>';
+                        } else if ($data->allocated_flag == "Yes") {
+                            $status = '<div class="btn btn-sm btn-warning">Allocated</div>';
+                        } else {
+                            $status = '<div class="btn btn-sm btn-danger">Open</div>';
+                        }
+                    }
+                    return $status;
+                })
+                ->addColumn('job_no', function ($data) {
+                    $button = "";
+                    $button .= '<a href="' . URL("/warehouse/inbound/create/$data->id") . '" class="btn btn-default btn-sm"><i class="far fa-file"></i> ' . $data->job_no . '</a>';
+                    return $button;
+                })
+                ->rawColumns(['confirmed_flag', 'job_no'])
+                ->addIndexColumn()
+                ->make(true);
+        }
+
+        return view('transaction.inbound.index');
+    }
+
+    public function create($id = "")
+    {
+        if (!GlobalHelpers::isAccess($this->menu_name)) {
+            abort(403);
+        }
+
+        $company_id = Auth::user()->company_id;
+        $user_id = Auth::user()->id;
+
+        $job_view = inboundJob::from('iv_inbound_job as a')
+            ->select('a.*', "c.multi_level", 'c.quality_flag')
+            ->join('users_principal as b', 'a.principal_id', 'b.principal_id')
+            ->join('iv_principal as c', 'a.principal_id', 'c.id')
+            ->where('b.user_id', $user_id)
+            ->where('a.id', $id)
+            ->first();
+
+        $button_putaway = false;
+        if ($job_view != null) {
+            if ($job_view->allocated_flag == 'Yes') {
+                $button_putaway = false;
+            } else {
+                $button_putaway = true;
+            }
+        }
+
+        $class_list = DB::table("iv_job_class")
+            ->where('company_id', $company_id)
+            ->where('active', 'Yes')->get();
+
+        $mode_list = DB::table("iv_mode")
+            ->where('company_id', $company_id)
+            ->where('active', 'Yes')->get();
+
+        $container_type = DB::table("iv_container_type")
+            ->where('company_id', $company_id)
+            ->where('active', 'Yes')->get();
+
+        $container_size = DB::table("iv_container_size")
+            ->where('company_id', $company_id)
+            ->where('active', 'Yes')->get();
+        $per_pallet = DB::table("iv_inbound_per_pallet")->where('inbound_id', $id)->get();
+        $location_code = $per_pallet->whereNotNull('location_code')->count();
+        $button_gr = false;
+        if (count($per_pallet) == $location_code) {
+            $button_gr = true;
+        } else {
+            $button_gr = false;
+        }
+
+        $site_arr = DB::table('users_site')
+            ->where('user_id', Auth::user()->id)
+            ->get()->pluck('site_id')
+            ->toArray();
+
+        $location = DB::table('iv_location as a')
+            ->select('a.location_code', 'a.id', 'b.site_name')
+            ->join('iv_site as b', 'b.id', 'a.site_id')
+            ->where('a.active', 'yes')
+            ->whereIn('site_id', $site_arr)
+            ->get();
+
+        $list_data = InboundDetails::from('iv_inbound_detail as a')
+            ->select('a.*', 'b.product_name', 'b.id as id_product')
+            ->join('iv_product as b', 'a.product_id', 'b.id')
+            ->where('a.company_id', $company_id)
+            ->where('a.inbound_id', $id)
+            ->whereNull('a.putaway_date')
+            ->get();
+
+        $list_data->map(function ($value) {
+            $value->wherenotnull = DB::table('iv_inbound_per_pallet')
+                ->where('inbound_id', $value->inbound_id)
+                ->where('picking_id', $value->id)
+                ->whereNotNull('qrcode')
+                ->whereNotNull('location_code')
+                ->count();
+
+            $value->counting = DB::table('iv_inbound_per_pallet')
+                ->where('inbound_id', $value->inbound_id)
+                ->where('picking_id', $value->id)
+                ->count();
+
+            return $value;
+        });
+        $list_confirm = DB::table('iv_inbound_batch')->whereIn('inbound_id', [$id])->get();
+
+        $data = [
+            'job_view' => $job_view,
+            'class_list' => $class_list,
+            'mode_list' => $mode_list,
+            'container_type_list' => $container_type,
+            'container_size_list' => $container_size,
+            'perpallet' => DB::table('iv_inbound_per_pallet')
+                ->where('inbound_id', $id)->get(),
+            'button_gr' => $button_gr,
+            'button_putaway' => $button_putaway,
+            'location' => $location,
+            'list_data' => $list_data,
+            'list_confirm' => $list_confirm
+        ];
+
+        return view('transaction.inbound.create', $data);
+    }
+
+    public function edit(Request $request)
+    {
+        $data = DB::table("iv_inbound_job")->find($request->inbound_id);
+
+        return response()->json($data);
+    }
+
+    public function store(Request $request)
+    {
+        $user_id = Auth::user()->username;
+        $id = $request->inbound_id;
+        if ($id > 0) {
+            $job_status = inboundJob::find($id);
+
+            if ($job_status->received_flag == 'Yes') {
+                return response()->json(['error' => ['Job Received.']]);
+            }
+        }
+
+        $messsages = array(
+            'branch_id.required' => 'Principal name cannot be empty.',
+            'principal_id.required' => 'Principal name cannot be empty.',
+            'class_id.required' => 'Job classification cannot be empty.',
+            'mode_id.required' => 'Mode of transport cannot be empty.',
+            'description.required' => 'Description cannot be empty.',
+            // 'reference_no.required'=>'Reference number cannot be empty.',
+            'eta.required' => 'ETA cannot be empty.',
+        );
+
+        $rules = array(
+            'branch_id' => 'required',
+            'principal_id' => 'required',
+            'class_id' => 'required',
+            'mode_id' => 'required',
+            'description' => 'required',
+            // 'reference_no' => 'required',
+            'eta' => 'required',
+            'user_id' => $user_id
+        );
+
+        $validator = \Validator::make($request->all(), $rules, $messsages);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()->all()]);
+        }
+
+        $company_id = Auth::user()->company_id;
+        $job_date = \Carbon\Carbon::today();
+        $entry_date = \Carbon\Carbon::now();
+
+        $year = $job_date->year;
+        $month = $job_date->month;
+
+        if (empty($id)) {
+            $job = inboundJob::where('company_id', $company_id)
+                ->whereYear('job_date', $year)
+                ->whereMonth('job_date', $month)
+                ->max("job_no");
+
+            if (is_null($job)) {
+                $increment = 1;
+            } else {
+                $increment = substr($job, 7, 4) + 1;
+            }
+
+            $job_no = '1' . $year . Str::of($month)->padLeft(2, '0') . Str::of($increment)->padLeft(4, '0');
+        } else {
+            $job  = inboundJob::find($id);
+
+            $job_no = $job->job_no;
+        }
+        $dateObject = \Carbon\Carbon::createFromFormat('d/m/Y', $request->eta);
+        $eta = \Carbon\Carbon::parse($dateObject)->format('Y-m-d');
+
+        $job   =   inboundJob::updateOrCreate(
+            ['id' => $id],
+            [
+                'company_id' => $company_id,
+                'branch_id' => $request->branch_id,
+                'principal_id' => $request->principal_id,
+                'job_no' => $job_no,
+                'job_date' => $job_date,
+                'class_id' => $request->class_id,
+                'mode_id' => $request->mode_id,
+                'description' => $request->description,
+                // 'reference_no' => $request->reference_no,
+                // 'reference_other' => $request->reference_other,
+                'eta' => $eta,
+                'remarks' => $request->remarks,
+                'entry_date' => $entry_date
+            ]
+        );
+
+        return response()->json(['success' => url('/warehouse/inbound/create/' . $job->id), 'inbound_id' => $job->id]);
+    }
+
+    public function add_per_pallet(Request $request)
+    {
+        $total = array_sum($request->qtyPerPallet);
+        $qty_inbound = $request->qty;
+
+        //hapus dulu
+        DB::table('iv_inbound_per_pallet')
+            ->where('picking_id', $request->picking_id)
+            ->delete();
+
+        if ($total > $qty_inbound) {
+            return response()->json([
+                'status' => 'lebih_besar'
+            ]);
+        } else if ($total < $qty_inbound) {
+            return response()->json([
+                'status' => 'lebih_kecil'
+            ]);
+        } else {
+            $qrcode = DB::table('iv_inbound_detail')
+                ->select('qrcode')
+                ->where('id', $request->picking_id)
+                ->value('qrcode');
+            for ($i = 0; $i < count($request->qtyPerPallet); $i++) {
+                DB::table('iv_inbound_per_pallet')->insert([
+                    'inbound_id' => $request->inbound_id,
+                    'picking_id' => $request->picking_id,
+                    'qrcode' => $qrcode,
+                    'total_qty' => $request->qty,
+                    'product_code' => $request->product_code,
+                    'total_pallet' => $request->jumlah_pallet,
+                    'qty_per_pallet' => $request->qtyPerPallet[$i],
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'created_by' => Auth::user()->username,
+                ]);
+
+                // //get picking id
+                // DB::table('iv_inbound_per_pallet')
+                //     ->where('picking_id', $request->picking_id)
+                //     ->update([
+                //         'picking_id' => $picking_id->id
+                //     ]);
+            }
+            return response()->json([
+                'status' => 'ok'
+            ]);
+        }
+    }
+
+    public function byPassScan($inbound_id)
+    {
+        DB::transaction(function () use ($inbound_id) {
+            try {
+                $data = DB::table('iv_inbound_detail')
+                    ->where('inbound_id', $inbound_id)
+                    ->get();
+
+                foreach ($data as $key => $value) {
+                    DB::table('iv_inbound_per_pallet')
+                        ->where('picking_id', $value->id)
+                        ->where('inbound_id', $value->inbound_id)
+                        ->update([
+                            'qrcode' => $value->qrcode,
+                            'scan_pallet_tag' => 'Yes',
+                        ]);
+                }
+                DB::commit();
+                Session::flash('success', 'Berhasil bypass, Silahkan Start Putaway..');
+                return back();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                $message = ["error" => $e->getMessage()];
+                Session::flash('success', $message);
+                return back();
+            }
+        });
+        return back();
+    }
+}

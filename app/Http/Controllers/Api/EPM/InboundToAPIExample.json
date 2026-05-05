@@ -1,0 +1,40 @@
+curl --location 'https://localhost:5001/api/Principal/MiniDC/MKTReceiving' \
+--header 'accept: /' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: dGVzdDp0ZXN0' \
+--data '[
+    {
+    "receipt_date": "01-01-2023 11:40:04",
+    "receipt_qty": "99",
+    "reject_qty": "0",
+    "receipt_uom": "BX",
+    "to_row": "AA",
+    "to_bin": "001",
+    "to_level": "A",
+    "remarks": "99",
+    "shipping_org": "99",
+    "destination_org": "99",
+    "shipment_number": "99999",
+    "item_code": "BMTLA",
+    "lot_number": "99",
+    "shipment_qty": "99",
+    "shipment_uom": "BX"
+    },
+    {
+    "receipt_date": "01-01-2023 11:40:04",
+    "receipt_qty": "99",
+    "reject_qty": "0",
+    "receipt_uom": "BX",
+    "to_row": "AA",
+    "to_bin": "001",
+    "to_level": "A",
+    "remarks": "99",
+    "shipping_org": "99",
+    "destination_org": "99",
+    "shipment_number": "99999",
+    "item_code": "BMTLA",
+    "lot_number": "99",
+    "shipment_qty": "99",
+    "shipment_uom": "BX"
+    }
+]'

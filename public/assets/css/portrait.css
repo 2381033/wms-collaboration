@@ -1,0 +1,190 @@
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #FAFAFA;
+    font: 12pt "Tahoma";
+}
+
+* {
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+}
+
+/* Halaman untuk tampilan layar */
+.page {
+    width: 210mm;
+    min-height: 277mm;
+    padding: 10mm;
+    margin: 10mm auto;
+    border: 1px #333 solid;
+    border-radius: 5px;
+    background: white;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    page-break-after: always;
+}
+
+@page {
+    size: A4 portrait;
+    margin: 10mm;
+}
+
+/* Tampilan cetak */
+@media print {
+    html, body {
+        width: 210mm;
+        height: auto;
+        margin: 0;
+        padding: 0;
+    }
+
+    .page {
+        margin: 0;
+        padding: 5mm;
+        border: none;
+        border-radius: 0;
+        width: 100%;
+        min-height: auto;
+        box-shadow: none;
+        background: white;
+        page-break-after: always;
+    }
+
+    /* Hilangkan fixed supaya tidak nutupin konten */
+    .header, .footer, .signature {
+        position: static;
+    }
+
+    /* Pastikan tabel pas di halaman */
+    table {
+        table-layout: auto;
+        width: 100%;
+        border-collapse: collapse;
+        word-wrap: break-word;
+        white-space: normal;
+    }
+
+    .table-header tr td {
+        white-space: normal;
+    }
+
+    /* Header/footer table supaya muncul di setiap halaman */
+    thead { display: table-header-group; }
+    tfoot { display: table-footer-group; }
+
+    /* Hilangkan background dan shadow di cetak */
+    body {
+        background: white;
+    }
+}
+
+/* Header & Footer */
+.header, .header-space {
+    height: 1px;
+}
+.header:after, .header-space {
+    height: 80px;
+}
+.footer, .footer-space {
+    height: 50px;
+}
+
+.header {
+    top: 30px;
+    color: black;
+    text-align: left;
+    line-height: 25px;
+    width: 190mm;
+}
+
+.footer {
+    bottom: 0;
+    height: 50px;
+    font-size: 10px;
+    color: black;
+    text-align: center;
+    line-height: 25px;
+    width: 190mm;
+}
+
+.signature {
+    bottom: 0;
+    height: 120px;
+    font-size: 12px;
+    color: black;
+    text-align: center;
+    line-height: 15px;
+    width: 190mm;
+}
+
+/* Table Styles */
+.table-header-kerangka {
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.table-header-kerangka tr td {
+    width: auto !important;
+    max-width: 50%;
+}
+
+.table-header {
+    color: #000;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13px;
+}
+
+.table-header tr td {
+    border: none;
+    text-align: left;
+    padding: 4px;
+    width: auto !important;
+    max-width: 100%;
+    white-space: nowrap;
+}
+
+.table-template {
+    width: 100%;
+}
+
+.table {
+    font-size: 12px;
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+    border: 1px solid #000;
+}
+
+.table thead tr th {
+    color: black;
+    text-align: center;
+    padding: 5px;
+    border: 1px solid #000;
+}
+
+.table tbody tr td {
+    text-align: left;
+    padding: 5px;
+    border: 1px solid #000;
+}
+
+.table .center { text-align: center; }
+.table .left { text-align: left; }
+.table .right { text-align: right; }
+
+.logo { height: 60px; }
+.printer { width: 25px; }
+.title { text-align: center; }
+
+.title-header {
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+    padding: 5px 0;
+    font-size: 16px;
+}
+
+.blank-cell-qty { width: 50px; }
+.blank-cell-date { width: 60px; }
+.blank-cell { width: 70px; }

@@ -1,0 +1,134 @@
+body {
+    width: 210mm;
+    height: 297mm;
+    margin: 0;
+    padding: 0;
+    background-color: #FAFAFA;
+    font: 10pt "Tahoma";
+}
+* {
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+}
+.page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 10mm;
+    border: 1px #333 solid;
+    border-radius: 5px;
+    background: white;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    page-break-after: always;
+    page-break-inside: avoid;
+    counter-reset: css-counter 0;
+}
+
+@page {
+    size: A4;
+    margin: 20px; 
+}
+
+@media print {
+    html, body {
+        width: 210mm;
+        height: 297mm;
+        padding: 10px;     
+        counter-reset: page; 
+    }     
+    .page {
+        margin: 0;
+        border: initial;
+        border-radius: initial;
+        width: initial;
+        min-height: initial;
+        box-shadow: initial;
+        background: initial;
+        page-break-after: always;
+        page-break-inside: avoid;
+    }
+}
+
+.container {
+    max-width: 100%;
+}
+
+.column {
+    float: left;
+}
+
+.row:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.left {
+    width: 50%;
+}
+
+.right {
+    width: 50%;
+}
+
+.row .rowspace {
+    margin-top: 30px;
+}
+
+.title {
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    max-width: 100%;
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.logo {
+    margin-top: -20px;
+    margin-bottom: 20px;
+    height: 60px;
+}
+
+.table {
+    margin-top: 10px;
+    font-size: 10px;
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+    border: 1px solid rgb(0, 0, 0);
+}
+
+.table thead tr th {
+    color: black;
+    text-align: center;
+    padding: 3px;
+    border: 1px solid rgb(0, 0, 0);
+}
+
+.table tbody tr td {
+    text-align: left;
+    padding: 3px;
+    border: 1px solid rgb(0, 0, 0);
+    width: 1px;
+    white-space: nowrap;
+}
+
+.table .center {
+    text-align: center;
+}
+
+.table .left {
+    text-align: left;
+}
+
+.table .right {
+    text-align: right;
+}
+
+.table .blod-text {
+    font-weight: bold;
+}
+
+.table .sign {
+    width: 20%;
+}

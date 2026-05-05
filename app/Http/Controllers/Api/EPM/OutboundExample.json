@@ -1,0 +1,23 @@
+{
+    "data": [
+        {
+            "create_at": "16-04-2023",
+            "description": "ini test api loh",
+            "product": [
+                {
+                    "order_no": "DO16042023API",
+                    "po_no": "PO16042023API",
+                    "site": "Belawan",
+                    "customer": "EPM0004",
+                    "product_code": "SUNCU",
+                    "lot_no": "string",
+                    "mqty": "10",
+                    "muom": "CTN",
+                    "location_code_row": "LL",
+                    "location_code_bin": "3",
+                    "location_code_level": "E"
+                }
+            ]
+        }
+    ]
+}

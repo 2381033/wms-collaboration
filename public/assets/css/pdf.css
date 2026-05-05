@@ -1,0 +1,140 @@
+body {
+    width: 210mm;
+    min-height: 148mm;
+    background: white;
+    font: 10pt "Tahoma";
+}
+
+.container {
+    max-width: 90%;
+}
+
+.column {
+    float: left;
+}
+
+.row:after {
+    content: "";
+    display: table;
+    clear: both;
+    align-items: center;
+    justify-content: center;
+}
+
+.col-center {
+    width: 100%;
+    text-align: center;
+}
+
+.col-center-padding {
+    width: 70%;
+    text-align: center;;
+    align-items: center;
+}
+
+.col-left {
+    width: 40%;
+}
+
+.col-20 {
+    width: 20%;
+}
+
+.col-logo {
+    width: 30%;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.col-40 {
+    width: 40%;
+    text-align: center;
+}
+
+.col-info {
+    width: 60%;
+}
+
+.middle {
+    text-align: center;
+    width: 20%;
+}
+
+.right {
+    width: 40%;
+    text-align: center;
+}
+
+.logo {
+    width: 250px;
+}
+
+.text-logo {
+    text-align: center;
+    font-weight: bold;
+    color: blue;
+}
+
+.table {
+    margin-top: 10px;
+    font-size: 14px;
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+    border: 1px solid rgb(0, 0, 0);
+}
+
+.table thead tr th {
+    background: rgb(7, 7, 114);
+    color: white;
+    text-align: center;
+    padding: 3px;
+    border: 1px solid rgb(0, 0, 0);
+}
+
+.table tbody tr td {
+    text-align: left;
+    padding: 3px;
+    border: 1px solid rgb(0, 0, 0);
+    width: 1px;
+    white-space: nowrap;
+}
+
+.table .center {
+    text-align: center;
+}
+
+.table .left {
+    text-align: left;
+}
+
+.table .right {
+    text-align: right;
+}
+
+.noBorder {
+    border:none !important;
+}
+
+.center {
+    text-align: center;
+}
+
+.table-info {
+    font-size: 12pt;
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+    border: none;
+    margin: 0.1;
+    padding: 0.1;
+}
+
+.marginTop {
+    margin-top: 20px;
+    padding-top: 20px;
+}
+
+.images {
+    width: 70px;
+}

@@ -1,0 +1,128 @@
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #FAFAFA;
+    font: 12pt "Tahoma";
+}
+* {
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+}
+.page {
+    width: 105mm;
+    min-height: 148mm;
+    padding: 3mm;
+    margin: 5mm auto;
+    border: 1px #333 solid;
+    border-radius: 5px;
+    background: white;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    page-break-after: always;
+    page-break-inside: avoid;
+}
+
+@page {
+    size: A6 Landscape;
+}
+
+@media print {
+    html, body {
+        padding: 0;     
+        margin: 0;
+    }     
+
+    .page {
+        margin: 0;
+        border: initial;
+        border-radius: initial;
+        width: initial;
+        min-height: initial;
+        box-shadow: initial;
+        background: initial;
+        page-break-after: always;
+        page-break-inside: avoid;
+        -webkit-border-radius: initial;
+        -moz-border-radius: initial;
+        -ms-border-radius: initial;
+        -o-border-radius: initial;
+    }
+
+    .footer,
+    #non-printable {
+        display: none !important;
+    }
+    #printable {
+        display: block;
+    }
+}
+
+.wrapper {
+    display: grid;
+    grid-template-columns: 100mm 5mm 100mm;
+    grid-template-rows: auto 5mm auto;
+    background-color: #fff;
+    color: #444;
+}
+
+.container {
+    width: 100%;
+    margin: 0px auto;
+}
+
+.row:after {
+    content: "";
+    display: grid;
+    clear: both;
+}
+
+.column {
+    float: left;
+    padding-bottom: 5px;
+}
+
+.col-100 {
+    width: 100%;
+}
+
+.col-break {
+    width: 100%;
+    padding: 5pt;
+}
+
+.center {
+    text-align: center;
+}
+
+.logo-left {
+    float: left;
+    text-align: left;
+}
+
+.barcode-center {
+    float: left;
+    text-align: center;
+}
+
+.padLeft {
+    padding-left: 10px;
+}
+
+.table {
+    font-size: 18px;
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+    border: 1px solid rgb(0, 0, 0);
+}
+
+.table tbody tr td {
+    text-align: left;
+    padding: 5px;
+    border: 1px solid rgb(0, 0, 0);
+}
+
+.table .center {
+    text-align: center;
+}
