@@ -26,21 +26,21 @@ class MonthlyExport implements FromView
         $data = DB::table("ex_bea_cukai as a")
             ->join('ex_bea_cukai_detail as b', 'a.id', 'b.id_header_bc')
             ->whereBetween('a.pkbe_date', [$this->start . ' 00:00:00', $this->end . ' 23:59:00'])
-            ->get();
+            ->get()->take(10);
 
-            $data = $data->map(function($value){
-                $value->forwarder_name = $this->detailForwarder($value->forwarder_id);
-                return $value;
-          });
+        $data = $data->map(function ($value) {
+            $value->forwarder_name = $this->detailForwarder($value->forwarder_id);
+            return $value;
+        });
 
         return view('new.Export.BeaCukai.Report.monthly_excel', compact('data'));
     }
 
     private function detailForwarder($forwarder_id)
-      {
-            $data = DB::table("mt_forwarder")
-                  ->where('id', $forwarder_id)
-                  ->value('forwarder_name');
-            return $data;
-      }
+    {
+        $data = DB::table("mt_forwarder")
+            ->where('id', $forwarder_id)
+            ->value('forwarder_name');
+        return $data;
+    }
 }

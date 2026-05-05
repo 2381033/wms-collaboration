@@ -20,7 +20,8 @@ class ChartController extends Controller
     public $year_number = null;
     public $month_number = null;
 
-    public function index(Request $request) {
+    public function index(Request $request)
+    {
         $this->company_id = Auth::user()->company_id;
         $this->principal_id = $request->principal_id;
         $this->year_number = \Carbon\Carbon::now()->year;
@@ -36,7 +37,7 @@ class ChartController extends Controller
         $month_number = \Carbon\Carbon::now()->month;
 
         $year_list = [];
-        for ($i=2020; $i < $last_year; $i++) {
+        for ($i = 2020; $i < $last_year; $i++) {
             $year_list[] = $i;
         }
 
@@ -51,7 +52,8 @@ class ChartController extends Controller
         return view("dashboard.chart.index", $data);
     }
 
-    public function getData(Request $request) {
+    public function getData(Request $request)
+    {
         $this->company_id = Auth::user()->company_id;
         $this->year_number = $request->year_number;
         $this->month_number = $request->month_number;
@@ -63,7 +65,7 @@ class ChartController extends Controller
         $chart_title = [];
         $principal = [];
         $data = [];
-        if ( $principal_id == "All" ) {
+        if ($principal_id == "All") {
             $principal_list = Auth::user()->principal;
 
             foreach ($principal_list as $key => $value) {
@@ -93,7 +95,8 @@ class ChartController extends Controller
         return response()->json($return);
     }
 
-    public function print(Request $request) {
+    public function print(Request $request)
+    {
         $data = $request->chartData;
         $time = \Carbon\Carbon::now()->format("dmy.His");
 
@@ -101,7 +104,7 @@ class ChartController extends Controller
         $filename = "chart_$time.pdf";
         $filePath = $storage_path . '/' . $filename;
 
-        $customPaper = array(0,0,500.00,420.00);
+        $customPaper = array(0, 0, 500.00, 420.00);
         $pdf = \PDF::loadView("dashboard.chart.print", compact('data'))->setPaper($customPaper, 'portrait');
 
         Storage::put($filePath, $pdf->output());
@@ -115,36 +118,37 @@ class ChartController extends Controller
         $list_bcc = explode(";", $sendData->email_bcc);
 
         $email_to = [];
-        for ($i=0; $i < count($list_to); $i++) {
-            if ( !empty($list_to[$i]) && $list_to[$i] !== "") {
+        for ($i = 0; $i < count($list_to); $i++) {
+            if (!empty($list_to[$i]) && $list_to[$i] !== "") {
                 $email_to[] = $list_to[$i];
             }
         }
 
         $email_cc = [];
-        for ($i=0; $i < count($list_cc); $i++) {
-            if ( !empty($list_cc[$i]) && $list_cc[$i] !== "") {
+        for ($i = 0; $i < count($list_cc); $i++) {
+            if (!empty($list_cc[$i]) && $list_cc[$i] !== "") {
                 $email_cc[] = $list_cc[$i];
             }
         }
 
         $email_bcc = [];
-        for ($i=0; $i < count($list_bcc); $i++) {
-            if ( !empty($list_bcc[$i]) && $list_bcc[$i] !== "") {
+        for ($i = 0; $i < count($list_bcc); $i++) {
+            if (!empty($list_bcc[$i]) && $list_bcc[$i] !== "") {
                 $email_bcc[] = $list_bcc[$i];
             }
         }
 
-        \Mail::to($email_to)->cc($email_cc)->bcc($email_bcc)->send(new WHchartMail($fileurl));
+        // \Mail::to($email_to)->cc($email_cc)->bcc($email_bcc)->send(new WHchartMail($fileurl));
 
         Storage::delete($filePath);
 
-        $message = ["success"=>"Sukses"];
+        $message = ["success" => "Sukses"];
 
         return  response()->json($message);
     }
 
-    public function transaction($type) {
+    public function transaction($type)
+    {
         $date_start = \Carbon\Carbon::create($this->year_number, $this->month_number, 1);
 
         $date_finish = \Carbon\Carbon::create($this->year_number, $this->month_number, 1)->endOfMonth();
@@ -157,60 +161,60 @@ class ChartController extends Controller
         $data = [];
 
         $data[] = ['Day', 'Inbound', 'Outbound'];
-        for ($i=1; $i <= $datediff; $i++) {
+        for ($i = 1; $i <= $datediff; $i++) {
             $date = \Carbon\Carbon::create($this->year_number, $this->month_number, $i);
 
-            if ( $type == "WTV" ) {
+            if ($type == "WTV") {
                 $value = DB::table("iv_stock_transaction as a")
-                            ->select(
-                                DB::raw("sum(case when a.job_type = 'IMP' then a.qty * b.volume end) as inbound"),
-                                DB::raw("sum(case when a.job_type = 'EXP' then a.qty * b.volume end) as outbound")
-                            )
-                            ->join("iv_product as b", "a.product_id", "b.id")
-                            ->where("a.company_id", $this->company_id)
-                            ->where("a.principal_id", $this->principal_id)
-                            ->whereMonth("a.job_date", $this->month_number)
-                            ->whereYear("a.job_date", $this->year_number)
-                            ->whereIn("a.job_type", ["IMP", "EXP"])
-                            ->where("a.job_date", $date)
-                            ->first();
-            } else if ( $type == "WTW" ) {
+                    ->select(
+                        DB::raw("sum(case when a.job_type = 'IMP' then a.qty * b.volume end) as inbound"),
+                        DB::raw("sum(case when a.job_type = 'EXP' then a.qty * b.volume end) as outbound")
+                    )
+                    ->join("iv_product as b", "a.product_id", "b.id")
+                    ->where("a.company_id", $this->company_id)
+                    ->where("a.principal_id", $this->principal_id)
+                    ->whereMonth("a.job_date", $this->month_number)
+                    ->whereYear("a.job_date", $this->year_number)
+                    ->whereIn("a.job_type", ["IMP", "EXP"])
+                    ->where("a.job_date", $date)
+                    ->first();
+            } else if ($type == "WTW") {
                 $value = DB::table("iv_stock_transaction as a")
-                            ->select(
-                                DB::raw("sum(case when a.job_type = 'IMP' then a.qty * b.gross_weight end) as inbound"),
-                                DB::raw("sum(case when a.job_type = 'EXP' then a.qty * b.gross_weight end) as outbound")
-                            )
-                            ->join("iv_product as b", "a.product_id", "b.id")
-                            ->where("a.company_id", $this->company_id)
-                            ->where("a.principal_id", $this->principal_id)
-                            ->whereMonth("a.job_date", $this->month_number)
-                            ->whereYear("a.job_date", $this->year_number)
-                            ->whereIn("a.job_type", ["IMP", "EXP"])
-                            ->where("a.job_date", $date)
-                            ->first();
-            } else if ( $type == "WTQ" ) {
+                    ->select(
+                        DB::raw("sum(case when a.job_type = 'IMP' then a.qty * b.gross_weight end) as inbound"),
+                        DB::raw("sum(case when a.job_type = 'EXP' then a.qty * b.gross_weight end) as outbound")
+                    )
+                    ->join("iv_product as b", "a.product_id", "b.id")
+                    ->where("a.company_id", $this->company_id)
+                    ->where("a.principal_id", $this->principal_id)
+                    ->whereMonth("a.job_date", $this->month_number)
+                    ->whereYear("a.job_date", $this->year_number)
+                    ->whereIn("a.job_type", ["IMP", "EXP"])
+                    ->where("a.job_date", $date)
+                    ->first();
+            } else if ($type == "WTQ") {
                 $value = DB::table("iv_stock_transaction as a")
-                            ->select(
-                                DB::raw("sum(case when a.job_type = 'IMP' then a.qty end) as inbound"),
-                                DB::raw("sum(case when a.job_type = 'EXP' then a.qty end) as outbound")
-                            )
-                            ->join("iv_product as b", "a.product_id", "b.id")
-                            ->where("a.company_id", $this->company_id)
-                            ->where("a.principal_id", $this->principal_id)
-                            ->whereMonth("a.job_date", $this->month_number)
-                            ->whereYear("a.job_date", $this->year_number)
-                            ->whereIn("a.job_type", ["IMP", "EXP"])
-                            ->where("a.job_date", $date)
-                            ->first();
+                    ->select(
+                        DB::raw("sum(case when a.job_type = 'IMP' then a.qty end) as inbound"),
+                        DB::raw("sum(case when a.job_type = 'EXP' then a.qty end) as outbound")
+                    )
+                    ->join("iv_product as b", "a.product_id", "b.id")
+                    ->where("a.company_id", $this->company_id)
+                    ->where("a.principal_id", $this->principal_id)
+                    ->whereMonth("a.job_date", $this->month_number)
+                    ->whereYear("a.job_date", $this->year_number)
+                    ->whereIn("a.job_type", ["IMP", "EXP"])
+                    ->where("a.job_date", $date)
+                    ->first();
             }
 
             $jumlah_in = 0;
-            if ( isset($value) ) {
+            if (isset($value)) {
                 $jumlah_in = $value->inbound;
             }
 
             $jumlah_out = 0;
-            if ( isset($value) ) {
+            if (isset($value)) {
                 $jumlah_out = $value->outbound;
             }
 

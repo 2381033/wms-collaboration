@@ -3,6 +3,7 @@
 namespace App\Console;
 
 use App\Console\Commands\SendReminderEmails;
+use App\Console\Commands\StockLedgerExportSendEmail;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -15,6 +16,7 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         SendReminderEmails::class,
+        StockLedgerExportSendEmail::class,
     ];
 
     /**
@@ -35,7 +37,7 @@ class Kernel extends ConsoleKernel
      */
     protected function commands()
     {
-        $this->load(__DIR__.'/Commands');
+        $this->load(__DIR__ . '/Commands');
 
         require base_path('routes/console.php');
     }

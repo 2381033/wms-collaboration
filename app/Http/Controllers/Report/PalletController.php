@@ -59,10 +59,10 @@ class PalletController extends Controller
 
         $data = DB::table('iv_inbound_per_pallet')
             ->where('product_code', $request->product_code_from)
-            ->where('location_id', $request->location_code)
+            // ->where('location_id', $request->location_code)
             ->whereIn('picking_id', $detail->pluck('id')->ToArray())
             ->get();
-
+        dd($data->pluck('location_code')->toArray());
         $data = $data->map(function ($value) use ($detail) {
             $value->master_detail = $detail
                 ->where('id', $value->picking_id)

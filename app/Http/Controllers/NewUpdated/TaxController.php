@@ -143,12 +143,12 @@ class TaxController extends Controller
             ->addColumn('npwp', function ($data) {
                 $fileWithoutExtension = str_replace(".pdf", "", $data->file);
                 $npwp = explode("-", $fileWithoutExtension);
-                return $npwp[8];
+                return $npwp[8] ?? '-';
             })
             ->addColumn('fp', function ($data) {
                 $fileWithoutExtension = str_replace(".pdf", "", $data->file);
                 $fp = explode("-", $fileWithoutExtension);
-                return $fp[7];
+                return $fp[7] ?? '-';
             })
             ->addIndexColumn()
             ->make(true);

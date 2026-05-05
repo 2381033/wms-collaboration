@@ -1,6 +1,7 @@
 @extends('layouts.new.base')
-@section('title', 'MKT - Scan Cargo')
+@section('title', 'MKT - List Scan')
 @push('styles')
+    <link href="{{ url('/') }}assets/new/plugins/custom/datatables/datatables.bundle.css" rel="stylesheet" />
     <style type="text/css">
         .hide {
             display: none;
@@ -30,224 +31,248 @@
 @endpush
 
 @section('content')
-    <div class="container" style="zoom: 120%;">
+    <div class="container">
         <div class="main-body">
-            <div class="card" style="border-radius: 15px;">
+            <div class="card card-custom gutter-b">
+                <div class="card-header card-header-tabs-line">
+                    <div class="card-toolbar">
+                        <ul class="nav nav-tabs nav-bold nav-tabs-line">
+                            <li class="nav-item">
+                                <a class="nav-link active" data-toggle="tab" href="#kt_tab_pane_1_4">
+                                    <span class="nav-icon"><i class="flaticon-cart"></i></span>
+                                    <span class="nav-text">Receiving</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-toggle="tab" href="#kt_tab_pane_2_4">
+                                    <span class="nav-icon"><i class="flaticon2-lorry"></i></span>
+                                    <span class="nav-text">Stuffing</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <center>
-                                <div id="qr-reader" style="width: 350px;"></div>
-                            </center>
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="kt_tab_pane_1_4" role="tabpanel"
+                            aria-labelledby="kt_tab_pane_1_4">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        <input type="date" class="form-control" name="start" id="startReceive"
+                                            aria-describedby="helpId" placeholder="" value="{{ date('Y-m-d') }}">
+                                        <small id="helpId" class="form-text text-danger">Start Date</small>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        <input type="date" class="form-control" name="end" id="endReceive"
+                                            aria-describedby="helpId" placeholder="" value="{{ date('Y-m-d') }}">
+                                        <small id="helpId" class="form-text text-danger">End Date</small>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <a class="btn btn-dark btn-md" onclick="searchReceive()"><i class="fas fa-search"></i>
+                                        Search</a>
+                                </div>
+                                <div class="col-sm-12">
+                                    <table class="table table-bordered" id="tableReceive">
+                                        <thead>
+                                            <tr>
+                                                <th>No</th>
+                                                <th>Action</th>
+                                                <th>Job No</th>
+                                                <th>Date</th>
+                                                <th>Scan By</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-sm-12">
-                            <hr>
-                            <table class="table table-bordered">
-                                <thead>
-                                    <tr class="text-center" style="background-color: antiquewhite">
-                                        <th colspan="2">
-                                            <h3>Carton <label class="jumlahCarton"></label> of <label
-                                                    class="totalCarton"></label></h3>
-                                        </th>
-                                        <th>
-                                            <h5>Last Updated: <label class="lasUpdated"></label></h5>
-                                        </th>
-                                    </tr>
-                                    <tr class="text-center">
-                                        <th>No.</th>
-                                        <th>PO NO</th>
-                                        <th>Cargo ID</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tableList"></tbody>
-                            </table>
-                        </div>
-                        <div class="col-sm-12 mt-4">
-                            <div class="appendScan"></div>
+                        <div class="tab-pane fade" id="kt_tab_pane_2_4" role="tabpanel" aria-labelledby="kt_tab_pane_2_4">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        <input type="date" class="form-control" name="start" id="startStuffing"
+                                            aria-describedby="helpId" placeholder="" value="{{ date('Y-m-d') }}">
+                                        <small id="helpId" class="form-text text-danger">Start Date</small>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="form-group">
+                                        <input type="date" class="form-control" name="end" id="endStuffing"
+                                            aria-describedby="helpId" placeholder="" value="{{ date('Y-m-d') }}">
+                                        <small id="helpId" class="form-text text-danger">End Date</small>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <a class="btn btn-success btn-md" onclick="searchStuffing()"><i
+                                            class="fas fa-search"></i>
+                                        Search</a>
+                                </div>
+                                <div class="col-sm-12">
+                                    <table class="table table-bordered" id="tableStuffing">
+                                        <thead>
+                                            <tr>
+                                                <th>No</th>
+                                                <th>Action</th>
+                                                <th>Job No</th>
+                                                <th>Container No</th>
+                                                <th>Date</th>
+                                                <th>Scan By</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <div class="contentConfirm">
-
-    </div>
-
-    <div id="scanCargo" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-body">
-                    <div class="row">
-
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
 @endsection
 
 @push('scripts')
-    <script src="{{ url('/') }}/assets/new/plugins/custom/qrcode/html5-qrcode.min.js"></script>
-    <script src="{{ url('/assets/js/soundmanager2-nodebug-jsmin.js') }}"></script>
-
+    <script src="{{ url('/') }}/assets/new/plugins/custom/datatables/datatables.bundle.js"></script>
     <script type="text/javascript">
-        loadData()
+        function searchReceive() {
+            var start = $('#startReceive').val();
+            var end = $('#endReceive').val();
 
-        function konfirmJob() {
-            var job_no = "{{ $job_no }}";
-            Swal.fire({
-                title: 'Do you want to save the changes?',
-                icon: 'info',
-                showDenyButton: true,
-                showCancelButton: true,
-                confirmButtonText: 'Save',
-                denyButtonText: `Cancel`,
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: "{{ url('export/ScanCargoEkspor/konfirmJob') }}/" + job_no,
-                        type: 'GET',
-                        dataType: 'json',
-                        success: function(response) {
-                            location.href = "{{ url('export/ScanCargoEkspor') }}"
-                        },
-                        error: function(response) {
-                            console.log(response);
-                            alert('Internal Server Error, Please refresh page and try again..')
-                        }
-                    });
-                } else if (result.isDenied) {
-                    return false;
-                }
-            })
-        }
-
-        function loadData() {
-            var job_no = "{{ $job_no }}";
-            $.ajax({
-                url: "{{ url('export/ScanCargoEkspor/ajaxEncryptJob') }}/" + job_no,
-                type: 'GET',
-                dataType: 'json',
-                success: function(response) {
-                    appendTable(response.data);
-                },
-                error: function(response) {
-                    alert('Internal Server Error, Please refresh page and try again..')
-                }
-            });
-        }
-
-        function appendTable(params) {
-            console.log('====================================');
-            console.log(params);
-            console.log('====================================');
-            if (params.btn_confirm == true) {
-                $('.contentConfirm').html("")
-                $('.contentConfirm').append(
-                    `<a href="#" class="float" style="background-color: mediumseagreen; zoom: 120%;" onclick="konfirmJob()"><i class="fa fa-check text-white my-float"></i></a>`
-                )
-            }
-            $('.jumlahCarton').html('');
-            $('.totalCarton').html('');
-            $('.lasUpdated').html('');
-            $('.jumlahCarton').append(`${params.list.length ==  0 ? 1 : params.list.length+1 } `);
-            $('.totalCarton').append(`${params.header.qty}`);
-            $('.lasUpdated').append(`${params.lastUpdated == null ? '-' : params.lastUpdated }`);
-
-            $('#tableList').html('');
-            $.each(params.list, function(key, val) {
-                $('#tableList').append(`
-                    <tr class="text-center">
-                        <td>${key+1}</td>
-                        <td>${params.header.po_no}</td>
-                        <td>${val.barcode}</td>
-                    </tr>`);
-            });
-        }
-
-        var html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", {
-            fps: 10,
-            qrbox: 250,
-            rememberLastUsedCamera: true
-        });
-        html5QrcodeScanner.render(onScanSuccess);
-
-        function scanCargo() {
-            $('.content-qr-reader').html("");
-            $('.content-qr-reader').append(`<div class="col-sm-12">
-                            <center>
-                                <div id="qr-reader" style="width: 300px;"></div>
-                            </center>
-                        </div>`);
-
-        }
-
-        function play_sound(sound) {
-            soundManager.onready(function() {
-                soundManager.createSound({
-                    // id: 'sk4Audio',
-                    url: "{{ url('/assets/audio/success.mp3') }}",
-                    autoLoad: true,
-                    autoPlay: true,
-                    volume: 200,
-                })
-            });
-        }
-
-        function sound_error(sound) {
-            soundManager.onready(function() {
-                soundManager.createSound({
-                    // id: 'sk4Audio',
-                    url: "{{ url('/assets/audio/error.mp3') }}",
-                    autoLoad: true,
-                    autoPlay: true,
-                    volume: 200,
-                })
-            });
-        }
-
-
-        function onScanSuccess(barcode, decodedResult) {
-            var job_no = "{{ $job_no }}";
-            validasiCargo(barcode, job_no)
-        }
-
-        function validasiCargo(barcode, job_no) {
-            html5QrcodeScanner.pause();
-            $.ajax({
-                url: "{{ url('export/ScanCargoEkspor/validasiCargo') }}/" + barcode + '/' + job_no,
-                type: 'GET',
-                dataType: 'json',
-                success: function(response) {
-                    if (response.message == 'double') {
-                        sound_error()
-                        html5QrcodeScanner.resume();
-                        Swal.fire({
-                            icon: "error",
-                            title: "Double Item.",
-                            text: "This item is already on the pallet",
-                        });
-                    } else {
-                        play_sound()
-                        html5QrcodeScanner.resume();
-                        $('.appendScan').html("");
-                        loadData();
-                        Swal.fire({
-                            position: "top-end",
-                            icon: "success",
-                            title: "Data has been successfully",
-                            showConfirmButton: false,
-                            timer: 1500
-                        });
+            $('#tableReceive').DataTable().destroy();
+            $('#tableReceive').DataTable({
+                "dom": '<"wrapper"flipt>',
+                processing: true,
+                serverSide: true,
+                paging: false,
+                searching: false,
+                destroy: true,
+                info: false,
+                ajax: {
+                    url: "{{ route('getListReceive') }}",
+                    type: "GET",
+                    data: {
+                        start: start,
+                        end: end,
                     }
                 },
-                error: function(response) {
-                    sound_error()
-                    alert('Internal Server Error, Please refresh page and try again..')
-                }
+                columns: [{
+                        data: null,
+                        name: 'no',
+                        searchable: false,
+                        orderable: false,
+                        render: function(data, type, row, meta) {
+                            return meta.row + 1;
+                        }
+                    },
+                    {
+                        data: 'job_no',
+                        name: 'job_no',
+                        render: function(data, type, row) {
+                            var url = `{{ url('export/ScanCargoEkspor/downloadReceiving') }}/${data}`;
+                            return `<a href="${url}" class="btn btn-dark btn-sm"><i class="fas fa-download"></i> Download</a>`;
+                        }
+                    },
+                    {
+                        data: 'job_no',
+                        name: 'job_no'
+                    },
+                    {
+                        data: 'created_at',
+                        name: 'created_at',
+                        render: function(data, type, row) {
+                            var date = new Date(data);
+                            var year = date.getFullYear();
+                            var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                            var day = ("0" + date.getDate()).slice(-2);
+                            var hours = ("0" + date.getHours()).slice(-2);
+                            var minutes = ("0" + date.getMinutes()).slice(-2);
+                            return day + '-' + month + '-' + year + ' ' + hours + ':' + minutes;
+                        }
+                    },
+                    {
+                        data: 'created_by',
+                        name: 'created_by'
+                    },
+                ],
+                order: [
+                    [0, 'asc']
+                ]
+            });
+        }
+
+        function searchStuffing() {
+            var start = $('#startStuffing').val();
+            var end = $('#endStuffing').val();
+
+            $('#tableStuffing').DataTable().destroy();
+            $('#tableStuffing').DataTable({
+                "dom": '<"wrapper"flipt>',
+                processing: true,
+                serverSide: true,
+                paging: false,
+                searching: false,
+                destroy: true,
+                info: false,
+                ajax: {
+                    url: "{{ route('getListStuffing') }}",
+                    type: "GET",
+                    data: {
+                        start: start,
+                        end: end,
+                    }
+                },
+                columns: [{
+                        data: null,
+                        name: 'no',
+                        searchable: false,
+                        orderable: false,
+                        render: function(data, type, row, meta) {
+                            return meta.row + 1;
+                        }
+                    },
+                    {
+                        data: 'job_no', // Assuming the job_no column exists in the backend response
+                        name: 'job_no',
+                        render: function(data, type, row) {
+                            return `<a href="{{ url('export/ScanCargoEkspor/downloadStuffing') }}/${data}" class="btn btn-success btn-sm"><i class="fas fa-download"></i> Download</a>`;
+                        }
+                    },
+                    {
+                        data: 'job_no',
+                        name: 'job_no'
+                    },
+                    {
+                        data: 'container_no',
+                        name: 'container_no'
+                    },
+                    {
+                        data: 'created_at',
+                        name: 'created_at',
+                        render: function(data, type, row) {
+                            var date = new Date(data);
+                            var year = date.getFullYear();
+                            var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                            var day = ("0" + date.getDate()).slice(-2);
+                            var hours = ("0" + date.getHours()).slice(-2);
+                            var minutes = ("0" + date.getMinutes()).slice(-2);
+                            return day + '-' + month + '-' + year + ' ' + hours + ':' + minutes;
+                        }
+                    },
+                    {
+                        data: 'created_by',
+                        name: 'created_by'
+                    },
+                ],
+                order: [
+                    [0, 'asc']
+                ]
             });
         }
     </script>

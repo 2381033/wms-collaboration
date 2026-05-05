@@ -21,33 +21,40 @@ class HomeController extends Controller
         // $this->middleware('auth');
     }
 
+    private function getSite()
+    {
+        $data = DB::table('users_site as a')
+            ->leftJoin('iv_site as b', 'a.site_id', '=', 'b.id')
+            ->where('a.user_id', Auth::user()->id)
+            ->groupBy('a.site_id')
+            ->get();
+
+        return $data;
+    }
+
     public function index(Request $request)
     {
         if (Auth::check()) {
-            // $last_year = \Carbon\Carbon::now()->addYear(1)->year;
-            // $year_list = [];
-            // for ($i = 2021; $i < $last_year; $i++) {
-            //     $year_list[] = $i;
-            // }
-
-            // $principal_count = Auth::user()->principal->count();
-
-            // if ($principal_count > 0) {
-            //     $this->principal_id = Auth::user()->principal->count();
-            // }
-
-            // $this->year_number = \Carbon\Carbon::now()->year;
-            // $this->month_number = \Carbon\Carbon::now()->month;
-
-            // $data = [
-            //     "year_list" => $year_list,
-            //     "year_number" => $this->year_number,
-            //     "month_number" => $this->month_number,
-            // ];
             $branch    = $this->getBranch();
             $principal = $this->getPrincipal();
+            $site      = $this->getSite();
 
-            return view('dashboard.index', compact('branch', 'principal'));
+            $user = DB::table("users as a")
+                ->select(
+                    "a.*",
+                    "b.role_name"
+                )
+                ->join("sm_role as b", "a.role_id", "b.id")
+                ->where("a.username", Auth::user()->username)
+                ->first();
+            $isVendor = ($user->role_name == 'Vendor');
+
+            if (Auth::user()->id == 230) {
+                $principal = $this->getPrincipal();
+                return view('dashboard.special.index', compact('branch', 'principal', 'site'));
+            } else {
+                return view('dashboard.index', compact('branch', 'principal', 'site', 'isVendor'));
+            }
         } else {
             return view('home');
         }

@@ -109,8 +109,9 @@ class VehicleController extends Controller
                 'container_no' => $request->container_no,
                 'seal_no' => $request->seal_no,
                 'awb_no' => $request->awb_no,
-                'type_id' => $request->type_id,
-                'size_id' => $request->size_id,
+                'type_id' => 1, //default
+                'size_id' => 1, //default
+                'vehicle_type' => $request->size_id,
                 'user_id' => $user_id
             ]
         );

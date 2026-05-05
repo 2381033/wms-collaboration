@@ -62,39 +62,43 @@
                         <li class="nav-item">
                             <a class="nav-link active" id="job-link" data-toggle="tab" href="#job-tab" role="tab"
                                 aria-controls="home" aria-selected="true">
-                                <i class="fas fa-box"></i> Job Information</a>
+                                <i class="fas fa-info-circle"></i> Job Information</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" id="vehicle-link" data-toggle="tab" href="#vehicle-tab" role="tab"
                                 aria-controls="vehicle" aria-selected="false">
-                                <i class="fas fa-box"></i> Vehicle Detail</a>
+                                <i class="fas fa-truck"></i> Vehicle Detail</a>
                         </li>
+                        {{-- @can('gate-access', 'AdminDC') --}}
                         <li class="nav-item">
                             <a class="nav-link" id="packing-link" data-toggle="tab" href="#packing-tab" role="tab"
                                 aria-controls="packing" aria-selected="false">
-                                <i class="fas fa-box"></i> Packing Detail</a>
+                                <i class="fas fa-list"></i> Packing Detail</a>
                         </li>
+                        {{-- @endcan --}}
                         <li class="nav-item">
                             <a class="nav-link" id="grn-link" data-toggle="tab" href="#grn-tab" role="tab"
                                 aria-controls="grn" aria-selected="false">
-                                <i class="fas fa-box"></i> Goods Receipt</a>
+                                <i class="fas fa-pallet"></i> Goods Receipt</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" id="putaway-link" data-toggle="tab" href="#putaway-tab" role="tab"
                                 aria-controls="putaway" aria-selected="false">
-                                <i class="fas fa-box"></i> Put Away</a>
+                                <i class="fas fa-location-arrow"></i> Put Away</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" id="cancel-link" data-toggle="tab" href="#cancel-tab" role="tab"
-                                aria-controls="cancel" aria-selected="false">
-                                <i class="fas fa-boxes"></i> Cancel</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" id="confirm-link" data-toggle="tab" href="#confirm-tab" role="tab"
-                                aria-controls="confirm" aria-selected="false">
-                                <i class="fas fa-warehouse"></i> Confirmation</a>
-                        </li>
-                        @if (isset($job_view->job_class->class_name))
+                        @can('gate-access', 'AdminDC')
+                            <li class="nav-item">
+                                <a class="nav-link" id="cancel-link" data-toggle="tab" href="#cancel-tab" role="tab"
+                                    aria-controls="cancel" aria-selected="false">
+                                    <i class="fas fa-reply"></i> Cancel</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" id="confirm-link" data-toggle="tab" href="#confirm-tab" role="tab"
+                                    aria-controls="confirm" aria-selected="false">
+                                    <i class="fas fa-check-circle"></i> Confirmation</a>
+                            </li>
+                        @endcan
+                        {{-- @if (isset($job_view->job_class->class_name))
                             @if ($job_view->job_class->class_name == 'Cross Dock')
                                 <li class="nav-item">
                                     <a class="nav-link" id="cross-link" data-toggle="tab" href="#cross-tab"
@@ -102,7 +106,7 @@
                                         <i class="fas fa-shipping-fast"></i> Crosk Dock</a>
                                 </li>
                             @endif
-                        @endif
+                        @endif --}}
                     </ul>
                     <div class="tab-content" id="inboundTab">
                         <div class="tab-pane fade show active" id="job-tab" role="tabpanel"
@@ -180,20 +184,6 @@
                                             </div>
                                         </div>
                                     </div>
-                                    {{-- <div class="row">
-                                        <div class="col-sm-6">
-                                            <div class="form-group">
-                                                <label>Reference Number</label>
-                                                <input type="text" autocomplete="off" id="reference_no" name="reference_no" class="form-control">
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <div class="form-group">
-                                                <label>Reference Other</label>
-                                                <input type="text" autocomplete="off" id="reference_other" name="reference_other" class="form-control">
-                                            </div>
-                                        </div>
-                                    </div> --}}
                                     <div class="row">
                                         <div class="col-sm-3">
                                             <div class="form-group">
@@ -308,10 +298,22 @@
                                                     class="btn btn-success btn-sm"><i class="fas fa-download"></i>
                                                     <span>Template</span></button>
                                             @endcan
-                                            <a id="icr-print" class="btn btn-info btn-sm"><i class="fas fa-print"></i>
-                                                <span>ICR</span></a>
                                         </div>
                                     </div>
+                                    @can('gate-access', 'CheckerDC')
+                                        @if (isset($job_view))
+                                            @if ($job_view->principal_id == 3)
+                                                <div class="col-sm-6 mt-4">
+                                                    <div class="form-group">
+                                                        <input type="text" name="" id="scanEAN"
+                                                            class="form-control" placeholder="Scan Barcode EAN Here.."
+                                                            aria-describedby="helpId" autofocus autocomplete="off"
+                                                            style="background-color: yellow;">
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        @endif
+                                    @endcan
                                 </div>
                                 <div class="row">
                                     <div class="col-lg-12">
@@ -328,7 +330,6 @@
                                                             <th rowspan="2">Batch No</th>
                                                             <th rowspan="2">Expired Date</th>
                                                             <th colspan="6">Expected Quantity</th>
-                                                            <th rowspan="2">Pallet ID</th>
                                                         </tr>
                                                         <tr>
                                                             <th>1st</th>
@@ -351,10 +352,13 @@
                                                             <th rowspan="2">SKU Name</th>
                                                             <th rowspan="2">Batch No</th>
                                                             <th rowspan="2">Expired Date</th>
+                                                            <th colspan="2">Actual Quantity</th>
                                                             <th colspan="2">Expected Quantity</th>
-                                                            <th rowspan="2">Pallet ID</th>
+                                                            {{-- <th rowspan="2">Pallet ID</th> --}}
                                                         </tr>
                                                         <tr>
+                                                            <th>1st</th>
+                                                            <th>Unit</th>
                                                             <th>1st</th>
                                                             <th>Unit</th>
                                                         </tr>
@@ -376,8 +380,8 @@
                                                 <label for="ata">Shipment Arrival Date</label>
                                                 <input type="text" id="ata" name="ata"
                                                     class="form-control floating-label"
-                                                    @isset($job_view->ata) value="{{ \Carbon\Carbon::parse($job_view->ata)->format('d/m/Y H:i') }}" @endisset
-                                                    readonly>
+                                                    value="{{ isset($ata) ? \Carbon\Carbon::parse($ata)->format('d/m/Y H:i') : '' }}"
+                                                    placeholder="Input Here..">
                                             </div>
                                         </div>
                                         <div class="col-sm-3">
@@ -386,7 +390,8 @@
                                                 <input type="text" id="unloading_start" name="unloading_start"
                                                     class="form-control floating-label"
                                                     @isset($job_view->unloading_start) @if ($job_view->unloading_start != null) value="{{ \Carbon\Carbon::parse($job_view->unloading_start)->format('d/m/Y H:i') }}" @endif @endisset
-                                                    readonly>
+                                                    {{ isset($job_view->unloading_start) ? 'readonly' : '' }}
+                                                    placeholder="Input Here..">
                                             </div>
                                         </div>
                                         <div class="col-sm-3">
@@ -395,7 +400,8 @@
                                                 <input type="text" id="unloading_finish" name="unloading_finish"
                                                     class="form-control floating-label"
                                                     @isset($job_view->unloading_finish) @if ($job_view->unloading_finish != null) value="{{ \Carbon\Carbon::parse($job_view->unloading_finish)->format('d/m/Y H:i') }}" @endif @endisset
-                                                    readonly>
+                                                    {{ isset($job_view->unloading_finish) ? 'readonly' : '' }}
+                                                    placeholder="Input Here..">
                                             </div>
                                         </div>
                                     </div>
@@ -439,8 +445,8 @@
                                                                 <th rowspan="2">SKU Name</th>
                                                                 <th rowspan="2">Batch No</th>
                                                                 <th rowspan="2">Expired Date</th>
-                                                                <th colspan="6">Expected Quantity</th>
                                                                 <th colspan="6">Actual Quantity</th>
+                                                                <th colspan="6">Expected Quantity</th>
                                                             </tr>
                                                             <tr>
                                                                 <th>1st</th>
@@ -473,8 +479,8 @@
                                                                 <th rowspan="2">SKU Name</th>
                                                                 <th rowspan="2">Batch No</th>
                                                                 <th rowspan="2">Expired Date</th>
-                                                                <th colspan="2">Expected Quantity</th>
                                                                 <th colspan="2">Actual Quantity</th>
+                                                                <th colspan="2">Expected Quantity</th>
                                                             </tr>
                                                             <tr>
                                                                 <th>1st</th>
@@ -568,7 +574,7 @@
                                     <div class="row" data-aos="fade-up">
                                         <div class="col-sm-6">
                                             <div class="btn-group mb-4">
-                                                @can('gate-access', 'warehouse/inbound')
+                                                @can('gate-access', 'AdminDC')
                                                     @if ($button_gr)
                                                         @if ($button_putaway)
                                                             <button type="button" class="btn btn-danger btn-sm"
@@ -579,11 +585,6 @@
                                                     @endif
                                                 @endcan
                                                 &nbsp;
-                                                {{-- <a id="putaway-print"
-                                                    @if (isset($job_view->id) && !empty($job_view->id)) enabled @else disabled @endif
-                                                    class="btn btn-info btn-sm"><i class="fas fa-print"></i> <span>Put
-                                                        Away List</span>
-                                                </a> --}}
                                                 <a href="javascript:void(0)" class="btn btn-sm text-white"
                                                     style="background-color: coral;"
                                                     onclick="draftPutaway('{{ $job_view->id ?? 0 }}', 0)"><i
@@ -593,11 +594,11 @@
                                                     class="btn btn-success btn-sm text-white"><i class="fas fa-print"></i>
                                                     <span>Put Away Report</span>
                                                 </a>
-                                                {{-- @if (count($list_data) == 0) --}}
-                                                <a href="javascript:void(0)" class="btn btn-sm btn-dark"
-                                                    onclick="printPalletTagAfter('{{ $job_view->id ?? 0 }}', 0)"><i
-                                                        class="fas fa-print"></i> All Pallet Tag</a>
-                                                {{-- @endif --}}
+                                                @can('gate-access', 'AdminDC')
+                                                    <a href="javascript:void(0)" class="btn btn-sm btn-dark"
+                                                        onclick="printPalletTagAfter('{{ $job_view->id ?? 0 }}', 0)"><i
+                                                            class="fas fa-print"></i> All Pallet Tag</a>
+                                                @endcan
                                             </div>
                                             <div class="float-right">
 
@@ -638,23 +639,27 @@
                                                                 </td>
                                                                 <td>{{ $list->pqty }}</td>
                                                                 <td>
-                                                                    <a href="javascript:void(0)"
-                                                                        class="btn btn-sm btn-dark"
-                                                                        onclick="printPalletTag('{{ $list->inbound_id }}', '{{ $list->product_code }}', '{{ $list->id }}')"><i
-                                                                            class="fas fa-print"></i> Pallet Tag</a>
-                                                                    @if ($list->wherenotnull != $list->counting)
+                                                                    @can('gate-access', 'AdminDC')
                                                                         <a href="javascript:void(0)"
-                                                                            class="btn btn-sm btn-success"
-                                                                            onclick="startPutaway('{{ $list->inbound_id }}', '{{ $list->id_product }}', '{{ $list->id }}')"><i
-                                                                                class="fas fa-camera"></i> Start
-                                                                            Putaway</a>
-                                                                    @else
-                                                                        <a href="javascript:void(0)"
-                                                                            onclick="startPutaway('{{ $list->inbound_id }}', '{{ $list->id_product }}', '{{ $list->id }}')"
-                                                                            class="btn btn-sm btn-info"><i
-                                                                                class="fas fa-edit"></i> Edit
-                                                                            Putaway</a>
-                                                                    @endif
+                                                                            class="btn btn-sm btn-dark"
+                                                                            onclick="printPalletTag('{{ $list->inbound_id }}', '{{ $list->product_code }}', '{{ $list->id }}')"><i
+                                                                                class="fas fa-print"></i> Pallet Tag</a>
+                                                                    @endcan
+                                                                    @can('gate-access', 'CheckerDC')
+                                                                        @if ($list->wherenotnull != $list->counting)
+                                                                            <a href="javascript:void(0)"
+                                                                                class="btn btn-sm btn-success"
+                                                                                onclick="startPutaway('{{ $list->inbound_id }}', '{{ $list->id_product }}', '{{ $list->id }}')"><i
+                                                                                    class="fas fa-camera"></i> Start
+                                                                                Putaway</a>
+                                                                        @else
+                                                                            <a href="javascript:void(0)"
+                                                                                onclick="startPutaway('{{ $list->inbound_id }}', '{{ $list->id_product }}', '{{ $list->id }}')"
+                                                                                class="btn btn-sm btn-info"><i
+                                                                                    class="fas fa-edit"></i> Edit
+                                                                                Putaway</a>
+                                                                        @endif
+                                                                    @endcan
                                                                 </td>
                                                             </tr>
                                                         @endforeach
@@ -820,6 +825,7 @@
                                                             <th colspan="6">Quantity</th>
                                                             <th rowspan="2">Serial No</th>
                                                             <th rowspan="2" class="bg-warning">Remarks</th>
+                                                            <th rowspan="2">Dimension</th>
                                                         </tr>
                                                         <tr>
                                                             <th>1st</th>
@@ -851,6 +857,7 @@
                                                             <th rowspan="2">Location</th>
                                                             <th colspan="2">Quantity</th>
                                                             <th rowspan="2">Serial No</th>
+                                                            <th rowspan="2">Dimension</th>
                                                         </tr>
                                                         <tr>
                                                             <th>1st</th>
@@ -964,70 +971,59 @@
                     <input type="hidden" id="inbound_vehicle" name="inbound_vehicle">
                     <div class="modal-body">
                         <div class="row">
-                            <div class="col-sm-6">
+                            <div class="col-sm-12">
                                 <div class="form-group">
-                                    <label>Vehicle Type</label>
-                                    <select class="custom-select" id="type_id" name="type_id">
-                                        <option value="">.:Select:.</option>
-                                        @foreach ($container_type_list as $item)
-                                            <option value="{{ $item->id }}">{{ $item->type_name }}</option>
+                                    <label>Vehicle No <small class="text-danger">*</small></label>
+                                    <select name="vehicle_no" id="vehicle_no" required class="form-control"
+                                        onchange="selectVehicle(this.value)">
+                                        <option value="" disabled selected>.:Select:.</option>
+                                        @foreach ($vehicle as $item)
+                                            <option value="{{ $item->vehicle_number }}">{{ $item->vehicle_number }}
+                                            </option>
                                         @endforeach
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-sm-6">
+                            <div class="col-sm-4">
                                 <div class="form-group">
-                                    <label>Vehicle Size</label>
-                                    <select class="custom-select" id="size_id" name="size_id">
-                                        <option value="">.:Select:.</option>
-                                        @foreach ($container_size_list as $item)
-                                            <option value="{{ $item->id }}">{{ $item->size_name }}</option>
-                                        @endforeach
-                                    </select>
+                                    <label>Vehicle Size <small class="text-danger">*</small></label>
+                                    <input type="text" autocomplete="off" id="size_id" name="size_id"
+                                        class="form-control" readonly required>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    <label>Transporter Name <small class="text-danger">*</small></label>
+                                    <input type="text" autocomplete="off" id="transporter_name"
+                                        name="transporter_name" class="form-control" readonly required>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    <label>Driver Name <small class="text-danger">*</small></label>
+                                    <input type="text" autocomplete="off" id="driver_name" name="driver_name"
+                                        class="form-control" required readonly>
                                 </div>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-sm-4">
                                 <div class="form-group">
-                                    <label>Vehicle No</label>
-                                    <input type="text" autocomplete="off" id="vehicle_no" name="vehicle_no"
-                                        class="form-control">
-                                </div>
-                            </div>
-                            <div class="col-sm-8">
-                                <div class="form-group">
-                                    <label>Transporter Name</label>
-                                    <input type="text" autocomplete="off" id="transporter_name"
-                                        name="transporter_name" class="form-control">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-sm-3">
-                                <div class="form-group">
-                                    <label>Driver Name</label>
-                                    <input type="text" autocomplete="off" id="driver_name" name="driver_name"
-                                        class="form-control">
-                                </div>
-                            </div>
-                            <div class="col-sm-3">
-                                <div class="form-group">
-                                    <label>Container No</label>
+                                    <label>Container No <small class="text-muted">(Optional)</small></label>
                                     <input type="text" autocomplete="off" id="container_no" name="container_no"
                                         class="form-control">
                                 </div>
                             </div>
-                            <div class="col-sm-3">
+                            <div class="col-sm-4">
                                 <div class="form-group">
-                                    <label>Seal No</label>
+                                    <label>Seal No <small class="text-muted">(Optional)</small></label>
                                     <input type="text" autocomplete="off" id="seal_no" name="seal_no"
                                         class="form-control">
                                 </div>
                             </div>
-                            <div class="col-sm-3">
+                            <div class="col-sm-4">
                                 <div class="form-group">
-                                    <label>AWB No</label>
+                                    <label>AWB No <small class="text-muted">(Optional)</small></label>
                                     <input type="text" autocomplete="off" id="awb_no" name="awb_no"
                                         class="form-control">
                                 </div>
@@ -1774,7 +1770,7 @@
                                 </div>
                                 <div class="form-group">
                                     <select class="form-control" name="jumlah_pallet" required
-                                        onchange="jumlahPallet(this.value)">
+                                        onchange="jumlahPallet(this.value)" id="selectPallet">
                                         <option value="" disabled selected>JUMLAH PALLET</option>
                                         @for ($i = 1; $i <= 100; $i++)
                                             <option value="{{ $i }}">{{ $i }}</option>
@@ -1797,7 +1793,7 @@
                     <div class="modal-footer bg-whitesmoke br">
                         <button type="button" class="btn btn-info btn-sm" data-dismiss="modal"><i
                                 class="fas fa-window-close"></i> <span>Close</span></button>
-                        <button type="submit" class="btn btn-primary btn-sm hide btn-save-add-pallet"> Simpan</button>
+                        <button type="submit" class="btn btn-primary btn-sm btn-save-add-pallet hide"> Simpan</button>
                     </div>
                 </div>
             </form>
@@ -1806,145 +1802,63 @@
 @endsection
 @push('scripts')
     <script>
-        $('#selectSKU').select2({
-            'placeholder': {
-                id: '', // the value of the option
-                text: 'Choose SKU..'
-            }
-        });
-
-        function bypassScan(inbound_id) {
-            swal({
-                title: "Konfirmasi Bypass Scan?",
-                text: "Pastikan data yang di packing sudah sesuai!",
-                icon: "warning",
-                buttons: [
-                    'Nanti Dulu,',
-                    'Ya, Saya Yakin!'
-                ],
-                dangerMode: true,
-            }).then(function(isConfirm) {
-                if (isConfirm) {
-                    location.href = "{{ url('warehouse/inbound/bypass') }}/" + inbound_id;
-                } else {
-                    return false;
-                }
-            })
-        }
-
-        $('#locationCode').select2({
-            'placeholder': 'Select a location'
-        });
-
-        function getEditLokasiBatch(id_batch) {
-            $.ajax({
-                url: "{{ url('warehouse/inbound/getEditLokasiBatch') }}/" + id_batch,
-                dataType: "json",
-                success: function(data) {
-                    $('#edit_lokasi_batch').modal('show')
-                    $('#batch_id-edit_lokasi_batch').val(id_batch);
-                    $('#lokasiAwalBatch').val(data.location_code);
-                    $('.sku_edit').text(data.product_code)
-                    $('.batch_edit').text(data.lot_no)
-                },
-                error: function(error) {
-                    console.log('====================================');
-                    console.log(error);
-                    console.log('====================================');
-                }
-            });
-        }
-
-        function startPutaway(inbound_id, product_id, picking_id) {
-            window.open("{{ url('/warehouse/inbound/startPutaway/') }}/" + inbound_id + '/' + product_id + '/' +
-                picking_id, '_blank');
-        }
-
-        function printPalletTag(id, product_code, picking_id) {
-            var prod_slash = product_code.search('/');
-            var prod_hastag = product_code.search('#');
-            if (prod_slash > 0) {
-                var product = product_code.replace('/', '|');
-            } else {
-                var product = product_code;
-            }
-            if (prod_hastag > 0) {
-                var product = product_code.replace('#', '-|');
-            } else {
-                var product = product_code;
-            }
-            window.open("{{ url('/warehouse/inbound/report/pallet/') }}" + "/" + id + '/' + product + '/' +
-                picking_id, 'InboundReport',
-                'width=800,height=600')
-        }
-
-        function printPalletTagAfter(id) {
-            $('#modal-print-pallet-tag').modal('show')
-            $('#job_id_print_pallet_tag').val(id)
-        }
-
-        function draftPutaway(id) {
-            window.open("{{ url('/warehouse/inbound/report/draftPutaway/') }}" + "/" + id, 'InboundReport',
-                'width=800,height=600')
-        }
-
-        $(function() {
-            var d = new Date();
-            d.setDate(d.getDate());
-            $('#eta').datepicker({
-                todayBtn: "linked",
-                language: "it",
-                autoclose: true,
-                todayHighlight: true,
-                format: 'dd/mm/yyyy',
-            }).datepicker("setDate", d);
-
-            $('#mfg_date').datepicker({
-                todayBtn: "linked",
-                language: "it",
-                autoclose: true,
-                todayHighlight: true,
-                format: 'dd/mm/yyyy',
-            });
-
-            $('#exp_date').datepicker({
-                todayBtn: "linked",
-                language: "it",
-                autoclose: true,
-                todayHighlight: true,
-                format: 'dd/mm/yyyy',
-            });
-
-            $('#ata').bootstrapMaterialDatePicker({
-                format: 'DD/MM/YYYY HH:mm'
-            });
-
-            $('#unloading_start').bootstrapMaterialDatePicker({
-                format: 'DD/MM/YYYY HH:mm'
-            });
-
-            $('#unloading_finish').bootstrapMaterialDatePicker({
-                format: 'DD/MM/YYYY HH:mm'
-            });
-
-            $('#order_date').datepicker({
-                todayBtn: "linked",
-                language: "it",
-                autoclose: true,
-                todayHighlight: true,
-                format: 'dd/mm/yyyy',
-            });
-
-            $('#due_date').datepicker({
-                todayBtn: "linked",
-                language: "it",
-                autoclose: true,
-                todayHighlight: true,
-                format: 'dd/mm/yyyy',
-            });
-        });
+        var success = new Audio("{{ url('assets/audio/success.mp3') }}");
+        var error = new Audio("{{ url('assets/audio/error.mp3') }}");
+        let confirmTable = null;
 
         $(document).ready(function() {
+            if (window.location.hash === '#packing-tab') {
+                // Fokuskan input jika fragmen sesuai
+                setTimeout(function() {
+                    $("#scanEAN").focus();
+                }, 100); // Menunda fokus agar elemen ter-render terlebih dahulu
+            }
+            $("#scanEAN").keyup(function(event) {
+                var job_id = "{{ $job_view->id ?? 0 }}";
+                var value = $('#scanEAN').val();
+                if (event.keyCode === 13) {
+                    $('#scanEAN').val("");
+                    $.ajax({
+                        url: "{{ url('warehouse/inbound/detail/doScanEan') }}/" + value + '/' +
+                            job_id,
+                        dataType: "json",
+                        success: function(data) {
+                            if (data.message == 'invalid') {
+                                error.play();
+                                swal({
+                                    icon: "error",
+                                    text: "Product not found!"
+                                }).then(function() {
+                                    $("#scanEAN").focus();
+                                });
+                            } else if (data.message == 'duplicate') {
+                                error.play();
+                                swal({
+                                    icon: "warning",
+                                    text: "CARTON ID has already been!"
+                                }).then(function() {
+                                    $("#scanEAN").focus();
+                                })
+                            } else {
+                                success.play();
+                                swal({
+                                    icon: "success",
+                                    text: `Good Job! ${data.sku}, ${data.counting}x`
+                                }).then(function() {
+                                    $("#scanEAN").focus();
+                                })
+                                load_packing();
+                            }
+                        },
+                        error: function(error) {
+                            console.log('====================================');
+                            console.log(error);
+                            console.log('====================================');
+                        }
+                    });
+                }
+            });
+
             $.ajaxSetup({
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -2003,6 +1917,7 @@
                 $("#order_date").val("");
                 $("#due_date").val("");
             });
+
 
             $("#customer_name").autocomplete({
                     minLength: 0,
@@ -2312,7 +2227,7 @@
                         $('#vehicle_id').val(data.id);
                         $('#inbound_vehicle').val(data.inbound_id);
                         $('#type_id').val(data.type_id);
-                        $('#size_id').val(data.size_id);
+                        $('#size_id').val(data.vehicle_type);
                         $('#vehicle_no').val(data.vehicle_no);
                         $('#driver_name').val(data.driver_name);
                         $('#transporter_name').val(data.transporter_name);
@@ -2442,10 +2357,6 @@
                                 data: 'buom',
                                 name: 'buom'
                             },
-                            {
-                                data: 'pallet_id',
-                                name: 'pallet_id'
-                            }
                         ]
                     });
                 } else {
@@ -2486,6 +2397,14 @@
                                 name: 'exp_date'
                             },
                             {
+                                data: 'ean_code_count',
+                                name: 'ean_code_count'
+                            },
+                            {
+                                data: 'puom',
+                                name: 'puom'
+                            },
+                            {
                                 data: 'pqty',
                                 name: 'pqty'
                             },
@@ -2493,10 +2412,6 @@
                                 data: 'puom',
                                 name: 'puom'
                             },
-                            {
-                                data: 'pallet_id',
-                                name: 'pallet_id'
-                            }
                         ]
                     });
                 }
@@ -2985,20 +2900,9 @@
                             }
                         },
                         columns: [{
-                                data: 'id',
-                                name: 'id',
-                                sortable: false,
-                                searchable: false,
-                                render: function(data, type, row, meta) {
-                                    return `<a class="btn btn-sm btn-dark text-white" onclick="addPallet('${row.id}','${row.inbound_id}', '${row.product_code}', '${row.pqty}')"><i class="fas fa-plus"></i> Add/Update Pallet</a>`;
-                                },
+                                data: 'action',
+                                name: 'action'
                             },
-                            // {
-                            //     data: 'check',
-                            //     name: 'check',
-                            //     searchable: false,
-                            //     orderable: false
-                            // },
                             {
                                 data: 'product_code',
                                 name: 'product_code'
@@ -3081,15 +2985,9 @@
                             }
                         },
                         columns: [{
-                                data: 'id',
-                                name: 'id',
-                                sortable: false,
-                                searchable: false,
-                                render: function(data, type, row, meta) {
-                                    return `<a class="btn btn-sm btn-dark text-white" onclick="addPallet('${row.id}','${row.inbound_id}', '${row.product_code}', '${row.pqty}')"><i class="fas fa-plus"></i> Add/Update Pallet</a>`;
-                                },
+                                data: 'action',
+                                name: 'action'
                             },
-                            // { data: 'check', name: 'check', searchable: false, orderable: false },
                             {
                                 data: 'product_code',
                                 name: 'product_code'
@@ -3107,16 +3005,16 @@
                                 name: 'exp_date'
                             },
                             {
-                                data: 'pqty',
-                                name: 'pqty'
+                                data: 'ean_code_count',
+                                name: 'ean_code_count'
                             },
                             {
                                 data: 'puom',
                                 name: 'puom'
                             },
                             {
-                                data: 'actual_pqty',
-                                name: 'actual_pqty'
+                                data: 'pqty',
+                                name: 'pqty'
                             },
                             {
                                 data: 'puom',
@@ -3587,151 +3485,287 @@
             function load_confirm() {
                 var dataId = $('#inbound_id').val();
                 var multi_level = $('#multi_level').val();
+                if ($.fn.DataTable.isDataTable('#confirm_table')) {
+                    $('#confirm_table').DataTable().destroy();
+                }
+
+                let columnsConfig = [];
 
                 if (multi_level == "Yes") {
-                    $('#confirm_table').DataTable().destroy();
-                    $('#confirm_table').DataTable({
-                        "dom": '<"wrapper"flipt>',
-                        processing: true,
-                        serverSide: true,
-                        paging: false,
-                        destroy: true,
-                        ajax: {
-                            url: "{{ route('inbound-confirm.index') }}",
-                            type: "GET",
-                            data: {
-                                inbound_id: dataId
-                            }
+                    columnsConfig = [{
+                            data: 'check',
+                            name: 'check',
+                            orderable: false,
+                            searchable: false
                         },
-                        columns: [{
-                                data: 'check',
-                                name: 'check',
-                                searchable: false,
-                                orderable: false
-                            },
-                            {
-                                data: 'action',
-                                name: 'action',
-                                searchable: false,
-                                orderable: false
-                            },
-                            {
-                                data: 'product_code',
-                                name: 'product_code'
-                            },
-                            {
-                                data: 'product_name',
-                                name: 'product_name'
-                            },
-                            {
-                                data: 'lot_no',
-                                name: 'lot_no'
-                            },
-                            {
-                                data: 'exp_date',
-                                name: 'exp_date'
-                            },
-                            {
-                                data: 'location_code',
-                                name: 'location_code'
-                            },
-                            {
-                                data: 'pqty',
-                                name: 'pqty'
-                            },
-                            {
-                                data: 'puom',
-                                name: 'puom'
-                            },
-                            {
-                                data: 'mqty',
-                                name: 'mqty'
-                            },
-                            {
-                                data: 'muom',
-                                name: 'muom'
-                            },
-                            {
-                                data: 'bqty',
-                                name: 'bqty'
-                            },
-                            {
-                                data: 'buom',
-                                name: 'buom'
-                            },
-                            {
-                                data: 'serial_no',
-                                name: 'serial_no'
-                            },
-                            {
-                                data: 'remarks',
-                                name: 'remarks'
+                        {
+                            data: 'action',
+                            name: 'action',
+                            orderable: false,
+                            searchable: false
+                        },
+                        {
+                            data: 'product_code',
+                            name: 'product_code'
+                        },
+                        {
+                            data: 'product_name',
+                            name: 'product_name'
+                        },
+                        {
+                            data: 'lot_no',
+                            name: 'lot_no'
+                        },
+                        {
+                            data: 'exp_date',
+                            name: 'exp_date'
+                        },
+                        {
+                            data: 'location_code',
+                            name: 'location_code'
+                        },
+                        {
+                            data: 'pqty',
+                            name: 'pqty'
+                        },
+                        {
+                            data: 'puom',
+                            name: 'puom'
+                        },
+                        {
+                            data: 'mqty',
+                            name: 'mqty'
+                        },
+                        {
+                            data: 'muom',
+                            name: 'muom'
+                        },
+                        {
+                            data: 'bqty',
+                            name: 'bqty'
+                        },
+                        {
+                            data: 'buom',
+                            name: 'buom'
+                        },
+                        {
+                            data: 'serial_no',
+                            name: 'serial_no'
+                        },
+                        {
+                            data: 'remarks',
+                            name: 'remarks'
+                        },
+
+                        {
+                            data: null,
+                            name: 'dimension',
+                            orderable: false,
+                            searchable: false,
+                            render: function(data) {
+
+                                if (parseFloat(data.volume) === 0) {
+                                    return `
+                            <div style="display:flex; gap:4px;">
+                                <input type="number" step="0.01" 
+                                    class="dim-input form-control form-control-sm" 
+                                    data-id="${data.product_id}" 
+                                    data-type="length" placeholder="L" style="width:60px;">
+                                <input type="number" step="0.01" 
+                                    class="dim-input form-control form-control-sm" 
+                                    data-id="${data.product_id}" 
+                                    data-type="width" placeholder="W" style="width:60px;">
+                                <input type="number" step="0.01" 
+                                    class="dim-input form-control form-control-sm" 
+                                    data-id="${data.product_id}" 
+                                    data-type="height" placeholder="H" style="width:60px;">
+                            </div>
+                        `;
+                                } else {
+                                    return `
+                            <span class="badge badge-success">
+                                    ${parseFloat(data.length).toFixed(2)} x 
+                                    ${parseFloat(data.width).toFixed(2)} x 
+                                    ${parseFloat(data.height).toFixed(2)}
+                            </span>
+                        `;
+                                }
                             }
-                        ]
-                    });
+                        }
+                    ];
                 } else {
-                    $('#confirm_table').DataTable().destroy();
-                    $('#confirm_table').DataTable({
-                        "dom": '<"wrapper"flipt>',
-                        processing: true,
-                        serverSide: true,
-                        paging: false,
-                        destroy: true,
-                        ajax: {
-                            url: "{{ route('inbound-confirm.index') }}",
-                            type: "GET",
-                            data: {
-                                inbound_id: dataId
-                            }
+                    columnsConfig = [{
+                            data: 'check',
+                            name: 'check',
+                            orderable: false,
+                            searchable: false
                         },
-                        columns: [{
-                                data: 'check',
-                                name: 'check',
-                                searchable: false,
-                                orderable: false
-                            },
-                            {
-                                data: 'action',
-                                name: 'action',
-                                searchable: false,
-                                orderable: false
-                            },
-                            {
-                                data: 'product_code',
-                                name: 'product_code'
-                            },
-                            {
-                                data: 'product_name',
-                                name: 'product_name'
-                            },
-                            {
-                                data: 'lot_no',
-                                name: 'lot_no'
-                            },
-                            {
-                                data: 'exp_date',
-                                name: 'exp_date'
-                            },
-                            {
-                                data: 'location_code',
-                                name: 'location_code'
-                            },
-                            {
-                                data: 'pqty',
-                                name: 'pqty'
-                            },
-                            {
-                                data: 'puom',
-                                name: 'puom'
-                            },
-                            {
-                                data: 'serial_no',
-                                name: 'serial_no'
+                        {
+                            data: 'action',
+                            name: 'action',
+                            orderable: false,
+                            searchable: false
+                        },
+                        {
+                            data: 'product_code',
+                            name: 'product_code'
+                        },
+                        {
+                            data: 'product_name',
+                            name: 'product_name'
+                        },
+                        {
+                            data: 'lot_no',
+                            name: 'lot_no'
+                        },
+                        {
+                            data: 'exp_date',
+                            name: 'exp_date'
+                        },
+                        {
+                            data: 'location_code',
+                            name: 'location_code'
+                        },
+                        {
+                            data: 'pqty',
+                            name: 'pqty'
+                        },
+                        {
+                            data: 'puom',
+                            name: 'puom'
+                        },
+                        {
+                            data: 'serial_no',
+                            name: 'serial_no'
+                        },
+                        {
+                            data: null,
+                            name: 'dimension',
+                            orderable: false,
+                            searchable: false,
+                            render: function(data) {
+
+                                if (parseFloat(data.volume) === 0) {
+                                    return `
+                            <div style="display:flex; gap:4px;">
+                                <input type="number" step="0.01" 
+                                    class="dim-input form-control form-control-sm" 
+                                    data-id="${data.product_id}" 
+                                    data-type="length" placeholder="L" style="width:60px;">
+                                <input type="number" step="0.01" 
+                                    class="dim-input form-control form-control-sm" 
+                                    data-id="${data.product_id}" 
+                                    data-type="width" placeholder="W" style="width:60px;">
+                                <input type="number" step="0.01" 
+                                    class="dim-input form-control form-control-sm" 
+                                    data-id="${data.product_id}" 
+                                    data-type="height" placeholder="H" style="width:60px;">
+                            </div>
+                        `;
+                                } else {
+                                    return `
+                            <span class="badge badge-success">
+                                    ${parseFloat(data.length).toFixed(2)} x 
+                                    ${parseFloat(data.width).toFixed(2)} x 
+                                    ${parseFloat(data.height).toFixed(2)}
+                            </span>
+                        `;
+                                }
                             }
-                        ]
+                        }
+                    ];
+                }
+
+                confirmTable = $('#confirm_table').DataTable({
+                    dom: '<"wrapper"flipt>',
+                    processing: true,
+                    serverSide: true,
+                    paging: false,
+                    destroy: true,
+                    ajax: {
+                        url: "{{ route('inbound-confirm.index') }}",
+                        type: "GET",
+                        data: {
+                            inbound_id: dataId
+                        }
+                    },
+                    columns: columnsConfig,
+
+                    rowCallback: function(row, data) {
+                        if (parseFloat(data.volume) === 0) {
+                            $(row).addClass('table-danger');
+                        }
+                    },
+
+                    drawCallback: function(settings) {
+                        let json = settings.json;
+
+                        if (!json) return;
+
+                        if (json.has_zero_volume) {
+                            $('#btn-process-confirm').hide();
+                            swal({
+                                icon: 'warning',
+                                title: 'Dimensi belum lengkap',
+                                text: 'Silakan isi panjang, lebar, dan tinggi terlebih dahulu.',
+                            });
+                        } else {
+                            $('#btn-process-confirm').show();
+                            window.volumeWarningShown = false;
+                        }
+                    }
+                });
+            }
+
+            let tempDim = {};
+
+            // trigger saat user selesai input (blur)
+            $(document).on('blur', '.dim-input', function() {
+
+                let productId = $(this).data('id');
+                let type = $(this).data('type');
+                let value = $(this).val();
+
+                if (!value || value <= 0) return;
+
+                if (!tempDim[productId]) {
+                    tempDim[productId] = {};
+                }
+
+                tempDim[productId][type] = value;
+
+                let dim = tempDim[productId];
+                if (dim.length && dim.width && dim.height) {
+
+                    $(`input[data-id="${productId}"]`).prop('disabled', true);
+                    $.ajax({
+                        url: "{{ url('product-master/update-dimension') }}",
+                        type: 'POST',
+                        data: {
+                            _token: $('meta[name="csrf-token"]').attr('content'),
+                            product_id: productId,
+                            length: dim.length,
+                            width: dim.width,
+                            height: dim.height
+                        },
+                        success: function(res) {
+                            delete tempDim[productId];
+                            $('#confirm_table').DataTable().ajax.reload(null, false);
+                        },
+                        error: function() {
+                            $(`input[data-id="${productId}"]`).prop('disabled', false);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal',
+                                text: 'Gagal menyimpan dimensi'
+                            });
+                        }
                     });
                 }
-            }
+            });
+
+
+
 
             function load_cross() {
                 var dataId = $('#inbound_id').val();
@@ -3981,99 +4015,143 @@
             });
         });
 
-        function addPallet(picking_id, id, product_code, qty) {
-            $('#modal-add-pallet').modal('show')
-            $('.skuText').text(product_code);
-            $('#skuValue').val(product_code);
-            $('#qtyValue').val(qty);
-            $('#inbound_id_per_pallet').val(id);
-            $('#picking_id').val(picking_id);
-            $.ajax({
-                url: "{{ url('warehouse/inbound/detailPallet') }}/" + picking_id + "/" + id + "/" + product_code,
-                type: "GET",
-                dataType: "json",
-                success: function(response) {
-                    $('.resultTable').html('');
-                    if (response.data.length > 0) {
-                        $('.resultTable').append(`
-                                <table class="table table-bordered">
-                                    <thead>
-                                        <tr>
-                                            <th>NO</th>
-                                            <th>QTY</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="tbody-id">
-                                    </tbody>
-                                </table>`);
-                        $.each(response.data, function(key, value) {
-                            $('#tbody-id').append(`
-                                <tr>
-                                    <th>${key+1}</th>
-                                    <th>
-                                        ${value.qty_per_pallet}
-                                        <input class="form-control" type="text" hidden name="qty_per_pallet[]" placeholder="Silahkan Isi..">
-                                    </th>
-                                </tr>`)
-                        });
-                    }
-                },
-                error: function(error) {
-                    console.log(error);
-                }
-            })
-        }
-
-        function jumlahPallet(jumlah) {
-            $('.btn-save-add-pallet').removeClass('hide');
-            $('.appendTable').html('');
-            $('.appendTable').append(`
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>NO</th>
-                                    <th>QTY</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-id">
-                            </tbody>
-                        </table>`);
-            for (i = 1; i <= jumlah; i++) {
-                $('#tbody-id').append(`
-                    <tr>
-                        <th>${i}</th>
-                        <th>
-                            <input class="form-control qtyPerPallet" type="number" required name="qtyPerPallet[]" placeholder="Silahkan Isi..">
-                        </th>
-                    </tr>`)
+        $('#selectSKU').select2({
+            'placeholder': {
+                id: '', // the value of the option
+                text: 'Choose SKU..'
             }
-        }
+        });
 
-        $('#form-add-pallet').on('submit', function(e) {
-            e.preventDefault();
-            $('.btn-save-add-pallet').hide();
-            $.ajax({
-                url: "{{ route('inbound.add_per_pallet') }}",
-                data: $('#form-add-pallet').serialize(),
-                type: "POST",
-                dataType: 'json',
-                success: function(response) {
-                    console.log(response);
-                    if (response.status == 'lebih_besar') {
-                        alert('QTY yang di masukan terlalu besar..');
-                        $('.btn-save-add-pallet').show();
-                    } else if (response.status == 'lebih_kecil') {
-                        alert('QTY yang di masukan terlalu kecil..');
-                        $('.btn-save-add-pallet').show();
-                    } else {
-                        location.reload();
-                    }
-                },
-                error: function(error) {
-                    alert('Internal Server Error, Please refresh the page and try again..');
-                    $('.btn-save-add-pallet').show();
+        function bypassScan(inbound_id) {
+            swal({
+                title: "Konfirmasi Bypass Scan?",
+                text: "Pastikan data yang di packing sudah sesuai!",
+                icon: "warning",
+                buttons: [
+                    'Nanti Dulu,',
+                    'Ya, Saya Yakin!'
+                ],
+                dangerMode: true,
+            }).then(function(isConfirm) {
+                if (isConfirm) {
+                    location.href = "{{ url('warehouse/inbound/bypass') }}/" + inbound_id;
+                } else {
+                    return false;
                 }
             })
+        }
+
+        $('#locationCode').select2({
+            'placeholder': 'Select a location'
+        });
+
+        function getEditLokasiBatch(id_batch) {
+            $.ajax({
+                url: "{{ url('warehouse/inbound/getEditLokasiBatch') }}/" + id_batch,
+                dataType: "json",
+                success: function(data) {
+                    $('#edit_lokasi_batch').modal('show')
+                    $('#batch_id-edit_lokasi_batch').val(id_batch);
+                    $('#lokasiAwalBatch').val(data.location_code);
+                    $('.sku_edit').text(data.product_code)
+                    $('.batch_edit').text(data.lot_no)
+                },
+                error: function(error) {
+                    console.log('====================================');
+                    console.log(error);
+                    console.log('====================================');
+                }
+            });
+        }
+
+        function startPutaway(inbound_id, product_id, picking_id) {
+            window.open("{{ url('/warehouse/inbound/startPutaway/') }}/" + inbound_id + '/' + product_id +
+                '/' +
+                picking_id, '_blank');
+        }
+
+        function printPalletTag(id, product_code, picking_id) {
+            var prod_slash = product_code.search('/');
+            var prod_hastag = product_code.search('#');
+            if (prod_slash > 0) {
+                var product = product_code.replace('/', '|');
+            } else {
+                var product = product_code;
+            }
+            if (prod_hastag > 0) {
+                var product = product_code.replace('#', '-|');
+            } else {
+                var product = product_code;
+            }
+            window.open("{{ url('/warehouse/inbound/report/pallet/') }}" + "/" + id + '/' + product + '/' +
+                picking_id, 'InboundReport',
+                'width=800,height=600')
+        }
+
+        function printPalletTagAfter(id) {
+            $('#modal-print-pallet-tag').modal('show')
+            $('#job_id_print_pallet_tag').val(id)
+        }
+
+        function draftPutaway(id) {
+            window.open("{{ url('/warehouse/inbound/report/draftPutaway/') }}" + "/" + id, 'InboundReport',
+                'width=800,height=600')
+        }
+
+        $(function() {
+            var d = new Date();
+            d.setDate(d.getDate());
+            $('#eta').datepicker({
+                todayBtn: "linked",
+                language: "it",
+                autoclose: true,
+                todayHighlight: true,
+                format: 'dd/mm/yyyy',
+            }).datepicker("setDate", d);
+
+            $('#mfg_date').datepicker({
+                todayBtn: "linked",
+                language: "it",
+                autoclose: true,
+                todayHighlight: true,
+                format: 'dd/mm/yyyy',
+            });
+
+            $('#exp_date').datepicker({
+                todayBtn: "linked",
+                language: "it",
+                autoclose: true,
+                todayHighlight: true,
+                format: 'dd/mm/yyyy',
+            });
+
+            $('#ata').bootstrapMaterialDatePicker({
+                format: 'DD/MM/YYYY HH:mm'
+            });
+
+            $('#unloading_start').bootstrapMaterialDatePicker({
+                format: 'DD/MM/YYYY HH:mm'
+            });
+
+            $('#unloading_finish').bootstrapMaterialDatePicker({
+                format: 'DD/MM/YYYY HH:mm'
+            });
+
+            $('#order_date').datepicker({
+                todayBtn: "linked",
+                language: "it",
+                autoclose: true,
+                todayHighlight: true,
+                format: 'dd/mm/yyyy',
+            });
+
+            $('#due_date').datepicker({
+                todayBtn: "linked",
+                language: "it",
+                autoclose: true,
+                todayHighlight: true,
+                format: 'dd/mm/yyyy',
+            });
         });
 
         function processGRN() {
@@ -4140,6 +4218,10 @@
         }
 
         function processPutaway() {
+
+            var btn = $("#btn-process-putaway");
+            btn.prop('disabled', true).addClass('disabled');
+
             var site_id = $("#site_putaway").val();
             var area_putaway = $("#area_putaway").val();
             if (area_putaway == "" || site_id == "") {
@@ -4202,6 +4284,9 @@
                     },
                     error: function(data) {
                         $("#loader").hide();
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).removeClass('disabled');
                     }
                 });
             }
@@ -4494,6 +4579,273 @@
                     $("#loader").hide();
                 }
             });
+        }
+
+        function addPallet(picking_id, id, product_code, qty) {
+            $('#modal-add-pallet').modal('show')
+            $('.skuText').text(product_code);
+            $('#skuValue').val(product_code);
+            $('#qtyValue').val(qty);
+            $('#inbound_id_per_pallet').val(id);
+            $('#picking_id').val(picking_id);
+            $.ajax({
+                url: "{{ url('warehouse/inbound/detailPallet') }}/" + picking_id + "/" + id + "/" +
+                    product_code,
+                type: "GET",
+                dataType: "json",
+                success: function(response) {
+                    $('.resultTable').html('');
+                    if (response.data.length > 0) {
+                        $('.resultTable').append(`
+                                                <table class="table table-bordered">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>NO</th>
+                                                            <th>QTY</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="tbody-id">
+                                                    </tbody>
+                                                </table>`);
+                        $.each(response.data, function(key, value) {
+                            $('#tbody-id').append(`
+                                                <tr>
+                                                    <th>${key+1}</th>
+                                                    <th>
+                                                        ${value.qty_per_pallet}
+                                                        <input class="form-control" type="text" hidden name="qty_per_pallet[]" placeholder="Silahkan Isi..">
+                                                    </th>
+                                                </tr>`)
+                        });
+                    }
+                },
+                error: function(error) {
+                    console.log(error);
+                }
+            })
+        }
+
+        function jumlahPallet(jumlah) {
+            $('.btn-save-add-pallet').removeClass('hide');
+            $('.appendTable').html('');
+            $('.appendTable').append(`
+                                        <table class="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>NO</th>
+                                                    <th>QTY</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tbody-id">
+                                            </tbody>
+                                        </table>`);
+            for (i = 1; i <= jumlah; i++) {
+                $('#tbody-id').append(`
+                                    <tr>
+                                        <th>${i}</th>
+                                        <th>
+                                            <input class="form-control qtyPerPallet" type="number" required name="qtyPerPallet[]" placeholder="Silahkan Isi..">
+                                        </th>
+                                    </tr>`)
+            }
+        }
+
+        $('#form-add-pallet').on('submit', function(e) {
+            e.preventDefault();
+            $('.btn-save-add-pallet').hide();
+            $.ajax({
+                url: "{{ route('inbound.add_per_pallet') }}",
+                data: $('#form-add-pallet').serialize(),
+                type: "POST",
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status == 'lebih_besar') {
+                        alert('QTY yang di masukan terlalu besar..');
+                        $('.btn-save-add-pallet').show();
+                    } else if (response.status == 'lebih_kecil') {
+                        alert('QTY yang di masukan terlalu kecil..');
+                        $('.btn-save-add-pallet').show();
+                    } else {
+                        swal({
+                            icon: "success",
+                            text: "Good Job!"
+                        }).then(function() {
+                            $('#modal-add-pallet').modal('hide');
+                            $('.resultTable').html('');
+                            $('.appendTable').html('');
+                            $('#selectPallet').val('');
+                            $('.btn-save-add-pallet').show();
+                            load_grn_new();
+                        });
+                    }
+                },
+                error: function(error) {
+                    alert('Internal Server Error, Please refresh the page and try again..');
+                    $('.btn-save-add-pallet').show();
+                }
+            })
+        });
+
+        function load_grn_new() {
+            var dataId = $('#inbound_id').val();
+            var multi_level = $('#multi_level').val();
+
+            if (multi_level == "Yes") {
+                $('#grn_table').DataTable().destroy();
+                $('#grn_table').DataTable({
+                    "dom": '<"wrapper"flipt>',
+                    processing: true,
+                    serverSide: true,
+                    paging: false,
+                    destroy: true,
+                    ajax: {
+                        url: "{{ route('inbound-grn.index') }}",
+                        type: "GET",
+                        data: {
+                            inbound_id: dataId
+                        }
+                    },
+                    columns: [{
+                            data: 'action',
+                            name: 'action'
+                        },
+                        {
+                            data: 'product_code',
+                            name: 'product_code'
+                        },
+                        {
+                            data: 'product_name',
+                            name: 'product_name'
+                        },
+                        {
+                            data: 'lot_no',
+                            name: 'lot_no'
+                        },
+                        {
+                            data: 'exp_date',
+                            name: 'exp_date'
+                        },
+                        {
+                            data: 'pqty',
+                            name: 'pqty'
+                        },
+                        {
+                            data: 'puom',
+                            name: 'puom'
+                        },
+                        {
+                            data: 'mqty',
+                            name: 'mqty'
+                        },
+                        {
+                            data: 'muom',
+                            name: 'muom'
+                        },
+                        {
+                            data: 'bqty',
+                            name: 'bqty'
+                        },
+                        {
+                            data: 'buom',
+                            name: 'buom'
+                        },
+                        {
+                            data: 'pqty',
+                            name: 'pqty'
+                        },
+                        {
+                            data: 'puom',
+                            name: 'puom'
+                        },
+                        {
+                            data: 'mqty',
+                            name: 'mqty'
+                        },
+                        {
+                            data: 'muom',
+                            name: 'muom'
+                        },
+                        {
+                            data: 'bqty',
+                            name: 'bqty'
+                        },
+                        {
+                            data: 'buom',
+                            name: 'buom'
+                        }
+                    ]
+                });
+            } else {
+                $('#grn_table').DataTable().destroy();
+                $('#grn_table').DataTable({
+                    "dom": '<"wrapper"flipt>',
+                    processing: true,
+                    serverSide: true,
+                    paging: false,
+                    destroy: true,
+                    ajax: {
+                        url: "{{ route('inbound-grn.index') }}",
+                        type: "GET",
+                        data: {
+                            inbound_id: dataId
+                        }
+                    },
+                    columns: [{
+                            data: 'action',
+                            name: 'action'
+                        },
+                        {
+                            data: 'product_code',
+                            name: 'product_code'
+                        },
+                        {
+                            data: 'product_name',
+                            name: 'product_name'
+                        },
+                        {
+                            data: 'lot_no',
+                            name: 'lot_no'
+                        },
+                        {
+                            data: 'exp_date',
+                            name: 'exp_date'
+                        },
+                        {
+                            data: 'ean_code_count',
+                            name: 'ean_code_count'
+                        },
+                        {
+                            data: 'puom',
+                            name: 'puom'
+                        },
+                        {
+                            data: 'pqty',
+                            name: 'pqty'
+                        },
+                        {
+                            data: 'puom',
+                            name: 'puom'
+                        },
+                    ]
+                });
+            }
+        }
+
+        function selectVehicle(value) {
+            $.ajax({
+                url: "{{ url('/warehouse/inbound/getDetailVehicle/') }}/" + value,
+                type: "GET",
+                dataType: 'json',
+                success: function(response) {
+                    $('#driver_name').val(response.driver_name);
+                    $('#transporter_name').val(response.transporter_name);
+                    $('#size_id').val(response.vehicle_type);
+                },
+                error: function(error) {
+                    alert('Internal Server Error, Please refresh the page and try again..');
+                    $('.btn-save-add-pallet').show();
+                }
+            })
         }
     </script>
 @endpush

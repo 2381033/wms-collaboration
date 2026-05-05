@@ -132,7 +132,6 @@
                                             @if ($item->multi_level == 'Yes')
                                                 @if ($item->vehicle_no == $detail->vehicle_no)
                                                     <tr>
-                                                        {{-- <td>{{ $detail->document_ref }}</td> --}}
                                                         <td>{{ $detail->po_number }}</td>
                                                         <td>{{ $detail->product_code }}</td>
                                                         <td>{{ $detail->product_name }}</td>
@@ -173,7 +172,6 @@
                                             @else
                                                 @if ($item->vehicle_no == $detail->vehicle_no)
                                                     <tr>
-                                                        {{-- <td>{{ $detail->document_ref }}</td> --}}
                                                         <td>{{ $detail->po_number }}</td>
                                                         <td>{{ $detail->product_code }}</td>
                                                         <td>{{ $detail->product_name }}</td>
@@ -224,7 +222,7 @@
                         <td class="sign">Driver Name:</td>
                         <td class="sign">Security:</td>
                         <td class="sign">Checker Name:</td>
-                        <td class="sign">Supervisor Name:</td>
+                        <td class="sign">Supervisor Naacame:</td>
                     </tr>
                     <tr>
                         <td>Date:</td>

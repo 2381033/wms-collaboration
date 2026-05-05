@@ -4,6 +4,22 @@
 <head>
     <link rel="stylesheet" href="{{ asset('assets/css/portrait.css') }}">
 </head>
+<style>
+    .signature {
+        font-size: 12px;
+        color: black;
+        text-align: center;
+        line-height: 15px;
+        width: 100%;
+        margin-top: 20px;
+        page-break-inside: avoid;
+    }
+
+    .page {
+        padding-bottom: 30mm;
+        /* untuk beri ruang signature/footer */
+    }
+</style>
 
 <body>
     <div class="page">
@@ -58,7 +74,7 @@
                                             <tr>
                                                 <td>Container No</td>
                                                 <td>:</td>
-                                                <td>{{ $job->container_no }}</td>
+                                                <td>{{ $job->container_no }} - {{ $size }}</td>
                                             </tr>
                                         </table>
                                     </td>
@@ -72,12 +88,12 @@
                                             <tr>
                                                 <td>Qty Cargo</td>
                                                 <td>:</td>
-                                                <td>{{ $job->qty_cargo }}</td>
+                                                <td>{{ $totalQty }}</td>
                                             </tr>
                                             <tr>
                                                 <td>CBM</td>
                                                 <td>:</td>
-                                                <td>{{ $job->cbm }}</td>
+                                                <td>{{ number_format($job->cbm, 2) }}</td>
                                             </tr>
                                             <tr>
                                                 <td>Weight</td>
@@ -87,7 +103,7 @@
                                             <tr>
                                                 <td>Total Pallet</td>
                                                 <td>:</td>
-                                                <td>{{ $job->total_pallet }}</td>
+                                                <td>{{ $totalPallet }}</td>
                                             </tr>
                                         </table>
                                     </td>
@@ -103,6 +119,7 @@
                                         <th>PEB No</th>
                                         <th>Qty Cargo</th>
                                         <th>Action</th>
+                                        <th>Location</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -116,6 +133,9 @@
                                             <td class="right">{{ $detail->quantity }}</td>
                                             <td class="center">
                                                 <input type="checkbox">
+                                            </td>
+                                            <td class="center">
+                                                {{ is_null($detail->location_code) ? '-' : $detail->location_code }}
                                             </td>
                                         </tr>
                                         {{-- <tr>

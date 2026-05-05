@@ -17,7 +17,7 @@ class UserController extends Controller
         if ($user) {
             $auth = DB::table('auth_group')
                 ->where('id', $user->auth_group_id)
-                ->value('name');
+                ->get()->pluck('name')->toArray();
             if (password_verify($request->password, $user->password)) {
                 return response()->json([
                     "error" => FALSE,

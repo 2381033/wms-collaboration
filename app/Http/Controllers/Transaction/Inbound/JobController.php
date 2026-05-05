@@ -42,10 +42,17 @@ class JobController extends Controller
             $dateObject = \Carbon\Carbon::createFromFormat('d/m/Y', $request->date_to);
             $date_to = \Carbon\Carbon::parse($dateObject)->format('Y-m-d');
 
+
             $list_data = inboundJob::from('iv_inbound_job as a')
-                ->select('a.*')
+                ->select('a.*', 'v.vehicle_no')
                 ->join('iv_principal as b', 'a.principal_id', 'b.id')
                 ->join('users_principal as c', 'a.principal_id', 'c.principal_id')
+                ->leftJoin(
+                    DB::raw('(SELECT inbound_id, vehicle_no FROM iv_inbound_vehicle GROUP BY inbound_id) v'),
+                    'a.id',
+                    '=',
+                    'v.inbound_id'
+                )
                 ->where('a.company_id', $company_id)
                 ->where('c.user_id', $user_id)
                 ->where('a.branch_id', $request->branch_id)
@@ -95,25 +102,30 @@ class JobController extends Controller
             abort(403);
         }
 
-        $company_id = Auth::user()->company_id;
-        $user_id = Auth::user()->id;
+        $user = Auth::user();
+        $company_id = $user->company_id;
+        $user_id = $user->id;
 
         $job_view = inboundJob::from('iv_inbound_job as a')
-            ->select('a.*', "c.multi_level", 'c.quality_flag')
+            ->select('a.*', 'c.multi_level', 'c.quality_flag', 'v.vehicle_no')
             ->join('users_principal as b', 'a.principal_id', 'b.principal_id')
+            ->leftJoin('iv_inbound_vehicle as v', 'a.id', 'v.inbound_id')
             ->join('iv_principal as c', 'a.principal_id', 'c.id')
             ->where('b.user_id', $user_id)
             ->where('a.id', $id)
             ->first();
-
-        $button_putaway = false;
-        if ($job_view != null) {
-            if ($job_view->allocated_flag == 'Yes') {
-                $button_putaway = false;
-            } else {
-                $button_putaway = true;
-            }
+        $ata = null;
+        if (!is_null($job_view)) {
+            $ata = DB::table('iv_gate_in_cargo')
+                ->select('gate_in_at')
+                ->where('activity', 'INBOUND')
+                ->where('vehicle_number', $job_view->vehicle_no)
+                ->whereDate('gate_in_at', date('Y-m-d'))
+                ->where('branch_id', $job_view->branch_id)
+                ->value('gate_in_at');
         }
+
+        $button_putaway = $job_view && $job_view->allocated_flag != 'Yes';
 
         $class_list = DB::table("iv_job_class")
             ->where('company_id', $company_id)
@@ -130,69 +142,93 @@ class JobController extends Controller
         $container_size = DB::table("iv_container_size")
             ->where('company_id', $company_id)
             ->where('active', 'Yes')->get();
-        $per_pallet = DB::table("iv_inbound_per_pallet")->where('inbound_id', $id)->get();
-        $location_code = $per_pallet->whereNotNull('location_code')->count();
-        $button_gr = false;
-        if (count($per_pallet) == $location_code) {
-            $button_gr = true;
-        } else {
-            $button_gr = false;
-        }
+
+        $per_pallet = DB::table("iv_inbound_per_pallet")
+            ->where('inbound_id', $id)
+            ->get();
+
+        $total_pallet = $per_pallet->count();
+        $filled_location = $per_pallet->whereNotNull('location_code')->count();
+
+        $button_gr = $total_pallet > 0 && $total_pallet == $filled_location;
 
         $site_arr = DB::table('users_site')
-            ->where('user_id', Auth::user()->id)
-            ->get()->pluck('site_id')
-            ->toArray();
+            ->where('user_id', $user_id)
+            ->pluck('site_id');
 
         $location = DB::table('iv_location as a')
             ->select('a.location_code', 'a.id', 'b.site_name')
             ->join('iv_site as b', 'b.id', 'a.site_id')
             ->where('a.active', 'yes')
-            ->whereIn('site_id', $site_arr)
+            ->whereIn('a.site_id', $site_arr)
             ->get();
 
         $list_data = InboundDetails::from('iv_inbound_detail as a')
-            ->select('a.*', 'b.product_name', 'b.id as id_product')
+            ->select('a.*', 'b.product_name', 'b.id as id_product', 'b.length', 'b.width', 'b.height')
             ->join('iv_product as b', 'a.product_id', 'b.id')
             ->where('a.company_id', $company_id)
             ->where('a.inbound_id', $id)
             ->whereNull('a.putaway_date')
             ->get();
 
-        $list_data->map(function ($value) {
-            $value->wherenotnull = DB::table('iv_inbound_per_pallet')
-                ->where('inbound_id', $value->inbound_id)
-                ->where('picking_id', $value->id)
-                ->whereNotNull('qrcode')
-                ->whereNotNull('location_code')
-                ->count();
+        $pallet_summary = DB::table('iv_inbound_per_pallet')
+            ->select(
+                'picking_id',
+                DB::raw("COUNT(*) as total"),
+                DB::raw("SUM(CASE WHEN qrcode IS NOT NULL AND location_code IS NOT NULL THEN 1 ELSE 0 END) as filled")
+            )
+            ->where('inbound_id', $id)
+            ->groupBy('picking_id')
+            ->get()
+            ->keyBy('picking_id');
 
-            $value->counting = DB::table('iv_inbound_per_pallet')
-                ->where('inbound_id', $value->inbound_id)
-                ->where('picking_id', $value->id)
-                ->count();
+        $list_data->map(function ($value) use ($pallet_summary) {
+            $summary = $pallet_summary[$value->id] ?? null;
+
+            $value->counting = $summary->total ?? 0;
+            $value->wherenotnull = $summary->filled ?? 0;
 
             return $value;
         });
-        $list_confirm = DB::table('iv_inbound_batch')->whereIn('inbound_id', [$id])->get();
 
-        $data = [
+        $list_confirm = DB::table('iv_inbound_batch')
+            ->where('inbound_id', $id)
+            ->get();
+
+        $vehicle  = DB::table('iv_gate_in_cargo')
+            ->whereDate('gate_in_at', date('Y-m-d'))
+            ->whereIn('site_id', $site_arr)
+            ->where('activity', 'INBOUND')
+            ->get();
+
+        return view('transaction.inbound.create', [
             'job_view' => $job_view,
             'class_list' => $class_list,
             'mode_list' => $mode_list,
             'container_type_list' => $container_type,
             'container_size_list' => $container_size,
-            'perpallet' => DB::table('iv_inbound_per_pallet')
-                ->where('inbound_id', $id)->get(),
+            'perpallet' => $per_pallet,
             'button_gr' => $button_gr,
             'button_putaway' => $button_putaway,
             'location' => $location,
             'list_data' => $list_data,
-            'list_confirm' => $list_confirm
-        ];
-
-        return view('transaction.inbound.create', $data);
+            'list_confirm' => $list_confirm,
+            'vehicle' => $vehicle,
+            'ata' => $ata
+        ]);
     }
+
+    function getDetailVehicle($vehicle_number)
+    {
+        $data = DB::table('iv_gate_in_cargo')
+            ->where('vehicle_number', $vehicle_number)
+            ->whereDate('gate_in_at', date('Y-m-d'))
+            ->where('activity', 'INBOUND')
+            ->first();
+
+        return response()->json($data);
+    }
+
 
     public function edit(Request $request)
     {
@@ -203,6 +239,15 @@ class JobController extends Controller
 
     public function store(Request $request)
     {
+        $validate = DB::table('iv_freeze_job')
+            ->where('branch_id', $request->branch_id)
+            ->where('principal_id', $request->principal_id)
+            ->where('status_flag', 'Run')
+            ->where('freeze_activity', 'LIKE', '%inbound%')
+            ->count();
+        if ($validate > 0) {
+            return response()->json(['error' => ['Principal access is temporarily restricted (Freeze).']]);
+        }
         $user_id = Auth::user()->username;
         $id = $request->inbound_id;
         if ($id > 0) {
@@ -292,51 +337,62 @@ class JobController extends Controller
 
     public function add_per_pallet(Request $request)
     {
-        $total = array_sum($request->qtyPerPallet);
-        $qty_inbound = $request->qty;
+        $exception = DB::transaction(function () use ($request) {
+            try {
+                $total = array_sum($request->qtyPerPallet);
+                $qty_inbound = $request->qty;
 
-        //hapus dulu
-        DB::table('iv_inbound_per_pallet')
-            ->where('picking_id', $request->picking_id)
-            ->delete();
+                //hapus dulu
+                DB::table('iv_inbound_per_pallet')
+                    ->where('picking_id', $request->picking_id)
+                    ->delete();
 
-        if ($total > $qty_inbound) {
-            return response()->json([
-                'status' => 'lebih_besar'
-            ]);
-        } else if ($total < $qty_inbound) {
-            return response()->json([
-                'status' => 'lebih_kecil'
-            ]);
-        } else {
-            $qrcode = DB::table('iv_inbound_detail')
-                ->select('qrcode')
-                ->where('id', $request->picking_id)
-                ->value('qrcode');
-            for ($i = 0; $i < count($request->qtyPerPallet); $i++) {
-                DB::table('iv_inbound_per_pallet')->insert([
-                    'inbound_id' => $request->inbound_id,
-                    'picking_id' => $request->picking_id,
-                    'qrcode' => $qrcode,
-                    'total_qty' => $request->qty,
-                    'product_code' => $request->product_code,
-                    'total_pallet' => $request->jumlah_pallet,
-                    'qty_per_pallet' => $request->qtyPerPallet[$i],
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'created_by' => Auth::user()->username,
-                ]);
+                if ($total > $qty_inbound) {
+                    return response()->json([
+                        'status' => 'lebih_besar'
+                    ]);
+                } else if ($total < $qty_inbound) {
+                    return response()->json([
+                        'status' => 'lebih_kecil'
+                    ]);
+                } else {
+                    $detail = DB::table('iv_inbound_detail')
+                        ->select('qrcode', 'ean_code')
+                        ->where('id', $request->picking_id)
+                        ->get();
+                    $ean_code_string = $detail[0]->ean_code;
+                    $ean_code_array = explode(',', $ean_code_string);
 
-                // //get picking id
-                // DB::table('iv_inbound_per_pallet')
-                //     ->where('picking_id', $request->picking_id)
-                //     ->update([
-                //         'picking_id' => $picking_id->id
-                //     ]);
+                    if (count($request->qtyPerPallet) > 0) {
+                        $index = 0;
+                        for ($i = 0; $i < count($request->qtyPerPallet); $i++) {
+                            $qtyPerPallet = (int) $request->qtyPerPallet[$i];
+                            $ean_codes_to_insert = array_slice($ean_code_array, $index, $qtyPerPallet);
+                            $index += $qtyPerPallet;
+                            DB::table('iv_inbound_per_pallet')->insert([
+                                'inbound_id' => $request->inbound_id,
+                                'picking_id' => $request->picking_id,
+                                'qrcode' => $detail[0]->qrcode,
+                                'total_qty' => $request->qty,
+                                'product_code' => $request->product_code,
+                                'total_pallet' => $request->jumlah_pallet,
+                                'qty_per_pallet' => $qtyPerPallet,
+                                'ean_code' => !empty($ean_codes_to_insert) ? implode(',', $ean_codes_to_insert) : null,
+                                'created_at' => now(),
+                                'created_by' => Auth::user()->username,
+                            ]);
+                        }
+                    }
+                    $message = ['message' => 'ok'];
+                }
+                return $message;
+            } catch (\Exception $e) {
+                DB::rollBack();
+                $message = ['error' => [$e->getMessage()]];
+                return $message;
             }
-            return response()->json([
-                'status' => 'ok'
-            ]);
-        }
+        });
+        return response()->json($exception);
     }
 
     public function byPassScan($inbound_id)

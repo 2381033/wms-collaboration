@@ -236,6 +236,7 @@ class ReportController extends Controller
                         "b.puom",
                         "b.muom",
                         "b.buom",
+                        DB::raw("CASE WHEN b.manufactur_code IS NULL THEN 'No' ELSE 'Yes' END as manufactur_code"),
                         DB::raw("a.qty * b.gross_weight as weight"),
                         DB::raw("a.qty * b.volume as volume")
                     )
@@ -336,6 +337,7 @@ class ReportController extends Controller
                         ["name" => "Quantity", "rowspan" => "1", "colspan" => "2"],
                         ["name" => "Gross Weight", "rowspan" => "2", "colspan" => "1"],
                         ["name" => "Volume", "rowspan" => "2", "colspan" => "1"],
+                        ["name" => "Scan", "rowspan" => "2", "colspan" => "1"],
                     ]);
 
                     $headTwo = collect([
@@ -359,6 +361,7 @@ class ReportController extends Controller
                         ["name" => "1st", "field_name" => "puom", "class" => "center", "colspan" => "1"],
                         ['name' => 'Gross Weight', 'field_name' => 'weight', 'class' => 'right', 'colspan' => "1"],
                         ['name' => 'Volume', 'field_name' => 'volume', 'class' => 'right', 'colspan' => "1"],
+                        ['name' => 'Scan', 'field_name' => 'manufactur_code', 'class' => 'right', 'colspan' => "1"],
                     ]);
 
                     $columnCount = 15;
@@ -387,6 +390,7 @@ class ReportController extends Controller
                         "buom" => $value->buom,
                         "weight" => number_format($value->weight, 3, ",", "."),
                         "volume" => number_format($value->volume, 3, ",", "."),
+                        "manufactur_code" => $value->manufactur_code
                     ];
 
                     $id++;
@@ -650,7 +654,6 @@ class ReportController extends Controller
                         )
                         ->get();
                 }
-
                 $data = [
                     "view_data" => $despatch,
                     "order_data" => $order,
@@ -658,6 +661,82 @@ class ReportController extends Controller
                 ];
 
                 return view("transaction.outbound.despatch", $data);
+                break;
+            case "loading_list":
+                $despatch = DB::table("iv_outbound_despatch as a")
+                    ->select(
+                        "a.*",
+                        "b.principal_name",
+                        "b.address1 as prin_address1",
+                        "b.address2 as prin_address2",
+                        "b.address3 as prin_address3",
+                        "b.address4 as prin_address4",
+                        "c.customer_name",
+                        "d.store_name",
+                        "d.address1 as store_address1",
+                        "d.address2 as store_address2",
+                        "d.address3 as store_address3",
+                        "d.address4 as store_address4",
+                        "b.multi_level",
+                        "b.volume_flag"
+                    )
+                    ->join("iv_principal as b", "a.principal_id", "b.id")
+                    ->join("iv_customer as c", "a.customer_id", "c.id")
+                    ->leftjoin("tm_store as d", "a.store_id", "d.id")
+                    ->where("a.outbound_id", $id)
+                    ->first();
+
+                $order = [];
+                $detail = [];
+                if (isset($despatch)) {
+                    $order = DB::table("iv_outbound_order as a")
+                        ->select("a.*")
+                        ->where("a.outbound_id", $despatch->outbound_id)
+                        ->where("a.customer_id", $despatch->customer_id)
+                        ->first();
+
+                    $detail = DB::table("iv_outbound_batch as a")
+                        ->select(
+                            "a.id",
+                            "a.product_code",
+                            "b.product_name",
+                            "a.lot_no",
+                            "a.pqty",
+                            "a.mqty",
+                            "a.remarks",
+                            "b.puom",
+                            "b.muom",
+                            "b.buom",
+                            "b.uppp",
+                            "b.muppp",
+                            "b.volume",
+                            "b.gross_weight",
+                            DB::raw("sum(a.qty) as qty")
+                        )
+                        ->join("iv_product as b", "a.product_id", "b.id")
+                        ->where("a.outbound_id", $id)
+                        // ->where("a.customer_id", $despatch->customer_id)
+                        ->groupBy(
+                            "a.product_code",
+                            "b.product_name",
+                            "a.lot_no",
+                            "b.puom",
+                            "b.muom",
+                            "b.buom",
+                            "b.uppp",
+                            "b.muppp",
+                            "b.volume",
+                            "b.gross_weight"
+                        )
+                        ->get();
+                }
+                $data = [
+                    "view_data" => $despatch,
+                    "order_data" => $order,
+                    "detail_list" => $detail
+                ];
+
+                return view("transaction.outbound.loading_list", $data);
                 break;
             default:
 

@@ -1,5 +1,6 @@
 @extends('layouts.new.base')
 @section('title', 'MKT - Scan Cargo')
+
 @push('styles')
     <style type="text/css">
         .hide {
@@ -18,78 +19,75 @@
             <div class="card" style="border-radius: 15px;">
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-sm-6">
-                            <div class="card card-custom card-stretch gutter-b bg-light-info p-0"
-                                style="border-radius: 25px;" onclick="menu('scan')">
-                                <div class="card-body d-flex align-items-center py-0 mt-8">
-                                    <div class="d-flex flex-column flex-grow-1">
-                                        <span
-                                            class="card-title font-weight-bolder text-dark font-size-h5 mb-2 text-hover-danger">Start
-                                            Scanning
-                                            Cargo</span>
-                                        <span class="font-weight-bold text-dark font-size-xl">Let's start scanning your
-                                            cargo now!</span>
-                                    </div>
-                                    <img src="{{ asset('images/scan.png') }}" alt="" class="align-self-end h-120px">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-sm-6">
-                            <div class="card card-custom card-stretch gutter-b bg-light-primary p-0"
-                                style="border-radius: 25px;" onclick="menu('jobDetails')">
-                                <div class="card-body d-flex align-items-center py-0 mt-8">
-                                    <div class="d-flex flex-column flex-grow-1">
-                                        <span
-                                            class="card-title font-weight-bolder text-dark font-size-h5 mb-2 text-hover-danger">Job
-                                            Details</span>
-                                        <span class="font-weight-bold text-dark font-size-xl">Let's see job detail!</span>
-                                    </div>
-                                    <img src="{{ asset('images/reporting.png') }}" alt=""
-                                        class="align-self-end h-120px">
-                                </div>
-                            </div>
-                        </div>
                         <div class="col-sm-12">
-                            <div class="card konten hide" style="outline: solid; black; border-radius: 15px;"
-                                id="konten">
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <div class="float-right">
-                                                <a href="#" class="btn btn-sm btn-dark" onclick="goHome()"><i
-                                                        class="fas fa-home"></i>Dashboard</a>
-                                            </div>
+                            <div class="card-body">
+                                <div class="form-group row">
+                                    <div class="col-sm-9">
+                                        <div class="input-group">
+                                            <div class="input-group-append"><span class="input-group-text"><i
+                                                        class="fas fa-barcode fa-lg"></i></span></div>
+                                            <input type="text" class="form-control palletBarcode"
+                                                placeholder="Scan Here Pallet.." autocomplete="off" autofocus
+                                                name="pallet_barcode" required />
                                         </div>
                                     </div>
-                                    <div class="appendContent">
-
+                                    <div class="col-sm-3">
+                                        <a href="#" class="btn btn-md btn-dark mb-3" onclick="newPallet()"><i
+                                                class="fas fa-plus-circle"></i> New Pallet</a>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="scanpo" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-md" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 class="modal-title" id="my-modal-title">Job Details</h3>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-sm-12">
-                                    <center>
-                                        <div id="qr-reader" style="width: 350px;"></div>
-                                    </center>
+                                <hr>
+                                <div class="form-group row">
+                                    <div class="col-lg-10">
+                                        <div class="input-group">
+                                            <div class="input-group-append"><span class="input-group-text"><i
+                                                        class="fas fa-boxes fa-lg"></i></span></div>
+                                            <input type="text" class="form-control kodeWarehouse"
+                                                placeholder="Scan Here Barcode Top.." autocomplete="off"
+                                                name="kode_warehouse" required disabled />
+                                        </div>
+                                        <span class="form-text text-danger">Scan the top barcode on the carton</span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-lg-10">
+                                        <div class="input-group">
+                                            <div class="input-group-append"><span class="input-group-text"><i
+                                                        class="fas fa-boxes fa-lg"></i></span></div>
+                                            <input type="text" class="form-control cartonBarcode"
+                                                placeholder="Scan Here Barcode Bottom.." autocomplete="off"
+                                                name="carton_barcode" required disabled />
+                                        </div>
+                                        <span class="form-text text-danger">Scan the bottom barcode on the carton</span>
+                                    </div>
+                                </div>
+                                <div class="float-left">
+                                    <span class="label label-lg label-light-warning label-inline mb-3"><b class="mr-2"
+                                            id="totalPallet">0 </b>
+                                        Pallet
+                                    </span>
+                                    <br>
+                                    <span class="label label-lg label-light-warning label-inline mb-3"><b class="mr-2"
+                                            id="totalCarton">0 </b>
+                                        Carton
+                                    </span>
+                                </div>
+                                <div class="float-right">
+                                    <button type="button" class="btn btn-md btn-success mb-3" id="saveToDb"><i
+                                            class="fas fa-save"></i> Save Job</button>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered" id="barcodeTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Pallet</th>
+                                                <th>Warehouse</th>
+                                                <th>Carton</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -98,240 +96,240 @@
             </div>
         </div>
     </div>
-
 @endsection
 
 @push('scripts')
-    <script src="{{ url('/') }}/assets/new/plugins/custom/qrcode/html5-qrcode.min.js"></script>
     <script src="{{ url('/assets/new/plugins/custom/datatables/datatables.bundle.js') }}"></script>
 
     <script type="text/javascript">
-        var html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", {
-            fps: 10,
-            qrbox: 250,
-            // rememberLastUsedCamera: true
-        });
-        html5QrcodeScanner.render(onScanSuccess);
+        var success = new Audio("{{ url('assets/audio/success.mp3') }}");
+        var error = new Audio("{{ url('assets/audio/error.mp3') }}");
 
-        function onScanSuccess(barcode, decodedResult) {
-            html5QrcodeScanner.pause();
-            $('.POValue').val(barcode);
-            $('#scanpo').modal('hide');
-        }
-
-        function scanPO() {
-            $('#scanpo').modal('show');
-        }
-
-        function menu(menu) {
-            sessionStorage.setItem('menu', menu);
-            $('.card-custom').toggle('fast')
-            $('.' + menu).toggle('fast');
-            $('.konten').toggle('fast')
-            $('.konten').removeClass('hide')
-            if (menu == 'scan') {
-                $('.appendContent').html('')
-                startScanning();
+        function newPallet() {
+            let text = "Are you sure to next pallet?";
+            if (confirm(text) == true) {
+                $('.palletBarcode').prop('disabled', false);
+                $('.kodeWarehouse').prop('disabled', true);
+                $('.palletBarcode').val('');
             } else {
-                $('.appendContent').html('')
-                jobDetails();
+                return false
             }
         }
 
-        function jobDetails() {
-            $('.appendContent').append(`<div class="row">
-                                        <div class="col-sm-2">
-                                            <input type="date" class="form-control" required
-                                                value="{{ date('Y-m-01') }}" id="startDate">
-                                        </div>
-                                        <div class="col-sm-2">
-                                            <input type="date" class="form-control" required
-                                                value="{{ date('Y-m-t') }}" id="endDate">
-                                        </div>
-                                        <div class="col-sm-2">
-                                            <div class="form-group">
-                                                <select id="statusJob" class="form-control">
-                                                    <option value="No" selected>Open</option>
-                                                    <option value="Yes">Confirmed</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-2">
-                                            <a href="#" onclick="searchData()" class="btn btn-block btn-dark"><i
-                                                    class="fas fa-search"></i>
-                                            </a>
-                                        </div>
-                                        <div class="col-sm-12">
-                                            <div class="table-responsive">
-                                                <table class="table table-bordered" id="tableList">
-                                                    <thead>
-                                                        <tr class="text-center">
-                                                            <th>Job No</th>
-                                                            <th>PO No</th>
-                                                            <th>Qty</th>
-                                                            <th>Remarks</th>
-                                                            <th>Status</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
+        $(document).ready(function() {
+            sessionStorage.removeItem('barcodes');
+            if (!sessionStorage.getItem('barcodes')) {
+                sessionStorage.setItem('barcodes', JSON.stringify([]));
+            }
 
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>`)
-        }
-
-        function goHome() {
-            $('.konten').toggle('fast')
-            $('.card-custom').toggle('fast')
-            $('.konten').addClass('hide')
-        }
-
-        function startScanning() {
-            $('.appendContent').append(`
-                <div class="row">
-                    <div class="col-sm-12">
-                        <form action="{{ route('storeHeader') }}" method="post" id="formStoreHeader">
-                            @csrf
-                            <div class="form-row">
-                                <div class="form-group col-sm-6">
-                                    <label>No. PO</label> <a href="javascript:void(0)" class="btn btn-sm btn-primary mb-2" onclick="scanPO()"><i class="fas fa-camera"></i> Scan</a> 
-                                    <input type="text" name="po_no" class="form-control POValue" required readonly
-                                        autocomplete="off">
-                                </div>
-                                <div class="form-group col-sm-6 mt-4">
-                                    <label>Qty</label>
-                                    <input type="number" name="qty" class="form-control qtyValue" required placeholder="Type here.." 
-                                        autocomplete="off">
-                                </div>
-                                <div class="form-group col-sm-12">
-                                    <div class="form-group">
-                                        <label for="">Remarks</label>
-                                        <textarea class="form-control" name="remarks" id="" rows="3" placeholder="Type Here.."></textarea>
-                                        <span class="text-muted"> *Opsional</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="float-right">
-                                <button type="submit" class="btn btn-lg btn-info"><i class="fas fa-save"></i> Submit</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>`)
-            $('#formStoreHeader').on('submit', function(e) {
-                e.preventDefault();
-                var no_po = $('.POValue').val();
-                var qtyValue = $('.qtyValue').val();
-                if (no_po == "" || qtyValue == "") {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Please enter PO or Qty',
-                    })
-                } else {
-                    $.ajax({
-                        data: $('#formStoreHeader').serialize(),
-                        url: "{{ url('export/ScanCargoEkspor/storeHeader') }}",
-                        type: "POST",
-                        dataType: 'json',
-                        success: function(response) {
-                            location.href = "{{ url('export/ScanCargoEkspor/encryptJob') }}/" + response
-                                .data;
-                        },
-                        error: function(error) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: error,
-                            })
-                        }
-                    });
-                }
-            })
-        }
-
-        function searchData() {
-            var startDate = $('#startDate').val();
-            var endDate = $('#endDate').val();
-            var statusJob = $('#statusJob').val();
-
-            $('#tableList').DataTable().clear().destroy()
-            $('#tableList').DataTable({
-                "dom": '<"toolbar">frtip',
-                processing: true,
-                serverSide: true,
-                ordering: false,
-                paging: false,
-                "columnDefs": [{
-                    "className": "dt-center",
-                    "targets": "_all"
-                }],
-                ajax: {
-                    url: "{{ url('export/ScanCargoEkspor/getListJobTable') }}/" + startDate + "/" + endDate + "/" +
-                        statusJob,
-                    type: "GET",
-                },
-                columns: [{
-                        data: null,
-                        name: null,
-                        render: function(data) {
-                            if (data.confirmed_flag == 'No') {
-                                var url =
-                                    `{{ url('export/ScanCargoEkspor/encryptJob') }}` + '/' + data.job_no
-                                var href = `window.open('${url}')`;
-                                var job_no =
-                                    `<a href="javascript:void(0)" onclick="${href}">${data.job_no}</a>`
-                            } else {
-                                var url =
-                                    `{{ url('export/ScanCargoEkspor/exportExcel') }}` + '/' + data.job_no
-                                var href = `window.open('${url}')`;
-                                var job_no =
-                                    `<a href="javascript:void(0)" class="btn btn-sm text-white" style="background-color: #28A745;" onclick="${href}"><i class="fas fa-file-excel text-white"> </i> ${data.job_no}</a>`
-                            }
-                            return job_no;
-                        },
-                    },
-                    {
-                        data: 'po_no',
-                        name: 'po_no'
-                    },
-                    {
-                        data: null,
-                        name: null,
-                        render: function(data) {
-                            return `${data.qty} CTN`;
-                        },
-                    },
-                    {
-                        data: null,
-                        name: null,
-                        render: function(data) {
-                            if (data.remarks == null) {
-                                var remarks = '-';
-                            } else {
-                                var remarks = `${data.remarks}`;
-                            }
-                            return remarks;
-                        },
-                    },
-                    {
-                        data: null,
-                        name: null,
-                        render: function(data) {
-                            if (data.confirmed_flag == 'No') {
-                                var status =
-                                    '<span class = "badge badge-primary">Open</span>'
-                            } else {
-                                var status =
-                                    '<span class="badge badge-success">Confirmed</span>'
-                            }
-                            return status;
-                        },
-                    },
-                ],
-                order: [
-                    [0, 'asc']
-                ]
+            // Klik pada palletBarcode akan reset value dan memungkinkan pemindaian ulang
+            $('.palletBarcode').on('click', function() {
+                $(this).prop('disabled', false); // Enable input palletBarcode
+                $('.kodeWarehouse').prop('disabled', true); // Disable input kode warehouse
+                $('.cartonBarcode').prop('disabled', true); // Disable input cartonBarcode
+                $(this).focus(); // Fokuskan input palletBarcode setelah diklik
+                $(this).val(''); // Reset nilai palletBarcode
             });
-        }
+
+            // Tampilkan data yang ada di sessionStorage ke dalam tabel
+            function displayScannedData() {
+                var barcodes = JSON.parse(sessionStorage.getItem('barcodes'));
+                $('#barcodeTable tbody').empty(); // Hapus semua baris di tabel
+                var totalPallet = new Set(); // Untuk menghitung jumlah pallet unik
+                var totalCarton = 0; // Untuk menghitung jumlah carton
+                barcodes.forEach(function(item, index) {
+                    if (item.pallet && item.kode_warehouse && item.carton) {
+                        var row = `<tr data-index="${index}">
+                <td>${item.pallet}</td>
+                <td>${item.kode_warehouse}</td>
+                <td>${item.carton}</td>
+                <td><button class="btn btn-danger deleteBtn"><i class="fas fa-trash-alt"></i></button></td>
+            </tr>`;
+                        $('#barcodeTable tbody').append(row); // Tambahkan baris baru ke tabel
+                    }
+                    totalPallet.add(item.pallet); // Menambahkan pallet ke Set (pallet unik)
+                    totalCarton++; // Menambahkan 1 untuk setiap carton
+                });
+
+                $('#totalPallet').text(totalPallet.size); // Ukuran Set adalah jumlah pallet unik
+                $('#totalCarton').text(totalCarton);
+
+                // Hapus data ketika tombol delete ditekan
+                $('.deleteBtn').on('click', function() {
+                    var rowIndex = $(this).closest('tr').data('index');
+                    deleteBarcode(rowIndex);
+                });
+            }
+
+            function deleteBarcode(index) {
+                var barcodes = JSON.parse(sessionStorage.getItem('barcodes'));
+                barcodes.splice(index, 1); // Hapus data berdasarkan index
+                sessionStorage.setItem('barcodes', JSON.stringify(barcodes)); // Simpan perubahan
+                displayScannedData(); // Update tampilan tabel
+            }
+
+            // Ketika scan barcode pallet
+            $('.palletBarcode').on('keypress', function(event) {
+                if (event.keyCode === 13) {
+                    var palletBarcode = $(this).val();
+                    if (palletBarcode.length > 20 || palletBarcode.length < 20) {
+                        $(this).val("");
+                        error.play();
+                        alert('Invalid barcode. It must be at least 20 characters long.');
+                        $(this).focus();
+                        return;
+                    }
+                    var barcodes = JSON.parse(sessionStorage.getItem('barcodes'));
+
+                    // Cek apakah sudah ada pallet yang dipindai
+                    if (barcodes.length === 0 || barcodes[barcodes.length - 1].carton !== null) {
+                        barcodes.push({
+                            pallet: palletBarcode,
+                            kode_warehouse: null,
+                            carton: null
+                        });
+                        sessionStorage.setItem('barcodes', JSON.stringify(
+                            barcodes)); // Simpan ke sessionStorage
+                        success.play(); // Putar suara sukses
+
+                        // Ubah status input
+                        $('.palletBarcode').prop('disabled', true);
+                        $('.kodeWarehouse').prop('disabled', false);
+                        $('.kodeWarehouse').focus();
+                    } else {
+                        alert('Pallet barcode already scanned!');
+                    }
+                }
+            });
+
+            // Ketika scan barcode warehouse
+            $('.kodeWarehouse').on('keypress', function(event) {
+                if (event.keyCode === 13) {
+                    var kodeWarehouse = $(this).val();
+
+                    if (kodeWarehouse.length != 8) {
+                        $(this).val(""); // Fokus ulang ke input
+                        error.play(); // Putar suara error
+                        alert('Invalid barcode. It must be at least 8 characters long.');
+                        $(this).focus(); // Fokus ulang ke input
+                        return; // Hentikan proses
+                    }
+
+                    var barcodes = JSON.parse(sessionStorage.getItem('barcodes'));
+
+                    // Temukan pallet yang belum ada kode warehouse
+                    for (var i = barcodes.length - 1; i >= 0; i--) {
+                        if (barcodes[i].kode_warehouse === null && barcodes[i].pallet !== null) {
+                            barcodes[i].kode_warehouse = kodeWarehouse;
+                            break;
+                        }
+                    }
+
+                    sessionStorage.setItem('barcodes', JSON.stringify(barcodes));
+                    success.play();
+                    $('.kodeWarehouse').prop('disabled', true);
+                    $('.cartonBarcode').prop('disabled', false);
+                    $('.cartonBarcode').focus();
+                    displayScannedData(); // Tampilkan data yang dipindai
+                    saveToSessionStorage();
+                }
+            });
+
+
+            $('.cartonBarcode').on('keypress', function(event) {
+                if (event.keyCode === 13) {
+                    var cartonBarcode = $(this).val();
+
+                    if (cartonBarcode.length > 20 || cartonBarcode.length < 20) {
+                        $(this).val("");
+                        error.play();
+                        alert('Invalid barcode. It must be at least 20 characters long.');
+                        $(this).focus();
+                        return;
+                    }
+
+                    var palletBarcode = $('.palletBarcode').val();
+                    var kodeWarehouse = $('.kodeWarehouse').val();
+                    var barcodes = JSON.parse(sessionStorage.getItem('barcodes'));
+
+                    var isCartonExist = barcodes.some(function(item) {
+                        return item.carton === cartonBarcode;
+                    });
+
+                    if (isCartonExist) {
+                        alert('Carton barcode already scanned!');
+                        return;
+                    }
+
+                    var foundIncomplete = false;
+                    for (var i = barcodes.length - 1; i >= 0; i--) {
+                        if (barcodes[i].carton === null && barcodes[i].kode_warehouse !== null) {
+                            barcodes[i].carton = cartonBarcode; // Set barcode carton
+                            barcodes[i].pallet = palletBarcode; // Set pallet barcode
+                            foundIncomplete = true;
+                            break;
+                        }
+                    }
+                    if (!foundIncomplete) {
+                        barcodes.push({
+                            pallet: palletBarcode,
+                            kode_warehouse: kodeWarehouse, // Set kode warehouse dengan nilai terakhir yang dipindai
+                            carton: cartonBarcode // Set carton barcode
+                        });
+                    }
+
+                    sessionStorage.setItem('barcodes', JSON.stringify(
+                        barcodes)); // Simpan ke sessionStorage
+                    success.play(); // Putar suara sukses
+                    $('.kodeWarehouse').val(''); // Reset kode warehouse
+                    $('.cartonBarcode').prop('disabled', true); // Disable input cartonBarcode
+                    $('.kodeWarehouse').prop('disabled', false); // Enable input kodeWarehouse
+                    $('.kodeWarehouse').focus(); // Fokuskan input kodeWarehouse
+                    $(this).val(''); // Reset input cartonBarcode
+                    displayScannedData(); // Tampilkan data yang dipindai
+                    saveToSessionStorage(); // Simpan data ke sessionStorage
+                }
+            });
+
+
+            function saveToSessionStorage() {
+                var barcodes = JSON.parse(sessionStorage.getItem('barcodes'));
+                if (barcodes.length === 0) {
+                    error.play();
+                    alert("No data to save!");
+                    return;
+                }
+                console.log("Data saved to sessionStorage:", barcodes); // Untuk melihat data yang disimpan
+            }
+
+            displayScannedData(); // Inisialisasi tampilan data saat halaman pertama kali dimuat
+        });
+
+        $('#saveToDb').on('click', function() {
+            var barcodes = JSON.parse(sessionStorage.getItem('barcodes'));
+            if (barcodes.length === 0) {
+                error.play();
+                alert("No data to save!");
+                return;
+            }
+
+            $.ajax({
+                url: "{{ route('submitReceiving') }}",
+                method: "POST",
+                data: {
+                    barcodes: barcodes,
+                    _token: "{{ csrf_token() }}"
+                },
+                success: function(response) {
+                    if (response.original.success) {
+                        alert("Data successfully saved!");
+                        location.reload();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert("Error: " + error);
+                }
+            });
+        });
     </script>
 @endpush

@@ -8,17 +8,17 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use DB;
 use Auth;
 use Illuminate\Support\Facades\Session;
-use Maatwebsite\Excel\Concerns\WithMultipleSheets;
+// use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Maatwebsite\Excel\Concerns\WithValidation;
 
-class InboundImports implements ToCollection, WithHeadingRow, WithMultipleSheets, WithValidation
+class InboundImports implements ToCollection, WithHeadingRow
 {
-    public function rules(): array
-    {
-        return [
-            'description' => 'required',
-        ];
-    }
+    // public function rules(): array
+    // {
+    //     return [
+    //         'description' => 'required',
+    //     ];
+    // }
 
     protected $id_header;
     public function __construct($id_header)
@@ -26,28 +26,30 @@ class InboundImports implements ToCollection, WithHeadingRow, WithMultipleSheets
         $this->id_header = $id_header;
     }
 
-    public function sheets(): array
-    {
-        return [
-            0 => new InboundImports($this->id_header),
-        ];
-    }
+    // public function sheets(): array
+    // {
+    //     return [
+    //         0 => new InboundImports($this->id_header),
+    //     ];
+    // }
 
     public function collection(Collection $rows)
     {
+        $id_cargo = [];
+        $uom = [];
         $rules = DB::table('rt_uom')->get()->pluck('code')->toArray();
-
         foreach ($rows as $val) {
             $id_cargo[] = $val['id_cargo'];
             $uom[] = $val['uom'];
         }
         //validasi row yang sama dalam excel
         $temp_array = array_unique($id_cargo);
-        $validate_id_cargo = sizeof($temp_array) != sizeof($id_cargo);
-        if ($validate_id_cargo) {
-            Session::flash('error', 'Duplicate ID Cargo..');
-            return back();
-        }
+        // $validate_id_cargo = sizeof($temp_array) != sizeof($id_cargo);
+        // dd($temp_array, sizeof($id_cargo));
+        // if ($validate_id_cargo) {
+        //     Session::flash('error', 'Duplicate ID Cargo..');
+        //     return back();
+        // }
 
         //validasi rules uom
         $validate_uom = array_diff($uom, $rules);

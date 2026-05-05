@@ -27,14 +27,14 @@ class outboundEmail extends Mailable
         $files = [];
         foreach ($this->message as $value) {
             $files[] = "outbound_$value->job_no.xlsx";
-            
-            Excel::store(new OutboundEmailExport($value->id), "outbound_$value->job_no.xlsx");            
+
+            Excel::store(new OutboundEmailExport($value->id), "outbound_$value->job_no.xlsx");
         }
 
-        $message = $this->markdown('email/outboundEmail')->subject('Outbound Transaction')->with("data", $this->message);  
-        
-        foreach ($files as $file) { 
-            $message->attach(storage_path("app/".$file));
+        $message = $this->view('email/outboundEmail')->subject('Outbound Transaction')->with("data", $this->message);
+
+        foreach ($files as $file) {
+            $message->attach(storage_path("app/" . $file));
         }
 
         return $message;

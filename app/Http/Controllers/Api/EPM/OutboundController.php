@@ -230,12 +230,13 @@ class OutboundController extends Controller
                                                 ->where("a.company_id", $EPM_data->company_id)
                                                 ->where("a.freeze_flag", "No")
                                                 ->where("a.principal_id", $EPM_data->principal_id)
-                                                ->where("a.product_id", 'like', $productData->id)
-                                                ->where("a.site_id", 'like', $site_id)
-                                                ->where("a.location_code", "like", $locationData->location_code)
-                                                ->groupBy("a.site_id", "b.site_name", "a.area_id", "c.area_name", "a.location_id", "a.location_code");
+                                                ->where("a.product_id",  $productData->id)
+                                                ->where("a.site_id",  $site_id)
+                                                ->where("a.location_code", $locationData->location_code)
+                                                ->groupBy("a.site_id", "b.site_name", "a.area_id", "c.area_name", "a.location_id", "a.location_code")
+                                                ->orderBy("a.id", "desc");
                                             $stockdataavailable = $stockcheck->first();
-                                            $stockdatacheck = $stockcheck->where("a.qtya", ">=", $data_qty)->first();
+                                            $stockdatacheck = $stockcheck->where("a.qtys", ">=", $data_qty)->first();
 
                                             if (isset($stockdatacheck->id)) {
                                                 $qty = ($value['mqty']);
@@ -246,42 +247,43 @@ class OutboundController extends Controller
                                                     $error++;
                                                     $error_notes = "the amount does not meet the warehouse storage criteria.\nfor $value[product_code] product, the number of items that must be stored is a multiple of $productData->muppp $productData->muom = 1 $productData->puom !";
                                                     array_push($error_data, array('message' => 'error locationData', 'input' => $locationData, 'value' => $locationselected));
+                                                } else {
+                                                    $outboundDetailId = outboundDetails::insertGetId(
+                                                        [
+                                                            'company_id' => $EPM_data->company_id,
+                                                            'outbound_id' => $outboundJobId,
+                                                            'order_id' => $outboundOrderId,
+                                                            'principal_id' => $EPM_data->principal_id,
+                                                            'customer_id' => $Customer_data->id,
+                                                            'job_no' => $job_no,
+                                                            'order_no' => $order_number,
+                                                            'product_id' => $productData->id,
+                                                            'product_code' => $value['product_code'],
+                                                            'lot_no' => $value['lot_no'],
+                                                            // 'mfg_date' => $mfg_date,
+                                                            // 'exp_date' => $exp_date,
+                                                            'site_id' => $stockdatacheck->site_id,
+                                                            'area_id' => $stockdatacheck->area_id,
+                                                            'location_from_id' => $locationData->id,
+                                                            'location_from' => $locationData->location_code,
+                                                            'location_to_id' => $locationData->id,
+                                                            'location_to' => $locationData->location_code,
+                                                            'puom' => $productData->puom,
+                                                            'muom' => $value['muom'],
+                                                            'buom' => $productData->buom,
+                                                            'uppp' => $productData->uppp,
+                                                            'muppp' => $productData->muppp,
+                                                            'pqty' => $actual_pqty,
+                                                            'mqty' => $actual_mqty,
+                                                            'bqty' => 0,
+                                                            'qty' => $qty,
+                                                            // 'manufactur_id' => $manufactur_id,
+                                                            'user_id' => $confirmed_by,
+                                                            'created_at' => $confirmed_date
+                                                        ]
+                                                    );
                                                 }
                                                 // echo "sampai sini aman";
-                                                $outboundDetailId = outboundDetails::insertGetId(
-                                                    [
-                                                        'company_id' => $EPM_data->company_id,
-                                                        'outbound_id' => $outboundJobId,
-                                                        'order_id' => $outboundOrderId,
-                                                        'principal_id' => $EPM_data->principal_id,
-                                                        'customer_id' => $Customer_data->id,
-                                                        'job_no' => $job_no,
-                                                        'order_no' => $order_number,
-                                                        'product_id' => $productData->id,
-                                                        'product_code' => $value['product_code'],
-                                                        'lot_no' => $value['lot_no'],
-                                                        // 'mfg_date' => $mfg_date,
-                                                        // 'exp_date' => $exp_date,
-                                                        'site_id' => $stockdatacheck->site_id,
-                                                        'area_id' => $stockdatacheck->area_id,
-                                                        'location_from_id' => $locationData->id,
-                                                        'location_from' => $locationData->location_code,
-                                                        'location_to_id' => $locationData->id,
-                                                        'location_to' => $locationData->location_code,
-                                                        'puom' => $productData->puom,
-                                                        'muom' => $value['muom'],
-                                                        'buom' => $productData->buom,
-                                                        'uppp' => $productData->uppp,
-                                                        'muppp' => $productData->muppp,
-                                                        'pqty' => $actual_pqty,
-                                                        'mqty' => $actual_mqty,
-                                                        'bqty' => 0,
-                                                        'qty' => $qty,
-                                                        // 'manufactur_id' => $manufactur_id,
-                                                        'user_id' => $confirmed_by,
-                                                        'created_at' => $confirmed_date
-                                                    ]
-                                                );
                                             } else {
                                                 $stockqtya = $stockdataavailable->qtya * $stockdataavailable->muppp;
                                                 $stockreqq = $value['mqty'];

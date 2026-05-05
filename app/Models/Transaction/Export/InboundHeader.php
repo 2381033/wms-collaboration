@@ -23,7 +23,7 @@ class InboundHeader extends Model
         "qty_cargo",
         "qty_actual",
         "cbm",
-        "gate_in",
+        "vgm",
         "weight",
         "total_pallet",
         "status_flag",

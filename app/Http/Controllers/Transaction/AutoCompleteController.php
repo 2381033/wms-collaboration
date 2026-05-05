@@ -132,6 +132,14 @@ class AutoCompleteController extends Controller
         exit;
     }
 
+    private function myBranch()
+    {
+        $data = DB::table('sm_user_branch')
+            ->where('user_id', Auth::user()->id)
+            ->get()->pluck('branch_id')->toArray();
+        return $data;
+    }
+
     public function getStockProduct(Request $request)
     {
         $company_id = Auth::user()->company_id;
@@ -146,10 +154,17 @@ class AutoCompleteController extends Controller
                 $search_text = "%" . $search . "%";
             }
 
+            $typeProduct = DB::table('iv_principal_branch')
+                ->where('principal_id', $request->principal_id)
+                ->whereIn('branch_id', $this->myBranch())
+                ->first();
+
+            $useAlias = ($typeProduct && $typeProduct->outbound_alias_code === "true");
+
             $list = DB::table("iv_stock_ledger as a")
                 ->select(
                     "a.product_id",
-                    "a.product_code",
+                    DB::raw($useAlias ? "b.alias_code as product_code" : "b.product_code"),
                     "b.product_name",
                     "b.unit_level",
                     "b.puom",
@@ -168,11 +183,22 @@ class AutoCompleteController extends Controller
                 ->where("b.active", "Yes")
                 ->where("a.principal_id", $request->principal_id)
                 ->where(function ($query) use ($search_text) {
-                    $query->where("a.product_code", "LIKE", $search_text)
+                    $query->where("b.product_code", "LIKE", $search_text)
+                        ->orWhere("b.alias_code", "LIKE", $search_text)
                         ->orWhere("b.product_name", "LIKE", $search_text);
                 })
                 ->take($this->page)
-                ->groupBy("a.product_id", "a.product_code", "b.product_name", "b.unit_level", "b.puom", "b.muom", "b.buom", "b.uppp", "b.muppp")
+                ->groupBy(
+                    "a.product_id",
+                    $useAlias ? "b.alias_code" : "b.product_code",
+                    "b.product_name",
+                    "b.unit_level",
+                    "b.puom",
+                    "b.muom",
+                    "b.buom",
+                    "b.uppp",
+                    "b.muppp"
+                )
                 ->get();
 
             foreach ($list as $k) {
@@ -485,6 +511,74 @@ class AutoCompleteController extends Controller
                 $response[] = array(
                     "consignee_id" => $k->id,
                     "consignee_name" => $k->consignee_name,
+                );
+            }
+        }
+
+        echo json_encode($response);
+        exit;
+    }
+
+    public function getDestination(Request $request)
+    {
+        $response = array();
+
+        if ($request->has("search")) {
+            $search = $request->search;
+            if (is_null($search) || empty($search) || strlen($search) < 1) {
+                $search_text = "%";
+            } else {
+                $search_text = "%" . $search . "%";
+            }
+
+            $branch_id = $this->getBranch();
+
+            $list = DB::table('ex_inbound_header as a')
+                ->select('destination')
+                ->where('a.destination', 'LIKE', $search_text)
+                ->whereIn('a.branch_id', $branch_id)
+                ->take($this->page)
+                ->orderBy("a.destination")
+                ->groupBy('a.destination')
+                ->get();
+
+            foreach ($list as $k) {
+                $response[] = array(
+                    "destination" => $k->destination,
+                );
+            }
+        }
+
+        echo json_encode($response);
+        exit;
+    }
+
+    public function getFinalDestination(Request $request)
+    {
+        $response = array();
+
+        if ($request->has("search")) {
+            $search = $request->search;
+            if (is_null($search) || empty($search) || strlen($search) < 1) {
+                $search_text = "%";
+            } else {
+                $search_text = "%" . $search . "%";
+            }
+
+            $branch_id = $this->getBranch();
+
+            $list = DB::table('ex_inbound_header as a')
+                ->select('final_destination')
+                ->where('a.final_destination', 'LIKE', $search_text)
+                ->whereIn('a.branch_id', $branch_id)
+                ->take($this->page)
+                ->orderBy("a.final_destination")
+                ->groupBy('a.final_destination')
+                ->get();
+
+            foreach ($list as $k) {
+                $response[] = array(
+                    "final_destination" => $k->final_destination,
                 );
             }
         }

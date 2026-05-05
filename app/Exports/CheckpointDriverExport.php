@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Illuminate\Contracts\View\View;
 use Maatwebsite\Excel\Concerns\FromView;
+use Illuminate\Support\Facades\Auth;
 
 class CheckpointDriverExport implements FromView
 {
@@ -29,10 +30,20 @@ class CheckpointDriverExport implements FromView
         return $data;
     }
 
+    private function myBranch()
+    {
+        $data = DB::table('sm_user_branch')
+            ->where('user_id', Auth::user()->id)
+            ->value('branch_id');
+
+        return $data;
+    }
+
     public function view(): View
     {
         $jobHeader =  DB::table("cp_driver_job")
             ->whereBetween('created_at', [$this->start_date . ' 00:00:00', $this->end_date . ' 23:59:59'])
+            ->where('branch_id', $this->myBranch())
             ->where('confirmed_flag', 'Yes')
             ->get();
         if ($this->no_mobil != 'ALL') {

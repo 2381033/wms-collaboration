@@ -46,56 +46,36 @@ class DashboardOpsController extends Controller
     {
         $branch    = $this->getBranch();
         $principal = $this->getPrincipal();
-        return view('new.DashboardOps.index', compact('branch', 'principal'));
+        $site      = $this->getSite();
+        return view('new.DashboardOps.index', compact('branch', 'principal', 'site'));
     }
 
-    public function zaka()
-    {
-        $branch    = $this->getBranch();
-        $principal = $this->getPrincipal();
-
-        $vehicle = DB::table('iv_container_size')
-            ->orderBy('size_name', 'ASC')
-            ->whereIn(
-                'size_name',
-                [
-                    'Tiny (2 CBM)',
-                    'Small (6 CBM)',
-                    'Medium (12 CBM)',
-                    'Large (20 CBM)',
-                    'Fuso (22 CBM)',
-                    'Builtup (45 CBM)',
-                    '20 Feet',
-                    '40 Feet',
-                ]
-            )
-            ->get();
-        return view('new.DashboardOps.zaka', compact('branch', 'principal', 'vehicle'));
-    }
 
     public function searchData(Request $request)
     {
         $branch    = $request->branch;
         $principal = $request->principal;
-        $totalOrderToday = $this->totalOrderToday($branch, $principal)->count();
-        $truckGateInToday = $this->truckGateInToday($branch, $principal);
-        $ProcessUnloadingToday = $this->ProcessUnloadingToday($branch, $principal)->count();
-        $finishUnloadingToday = $this->finishUnloadingToday($branch, $principal);
-        $totalPalletReceiving = $this->totalPalletReceiving($branch, $principal);
-        $monthlyIn = $this->monthlyInbound($branch, $principal);
-        $monthlyTruck = $this->monthlyTruck($branch, $principal)->groupBy('month');
+        if ($principal != 'ALL') {
+            $totalOrderToday = $this->totalOrderToday($branch, $principal)->count();
+            $truckGateInToday = $this->truckGateInToday($branch, $principal);
+            $ProcessUnloadingToday = $this->ProcessUnloadingToday($branch, $principal)->count();
+            $finishUnloadingToday = $this->finishUnloadingToday($branch, $principal);
+            $totalPalletReceiving = $this->totalPalletReceiving($branch, $principal);
+            $monthlyIn = $this->monthlyInbound($branch, $principal);
+            $monthlyTruck = $this->monthlyTruck($branch, $principal)->groupBy('month');
+            $truckToday = $this->truckToday($branch, $principal);
+            $jobConfirmedToday = $this->jobConfirmedToday($branch, $principal);
+        }
         $dataMonthly = [];
         $dataMonthlyTruck = [];
         $dataMonthlyOccupancy = [];
         $dataMaxPalletCapacity = [];
-        $truckToday = $this->truckToday($branch, $principal);
-        $cardOccupancy = $this->cardOccupancy($branch, $principal);
-        $jobConfirmedToday = $this->jobConfirmedToday($branch, $principal);
+        $cardOccupancy = $this->cardOccupancy($branch, $principal, $request->site);
         $chartsOccupancy = $this->chartsOccupancy($branch, $principal);
-        $validate = 0;
+        $validate = 9;
         $total_hari = [];
         $sor = [];
-        $palletCapacity = $this->getPalletCapacity($principal);
+        $palletCapacity = $this->getPalletCapacity($principal, $request->site);
         $categories = [];
         for ($i = 1; $i <= 12; $i++) {
             $total_hari[$i] = Carbon::now()->month($i)->daysInMonth;
@@ -106,7 +86,7 @@ class DashboardOpsController extends Controller
             $validate += $monthlyIn[$i][0]->total_pallet ?? 0;
         }
         for ($i = 1; $i <= count($dataMonthlyOccupancy); $i++) {
-            $sor[] = number_format($dataMonthlyOccupancy[$i] / $palletCapacity * 100, 0);
+            $sor[] = number_format($dataMonthlyOccupancy[$i] / $palletCapacity * 100, 0) ?? 0;
         }
         $categories  =
             [
@@ -135,23 +115,23 @@ class DashboardOpsController extends Controller
         return response()->json(
             [
                 'data' => [
-                    'totalOrderToday' => $totalOrderToday,
-                    'truckGateInToday' => $truckGateInToday,
-                    'ProcessUnloadingToday' => $ProcessUnloadingToday,
-                    'finishUnloadingToday' => $finishUnloadingToday,
-                    'totalPalletReceiving' => $totalPalletReceiving,
+                    'totalOrderToday' => $totalOrderToday ?? 0,
+                    'truckGateInToday' => $truckGateInToday ?? 0,
+                    'ProcessUnloadingToday' => $ProcessUnloadingToday ?? 0,
+                    'finishUnloadingToday' => $finishUnloadingToday ?? 0,
+                    'totalPalletReceiving' => $totalPalletReceiving ??   0,
                     'dataMonthly' => $dataMonthly,
                     'principal' => $principal,
-                    'truckToday' => $truckToday,
+                    'truckToday' => $truckToday ?? 0,
                     'dataMonthlyTruck' => $dataMonthlyTruck,
                     'cardOccupancy' => $cardOccupancy,
-                    'jobConfirmedToday' => $jobConfirmedToday,
+                    'jobConfirmedToday' => $jobConfirmedToday ?? 0,
                     'countData'  => $validate,
                     'dataMonthlyOccupancy'  => $dataMonthlyOccupancy,
                     'dataMaxPalletCapacity'  => $dataMaxPalletCapacity,
                     'palletCapacity' => $palletCapacity,
                     'category' => $category,
-                    // 'categories' => $categories,
+                    'categories' => $categories,
                     'totalOrder' => $outbound['totalOrder'],
                     'truck_gate_in' => $outbound['truck_gate_in'],
                     'process_loading' => $outbound['process_loading'],
@@ -159,7 +139,6 @@ class DashboardOpsController extends Controller
                     'total_pallet_day' => $outbound['total_pallet_day'],
                     'total_pallet_month' => $outbound['total_pallet_month'],
                     'total_vehicle_month' => $outbound['total_vehicle_month'],
-                    //=========================
                     'truck_todays' => $outbound['truck_todays']
                 ]
             ]
@@ -218,10 +197,18 @@ class DashboardOpsController extends Controller
         return $data;
     }
 
-    private function getPalletCapacity($principal)
+    private function getPalletCapacity($principal, $site)
     {
-        $data = DB::table('iv_principal')
-            ->where('id', $principal)->value('pallet_capacity');
+        if ($principal == 'ALL') {
+            $data = DB::table('iv_location')
+                ->where('site_id', $site)
+                ->where('active', 'Yes')
+                ->groupBy('location_code')
+                ->get()->count();
+        } else {
+            $data = DB::table('iv_principal')
+                ->where('id', $principal)->value('pallet_capacity');
+        }
         return $data;
     }
 
@@ -236,13 +223,12 @@ class DashboardOpsController extends Controller
     private function totalOrderToday($branch, $principal)
     {
         $data = DB::table('iv_inbound_job')
-            ->select('id', 'confirmed_flag', 'eta')
+            ->select('id', 'confirmed_flag', 'created_at')
             ->where('branch_id', $branch)
             ->where('principal_id', $principal)
-            ->whereDate('eta', date('Y-m-d'))
+            ->whereDate('created_at', date('Y-m-d'))
             ->get();
-        
-        // dd($data);
+
         return $data;
     }
 
@@ -350,19 +336,36 @@ class DashboardOpsController extends Controller
         return $data;
     }
 
-    private function cardOccupancy($branch, $principal)
+    private function cardOccupancy($branch, $principal, $site)
     {
-        $total_pallet = DB::table('iv_principal')
-            ->where('id', $principal)
-            ->value('pallet_capacity');
-        $occupied_slot = DB::table('iv_occupancy_daily')
-            ->orderBy('id', 'DESC')
-            // ->where('branch_id', $branch)
-            ->where('principal_id', $principal)
-            // ->whereYear('created_at', date('Y'))
-            // ->where('qtya', '>', 0)
-            // ->first()
-            ->value('qty');
+        if ($principal == 'ALL') {
+            $total_pallet = DB::table('iv_location')
+                ->where('site_id', $site)
+                ->where('active', 'Yes')
+                ->groupBy('location_code')
+                ->get()->count();
+            $location_count = DB::table("iv_stock_ledger as a")
+                ->select("a.location_id")
+                ->where('a.branch_id', $branch)
+                ->where("a.qtys", ">", 0)
+                ->groupBy("a.location_id")
+                ->get()
+                ->count();
+        } else {
+            $total_pallet = DB::table('iv_principal')
+                ->where('id', $principal)
+                ->value('pallet_capacity');
+            $location_count = DB::table("iv_stock_ledger as a")
+                ->select("a.location_id", "a.qtys", "a.branch_id")
+                ->where("a.principal_id", $principal)
+                ->where('a.branch_id', $branch)
+                ->where("a.qtys", ">", 0)
+                ->groupBy("a.location_id")
+                ->get()
+                ->count();
+        }
+
+        $occupied_slot = $location_count;
         $available_slot = (int)$total_pallet - (int)$occupied_slot;
         if ($available_slot < 0) {
             $available_slot = 0;
@@ -379,16 +382,30 @@ class DashboardOpsController extends Controller
 
     private function chartsOccupancy($branch, $principal)
     {
-        $occupancy = DB::table('iv_occupancy_daily')
-            ->selectRaw("
+        if ($principal == 'ALL') {
+            $occupancy = DB::table('iv_occupancy_daily')
+                ->selectRaw("
                 DATE_FORMAT(transaction_date, '%Y-%m') AS new_date, 
                 YEAR(transaction_date) AS year, 
                 MONTH(transaction_date) AS month,
                 qty
             ")
-            ->whereYear('transaction_date', date('Y'))
-            ->where('principal_id', $principal)
-            ->get()->groupBy('month');
+                ->whereYear('transaction_date', date('Y'))
+                ->where('principal_id', $principal)
+                ->get()->groupBy('month');
+        } else {
+            $occupancy = DB::table('iv_occupancy_daily')
+                ->selectRaw("
+                DATE_FORMAT(transaction_date, '%Y-%m') AS new_date, 
+                YEAR(transaction_date) AS year, 
+                MONTH(transaction_date) AS month,
+                qty
+            ")
+                ->whereYear('transaction_date', date('Y'))
+                ->where('principal_id', $principal)
+                ->get()->groupBy('month');
+        }
+
         $data = [];
         foreach ($occupancy as $key => $value) {
             $data[$key] = (int)round($value->where('month', $key)->avg('qty'));
@@ -430,10 +447,11 @@ class DashboardOpsController extends Controller
     private function getOutboundJobToday($branch, $principal)
     {
         $data = DB::table('iv_outbound_job')
-            ->select('etd', 'principal_id', 'branch_id', 'confirmed_flag', 'allocated_date', 'id') // optimalisasikan query
-            ->whereDate('etd', date('Y-m-d'))
+            ->select('job_no', 'created_at', 'principal_id', 'branch_id', 'confirmed_flag', 'allocated_date', 'id')
+            ->whereDate('created_at', date('Y-m-d'))
             ->where('principal_id', $principal)
             ->where('branch_id', $branch)
+            // ->where('loading_flag', 'Yes')
             ->get();
 
         return $data;
@@ -443,16 +461,12 @@ class DashboardOpsController extends Controller
     private function truckGateINTodayOutbound($branch, $principal)
     {
         $allocated = $this->getOutboundJobToday($branch, $principal)->whereNull('allocated_date')->pluck('id')->toArray();
-        // dd($allocated);
         $data =  DB::table('iv_outbound_order')
             ->select('created_at', 'outbound_id')
             ->whereDate('created_at', date('Y-m-d'))
-            // ->whereIn('outbound_id', $outbound_id)
             ->whereIn('outbound_id', $allocated)
             ->groupBy('outbound_id')
             ->get()->count();
-        // $data =  ABS($data - $this->proccesLoadingToday($outbound_id));
-        // dd($data);
         return $data;
     }
 
@@ -473,7 +487,6 @@ class DashboardOpsController extends Controller
             ->groupBy('outbound_id')
             ->pluck('outbound_id')->toArray();
         // $data =  ABS($data - $this->proccesLoadingToday($outbound_id));
-        // dd($despatch);
         // return $data;
 
 
@@ -507,14 +520,13 @@ class DashboardOpsController extends Controller
     {
         $outbound_id = $this->getOutboundJobToday($branch, $principal)->pluck('id')->toArray();
         $data = DB::table('iv_outbound_despatch')
-            ->select('store_id', 'etd', 'outbound_id')
+            ->select('store_id', 'created_at', 'outbound_id')
             ->whereIn('outbound_id', $outbound_id)
-            ->whereDate('etd', date('Y-m-d'))
+            ->whereDate('created_at', date('Y-m-d'))
             ->groupBy('outbound_id')
             ->whereNotNull('store_id')
             ->get()->count();
 
-        // dd($data);
         // $data =  ABS($data - $this->proccesLoadingToday($outbound_id));
 
 
@@ -525,7 +537,6 @@ class DashboardOpsController extends Controller
     {
 
         $outbound_id = $this->getOutboundJobToday($branch, $principal)->where('confirmed_flag', 'Yes')->pluck('id')->toArray();
-
 
         // dd($outbound_id);
         $data = DB::table('iv_outbound_batch')
@@ -601,9 +612,11 @@ class DashboardOpsController extends Controller
         $outbound_id = $this->getOutboundJobToday($branch, $principal)->pluck('id')->toArray();
 
         $data = DB::table('iv_outbound_despatch')
+            ->whereDate('created_at', date('Y-m-d'))
             ->whereIn('outbound_id', $outbound_id)
             ->whereNotNull('size_id')
             ->get()->groupBy('size_id');
+
         return $data;
     }
 
@@ -621,13 +634,10 @@ class DashboardOpsController extends Controller
             ->where('principal_id', $principal)
             ->pluck('id')->toArray();
 
-        // dd($outids);
-
         $data = DB::table('iv_outbound_despatch')
             ->whereIn('outbound_id', $outids)
-            // ->whereNotNull('size_id')
             ->get();
-            // ->groupBy('size_id');
+        // ->groupBy('size_id');
         // dd($data);
 
         $truck_todays = [];
@@ -671,61 +681,59 @@ class DashboardOpsController extends Controller
         return response()->json($loop);
     }
 
-    public function getListOccupancy($branch,$principal,$start,$end){
+    public function getListOccupancy($branch, $principal, $start, $end)
+    {
         // dd('tess');
 
 
-        
-            $startDate = \Carbon\Carbon::parse($start)->startOfDay();
-            $endDate = \Carbon\Carbon::parse($end)->endOfDay();
+
+        $startDate = \Carbon\Carbon::parse($start)->startOfDay();
+        $endDate = \Carbon\Carbon::parse($end)->endOfDay();
 
 
-            // dd($start);
-            // dd($startDate);
-            // Mendapatkan saldo awal dari tanggal sebelum tanggal start
-            $balanceStart = DB::table('iv_occupancy_daily')
+        // dd($start);
+        // dd($startDate);
+        // Mendapatkan saldo awal dari tanggal sebelum tanggal start
+        $balanceStart = DB::table('iv_occupancy_daily')
+            ->where('principal_id', $principal)
+            // ->whereDate('transaction_date', '<=', $start)
+            ->whereBetween('transaction_date', [$start, $end])
+            ->groupBy('transaction_date')
+            ->orderBy('transaction_date', 'asc')
+            ->first();
+
+        // dd($balanceStart);
+        $selected_balance = $balanceStart ? $balanceStart->qty : 0;
+
+        $currentBalance = $selected_balance;
+        $result = [];
+
+        for ($date = $startDate; $date <= $endDate; $date->addDay()) {
+            $dateStr = $date->format('Y-m-d');
+
+            $dailyData = DB::table('iv_occupancy_daily')
                 ->where('principal_id', $principal)
-                // ->whereDate('transaction_date', '<=', $start)
-                ->whereBetween('transaction_date',[$start,$end])
-                ->groupBy('transaction_date')
-                ->orderBy('transaction_date', 'asc')
+                ->whereDate('transaction_date', $dateStr . " 00:00:00")
                 ->first();
 
-            // dd($balanceStart);
-            $selected_balance = $balanceStart ? $balanceStart->qty : 0;
+            $in = $dailyData ? $dailyData->in : 0;
+            $out = $dailyData ? $dailyData->out : 0;
 
-            $currentBalance = $selected_balance;
-            $result = [];
+            $currentBalance += $in - $out;
 
-            for ($date = $startDate; $date <= $endDate; $date->addDay()) {
-                $dateStr = $date->format('Y-m-d');
-
-                $dailyData = DB::table('iv_occupancy_daily')
-                    ->where('principal_id', $principal)
-                    ->whereDate('transaction_date', $dateStr . " 00:00:00")
-                    ->first();
-
-                $in = $dailyData ? $dailyData->in : 0;
-                $out = $dailyData ? $dailyData->out : 0;
-
-                $currentBalance += $in - $out;
-
-                $result[] = [
-                    'transaction_date' => $date->format('d/m/Y'),
-                    'in' => $in,
-                    'out' => $out,
-                    'stock' => $currentBalance,
-                ];
-            }
-
-            // dd($result);
-
-            return response()->json([
-                'opening_balance' => $selected_balance,
-                'data' => $result,
-            ]);
+            $result[] = [
+                'transaction_date' => $date->format('d/m/Y'),
+                'in' => $in,
+                'out' => $out,
+                'stock' => $currentBalance,
+            ];
         }
-    
-        
-    
+
+        // dd($result);
+
+        return response()->json([
+            'opening_balance' => $selected_balance,
+            'data' => $result,
+        ]);
+    }
 }

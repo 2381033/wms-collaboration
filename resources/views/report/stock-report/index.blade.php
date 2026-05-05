@@ -106,6 +106,9 @@
                                     <div class="form-group">
                                         <label for="principal_id">Principal Name</label>
                                         <select name="principal_id" id="principal_id" class="custom-select">
+                                            @if (Auth::user()->role_id != 1)
+                                                <option value="ALL">ALL</option>
+                                            @endif
                                             @foreach (Auth::user()->principal as $item)
                                                 <option value="{{ $item->id }}">{{ $item->principal_name }}</option>
                                             @endforeach
@@ -341,40 +344,6 @@
                 });
             });
 
-            $("#product_name_from").autocomplete({
-                    minLength: 0,
-                    classes: {
-                        "ui-autocomplete": "highlight"
-                    },
-                    source: function(request, response) {
-                        $.ajax({
-                            url: "{{ route('stock-report.getProduct') }}",
-                            dataType: "json",
-                            data: {
-                                _token: CSRF_TOKEN,
-                                principal_id: $('#principal_id').val(),
-                                group_code_from: $('#group_code_from').val(),
-                                group_code_to: $('#group_code_to').val(),
-                                brand_code_from: $('#brand_code_from').val(),
-                                brand_code_to: $('#brand_code_to').val(),
-                                search: request.term
-                            },
-                            success: function(data) {
-                                response(data);
-                            }
-                        });
-                    },
-                    select: function(event, ui) {
-                        $('#product_name_from').val(ui.item.product_name);
-                        $('#product_code_from').val(ui.item.product_code);
-                        return false;
-                    }
-                })
-                .autocomplete("instance")._renderItem = function(ul, item) {
-                    return $("<li>")
-                        .append("<div>" + item.product_name + " (" + item.product_code + ")</div>")
-                        .appendTo(ul);
-                };
 
             $("#product_name_to").autocomplete({
                     minLength: 0,
@@ -402,6 +371,42 @@
                     select: function(event, ui) {
                         $('#product_name_to').val(ui.item.product_name);
                         $('#product_code_to').val(ui.item.product_code);
+                        return false;
+                    }
+                })
+                .autocomplete("instance")._renderItem = function(ul, item) {
+                    return $("<li>")
+                        .append("<div>" + item.product_name + " (" + item.product_code + ")</div>")
+                        .appendTo(ul);
+                };
+
+
+            $("#product_name_from").autocomplete({
+                    minLength: 0,
+                    classes: {
+                        "ui-autocomplete": "highlight"
+                    },
+                    source: function(request, response) {
+                        $.ajax({
+                            url: "{{ route('stock-report.getProduct') }}",
+                            dataType: "json",
+                            data: {
+                                _token: CSRF_TOKEN,
+                                principal_id: $('#principal_id').val(),
+                                group_code_from: $('#group_code_from').val(),
+                                group_code_to: $('#group_code_to').val(),
+                                brand_code_from: $('#brand_code_from').val(),
+                                brand_code_to: $('#brand_code_to').val(),
+                                search: request.term
+                            },
+                            success: function(data) {
+                                response(data);
+                            }
+                        });
+                    },
+                    select: function(event, ui) {
+                        $('#product_name_from').val(ui.item.product_name);
+                        $('#product_code_from').val(ui.item.product_code);
                         return false;
                     }
                 })

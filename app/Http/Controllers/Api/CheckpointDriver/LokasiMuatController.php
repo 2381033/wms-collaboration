@@ -12,11 +12,68 @@ use Illuminate\Support\Str;
 
 class LokasiMuatController extends Controller
 {
+    private function compressJpeg($uploadedFile, $destination, $quality = 70)
+    {
+        $source = imagecreatefromjpeg($uploadedFile->getRealPath());
+        $width  = imagesx($source);
+        $height = imagesy($source);
+
+        $maxWidth = 1600;
+        $maxHeight = 1600;
+
+        if ($width > $maxWidth || $height > $maxHeight) {
+            $ratio = min($maxWidth / $width, $maxHeight / $height);
+
+            $newWidth  = intval($width * $ratio);
+            $newHeight = intval($height * $ratio);
+
+            $resized = imagecreatetruecolor($newWidth, $newHeight);
+
+            imagecopyresampled(
+                $resized,
+                $source,
+                0,
+                0,
+                0,
+                0,
+                $newWidth,
+                $newHeight,
+                $width,
+                $height
+            );
+
+            $source = $resized;
+        }
+
+        imagejpeg($source, $destination, $quality);
+
+        imagedestroy($source);
+    }
     private function detailUser($id_user)
     {
         $data = DB::table('users')
             ->where('id', $id_user)->first();
         return $data;
+    }
+
+    private function whereMyBranch($user_id)
+    {
+        $branch = DB::table('sm_user_branch')
+            ->where('user_id', $user_id)
+            ->first()->branch_id;
+
+        return $branch;
+    }
+
+    private function logicWaktu($id_user)
+    {
+        $branch = $this->whereMyBranch($id_user);
+
+        if ($branch == 5) {
+            return date('Y-m-d H:i:s', strtotime('+1 hour'));
+        } else {
+            return date('Y-m-d H:i:s');
+        }
     }
 
     public function gateInLokasiMuat($id)
@@ -26,7 +83,7 @@ class LokasiMuatController extends Controller
                 $token = DB::table('cp_driver_detail')
                     ->where('id', $id)
                     ->value('token');
-
+                $job = $this->getJob($token);
                 DB::table('cp_driver_job')
                     ->updateOrInsert(
                         ['token' =>  $token],
@@ -40,7 +97,7 @@ class LokasiMuatController extends Controller
                     ->updateOrInsert(
                         ['id' =>  $id],
                         [
-                            'gate_in_loc_muat' => date('Y-m-d H:i:s'),
+                            'gate_in_loc_muat' => $this->logicWaktu($job->driver),
                         ]
                     );
                 DB::commit();
@@ -63,11 +120,9 @@ class LokasiMuatController extends Controller
     {
         $exception = DB::transaction(function () use ($request) {
             try {
-                $file = $request->file('photo');
-                $filename = 'out-muat-' . $request->id . '-' . $request->job_no . "." . $file->getClientOriginalExtension();
-                if (!file_exists(public_path('foto/checkpoint-driver/lokasi-muat/' . $filename))) {
-                    $file->move(public_path('foto/checkpoint-driver/lokasi-muat'), $filename);
-                }
+                $filename = 'out-muat-' . $request->job_no . "-" . Str::random(6) . ".jpg";
+                $destination = public_path('foto/checkpoint-driver/lokasi-muat/' . $filename);
+                $this->compressJpeg($request->file('photo'), $destination);
                 DB::table('cp_driver_detail')
                     ->updateOrInsert(
                         ['id' =>  $request->id],
@@ -95,11 +150,9 @@ class LokasiMuatController extends Controller
     {
         $exception = DB::transaction(function () use ($request) {
             try {
-                $file = $request->file('photo');
-                $filename = 'in-muat-' . $request->id . '-' . $request->job_no . "." . $file->getClientOriginalExtension();
-                if (!file_exists(public_path('foto/checkpoint-driver/lokasi-muat/' . $filename))) {
-                    $file->move(public_path('foto/checkpoint-driver/lokasi-muat'), $filename);
-                }
+                $filename = 'in-muat-' . $request->job_no . "-" . Str::random(6) . ".jpg";
+                $destination = public_path('foto/checkpoint-driver/lokasi-muat/' . $filename);
+                $this->compressJpeg($request->file('photo'), $destination);
                 DB::table('cp_driver_detail')
                     ->updateOrInsert(
                         ['id' =>  $request->id],
@@ -130,6 +183,7 @@ class LokasiMuatController extends Controller
                 $token = DB::table('cp_driver_detail')
                     ->where('id', $id)
                     ->value('token');
+                $job = $this->getJob($token);
 
                 DB::table('cp_driver_job')
                     ->updateOrInsert(
@@ -144,7 +198,7 @@ class LokasiMuatController extends Controller
                     ->updateOrInsert(
                         ['id' =>  $id],
                         [
-                            'gate_out_loc_muat' => date('Y-m-d H:i:s'),
+                            'gate_out_loc_muat' => $this->logicWaktu($job->driver),
                             'status' => 1
                         ]
                     );

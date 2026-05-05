@@ -57,12 +57,10 @@ class CancelController extends Controller
         $exception = DB::transaction(function () use ($request) {
             try {
                 $data = $request->cancel_id;
-
                 foreach ($data as $id) {
                     $batch = outboundBatch::find($id);
                     $detail = outboundDetails::find($batch->picking_id);
                     $serial = stockLedger::find($batch->serial_id);
-
                     $serial->qtya = $serial->qtya + $batch->qty;
                     $serial->qtyp = $serial->qtyp - $batch->qty;
                     $serial->save();

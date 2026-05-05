@@ -32,6 +32,7 @@ class CycleCountSKUImports implements ToCollection, WithHeadingRow
         $job[] = [
             'site_id' => $this->site_id,
             'branch_id' => $this->myBranch(),
+            'principal_id' => $stock->first()->principal_id,
             'job_no'  => $job_no,
             'type'  => 'sku',
             'description' => 'Cycle Count ' . date('d-m-Y'),

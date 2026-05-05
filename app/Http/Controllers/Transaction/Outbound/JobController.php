@@ -37,9 +37,15 @@ class JobController extends Controller
             $date_to = \Carbon\Carbon::parse($dateObject)->format('Y-m-d');
 
             $list_data = outboundJob::from('iv_outbound_job as a')
-                ->select('a.*')
+                ->leftJoin(
+                    DB::raw('(SELECT outbound_id, vehicle_no FROM iv_outbound_despatch GROUP BY outbound_id) v'),
+                    'a.id',
+                    '=',
+                    'v.outbound_id'
+                )
                 ->join('iv_principal as b', 'a.principal_id', 'b.id')
                 ->join('users_principal as c', 'a.principal_id', 'c.principal_id')
+                ->select('a.*', 'v.vehicle_no')
                 ->where('a.company_id', $company_id)
                 ->where('c.user_id', $user_id)
                 ->where('a.branch_id', $request->branch_id)
@@ -50,12 +56,6 @@ class JobController extends Controller
                 ->get();
 
             return datatables()->of($list_data)
-                // ->editColumn('job_date', function ($data) {
-                //     return date('d/m/Y', strtotime($data->job_date));
-                // })
-                // ->editColumn('eta', function ($data) {
-                //     return date('d/m/Y', strtotime($data->eta));
-                // })
                 ->editColumn('confirmed_flag', function ($data) {
                     if ($data->confirmed_flag == 'Yes') {
                         $status = '<div class="btn btn-sm btn-success">Completed</div>';
@@ -122,13 +122,21 @@ class JobController extends Controller
             ->whereIn('site_id', $site_arr)
             ->get();
 
+        $vehicle  = DB::table('iv_gate_in_cargo')
+            ->whereDate('gate_in_at', date('Y-m-d'))
+            ->whereIn('site_id', $site_arr)
+            ->where('activity', 'OUTBOUND')
+            ->get();
+
         $data = [
             'job_view' => $job_view,
             'class_list' => $class_list,
             'mode_list' => $mode_list,
             'confirm_checker' => $confirm_checker,
             'location' => $location,
-            'container_size' => $container_size
+            'container_size' => $container_size,
+            'list_sku' => $list_sku,
+            'vehicle' => $vehicle
         ];
 
 
@@ -176,6 +184,16 @@ class JobController extends Controller
 
     public function store(Request $request)
     {
+        $validate = DB::table('iv_freeze_job')
+            ->where('branch_id', $request->branch_id)
+            ->where('principal_id', $request->principal_id)
+            ->where('status_flag', 'Run')
+            ->where('freeze_activity', 'LIKE', '%outbound%')
+            ->count();
+        if ($validate > 0) {
+            return response()->json(['error' => ['Principal access is temporarily restricted (Freeze).']]);
+        }
+
         $user_id = Auth::user()->username;
         $id = $request->outbound_id;
 

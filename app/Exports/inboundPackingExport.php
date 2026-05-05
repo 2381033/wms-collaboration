@@ -11,33 +11,34 @@ class inboundPackingExport implements FromCollection, WithHeadings, ShouldAutoSi
 {
     protected $id = null;
 
-    public function __construct($id) {
+    public function __construct($id)
+    {
         $this->id = $id;
     }
 
     public function collection()
     {
         $table = DB::table("iv_inbound_detail as a")
-                    ->select(
-                        "a.vehicle_no",
-                        "a.product_code",
-                        "b.product_name",
-                        "a.po_number",
-                        "a.lot_no",
-                        "a.document_ref",
-                        "a.mfg_date",
-                        "a.exp_date",
-                        "a.manufactur_id",
-                        "c.status_name",
-                        "a.pallet_id",
-                        "a.pqty",
-                        "a.mqty",
-                        "a.bqty"
-                    ) 
-                    ->join("iv_product as b", "a.product_id", "b.id")
-                    ->join("iv_stock_status as c", "a.status_id", "c.id")
-                    ->where("a.inbound_id", $this->id)
-                    ->get();
+            ->select(
+                "a.vehicle_no",
+                "a.product_code",
+                "b.product_name",
+                "a.po_number",
+                "a.lot_no",
+                "a.document_ref",
+                "a.mfg_date",
+                "a.exp_date",
+                "a.manufactur_id",
+                "c.status_name",
+                "a.pallet_id",
+                "a.pqty",
+                "a.mqty",
+                "a.bqty"
+            )
+            ->join("iv_product as b", "a.product_id", "b.id")
+            ->join("iv_stock_status as c", "a.status_id", "c.id")
+            ->where("a.inbound_id", $this->id)
+            ->get();
 
         return $table;
     }

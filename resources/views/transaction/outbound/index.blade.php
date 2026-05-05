@@ -93,7 +93,7 @@
                                     <th>Outbound Created At</th>
                                     <th>Outbound Confirm Date</th>
                                     <th>Description</th>
-                                    <th>Reference No</th>
+                                    <th>Vehicle No</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -219,8 +219,8 @@
                             name: 'description'
                         },
                         {
-                            data: 'reference_no',
-                            name: 'reference_no'
+                            data: 'vehicle_no',
+                            name: 'vehicle_no'
                         },
                         {
                             data: 'confirmed_flag',

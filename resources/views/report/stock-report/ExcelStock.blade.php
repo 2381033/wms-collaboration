@@ -82,6 +82,7 @@
                     <th>Gross Weight</th>
                     <th>Volume</th>
                     <th>Status</th>
+                    <th>CARTON ID</th>
                 </tr>
             @endif
         @endif
@@ -186,6 +187,7 @@
                         <td>{{ $value['gross_weight'] }}</td>
                         <td>{{ $value['volume'] }}</td>
                         <td>{{ $value['status_code'] }}</td>
+                        <td>{{ $value['ean_code'] }}</td>
                     </tr>
                 @endforeach
             @endif

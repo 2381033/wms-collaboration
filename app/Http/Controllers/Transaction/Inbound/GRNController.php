@@ -18,12 +18,25 @@ class GRNController extends Controller
 
         if ($request->ajax()) {
             $list_data = inboundDetail::from('iv_inbound_detail as a')
-                ->select('a.*', 'b.product_name')
+                ->select('a.*', 'b.product_name', 'b.manufactur_code')
                 ->join('iv_product as b', 'a.product_id', 'b.id')
                 ->where('a.company_id', $company_id)
                 ->where('a.inbound_id', $request->inbound_id)
                 ->where('a.received_flag', 'No')
                 ->get();
+
+            $eanCountPerProduct = $list_data->filter(function ($detail) {
+                return !is_null($detail->ean_code) && $detail->ean_code !== ''; // Pastikan ean_code tidak null dan tidak kosong
+            })->groupBy('product_code')->map(function ($group) {
+                return $group->map(function ($detail) {
+                    return count(explode(',', $detail->ean_code));
+                })->sum();
+            });
+
+            $list_data->map(function ($detail) use ($eanCountPerProduct) {
+                $detail->ean_code_count = $eanCountPerProduct->get($detail->product_code, 0);
+                return $detail;
+            });
 
             return datatables()->of($list_data)
                 ->editColumn('exp_date', function ($data) {
@@ -40,17 +53,31 @@ class GRNController extends Controller
                     }
                     return $mfg_date;
                 })
-                // ->addColumn('check', function ($data) {
-                //     return '<input type="checkbox" required="required" name="grn_id[]" class="grn-check" id="' . $data->id . '" value="' . $data->id . '">';
-                // })
-                // ->addColumn('action', function ($data) {
-                //     $button = "";
-                //     if ($data->received_flag == 'No') {
-                //         $button .= '<a href="javascript:void(0)" data-toggle="tooltip"  data-id="' . $data->id . '" data-original-title="Edit" class="edit-grn btn btn-info btn-sm"><i class="far fa-edit"></i></a>';
-                //     }
-                //     return $button;
-                // })
-                ->rawColumns(['action', 'check'])
+                ->addColumn('ean_code_count', function ($data) {
+                    if (is_null($data->manufactur_code)) {
+                        $countingActual = $data->pqty;
+                    } else {
+                        $countingActual = $data->ean_code_count;
+                    }
+                    return $countingActual;
+                })
+                ->addColumn('action', function ($data) {
+                    $ean_codes = explode(',', $data->ean_code);
+                    $ean_count = count($ean_codes);
+                    $button = '<a class="btn btn-sm btn-dark text-white" onclick="addPallet(\'' . $data->id . '\', \'' . $data->inbound_id . '\', \'' . $data->product_code . '\', \'' . $data->pqty . '\')">' .
+                        '<i class="fas fa-plus"></i> Add/Update Pallet</a>';
+                    if (is_null($data->manufactur_code)) {
+                        $button = $button;
+                    } else {
+                        if ($ean_count == $data->pqty) {
+                            $button = $button;
+                        } else {
+                            $button = "";
+                        }
+                    }
+                    return $button;
+                })
+                ->rawColumns(['action'])
                 ->addIndexColumn()
                 ->make(true);
         }
@@ -124,16 +151,16 @@ class GRNController extends Controller
             try {
                 $data = $request->product_code;
                 $id = $request->inbound_id;
-                if(is_null($data)){
+                if (is_null($data)) {
                     DB::rollBack();
                     $message = ['error' => 'Palletize is required!'];
-                }else{
+                } else {
                     foreach ($data as $key => $value) {
                         $detail = DB::table('iv_inbound_detail')
                             ->where('inbound_id', $id)
                             ->where('product_code', $request->product_code[$key])
                             ->first();
-    
+
                         DB::table('iv_inbound_detail')
                             ->where('inbound_id', $id)
                             ->where('product_code', $request->product_code[$key])
@@ -142,19 +169,19 @@ class GRNController extends Controller
                                 'received_flag' => 'Yes',
                                 'received_by'   => Auth::user()->username
                             ]);
-    
+
                         $job = inboundJob::find($detail->inbound_id);
-    
+
                         if (isset($job)) {
                             $dateObject = \Carbon\Carbon::createFromFormat('d/m/Y H:i', $request->ata);
                             $ata = \Carbon\Carbon::parse($dateObject)->format('Y-m-d H:i');
-    
+
                             $dateObject = \Carbon\Carbon::createFromFormat('d/m/Y H:i', $request->unloading_start);
                             $unloading_start = \Carbon\Carbon::parse($dateObject)->format('Y-m-d H:i');
-    
+
                             $dateObject = \Carbon\Carbon::createFromFormat('d/m/Y H:i', $request->unloading_finish);
                             $unloading_finish = \Carbon\Carbon::parse($dateObject)->format('Y-m-d H:i');
-    
+
                             if (empty($job->ata)) {
                                 $job->ata = $ata;
                                 $job->unloading_start = $unloading_start;
@@ -162,7 +189,11 @@ class GRNController extends Controller
                                 $job->save();
                             }
                         }
-    
+                        if ($job->class_id == 3) { // Putaway for class 3 (Cross Docking)
+                            $job->received_flag = 'Yes';
+                            dd($job);
+                        }
+
                         $job->received_flag = 'Yes';
                         $job->received_by = $received_by;
                         $job->received_date = $received_date;

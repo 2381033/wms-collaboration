@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Transaction\Stock;
 
 use App\Exports\TransactionReportExport;
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -32,8 +33,8 @@ class TransactionController extends Controller
                 $job_type = [
                     "IMP",
                     "EXP",
-                    // "TFRI",
-                    // "TFRO",
+                    "TFRI",
+                    "TFRO",
                     "ADJ+",
                     "ADJ-"
                 ];
@@ -162,20 +163,21 @@ class TransactionController extends Controller
                 $stockBefore = DB::table('iv_stock_transaction as a')
                     ->select(
                         'a.product_id',
-                        DB::raw("sum(CASE WHEN a.job_type IN ('IMP', 'TFRI', 'ADJ+') THEN a.qty ELSE 0 END ) as qty_received"),
-                        DB::raw("sum(CASE WHEN a.job_type IN ('EXP', 'TFRO', 'ADJ-') THEN a.qty ELSE 0 END ) as qty_issue")
+                        DB::raw("SUM(CASE WHEN a.job_type IN ('IMP','TFRI','ADJ+') THEN a.qty ELSE 0 END) as qty_received"),
+                        DB::raw("SUM(CASE WHEN a.job_type IN ('EXP','TFRO','ADJ-') THEN a.qty ELSE 0 END) as qty_issue")
                     )
                     ->join('iv_product as b', 'a.product_id', 'b.id')
                     ->where('a.company_id', $company_id)
                     ->where('a.principal_id', $principal_id)
                     ->where('a.branch_id', $branch_id)
-                    ->where('a.job_date', '<', date($date_from))
+                    ->whereDate('a.job_date', '<=', Carbon::parse($date_from)->subDay()->toDateString())
                     ->whereBetween('b.product_code', [$product_from, $product_to])
                     ->whereIn(DB::raw("COALESCE(a.site_id, 0)"), $site_list)
                     ->where(DB::raw("COALESCE(a.area_id, 0)"), "LIKE", $area_id)
                     ->whereBetween(DB::raw("COALESCE(a.location_code, '')"), [$location_from, $location_to])
                     ->groupBy('a.product_id')
                     ->get();
+
 
                 $stockList = DB::table('iv_stock_transaction as a')
                     ->select(
@@ -217,7 +219,8 @@ class TransactionController extends Controller
                     ->where(DB::raw("COALESCE(a.area_id, 0)"), "LIKE", $area_id)
                     ->whereBetween(DB::raw("COALESCE(a.location_code, '')"), [$location_from, $location_to])
                     ->whereBetween(DB::raw("COALESCE(a.lot_no, '')"), [$batch_from, $batch_to])
-                    ->whereBetween('a.job_date', [date($date_from), date($date_to)])
+                    ->whereDate('a.job_date', '>=', Carbon::parse($date_from)->toDateString())
+                    ->whereDate('a.job_date', '<=', Carbon::parse($date_to)->toDateString())
                     ->whereIn('a.job_type', $job_type)
                     ->orderBy('b.product_code', 'asc')
                     ->orderBy('b.product_name', 'asc')

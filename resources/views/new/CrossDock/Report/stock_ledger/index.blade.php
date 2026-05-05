@@ -49,7 +49,6 @@
                                             <th rowspan="2">Customer</th>
                                             <th rowspan="2">Description</th>
                                             <th rowspan="2">Cargo ID</th>
-                                            {{-- <th rowspan="2">SKU</th> --}}
                                             <th rowspan="2">Date IN</th>
                                             <th colspan="3">Dimesions</th>
                                             <th rowspan="2">Weight Per Unit (Kg)</th>
@@ -73,12 +72,12 @@
                                         @foreach ($data->where('on_hand', '>', 0) as $item)
                                             <tr class="center">
                                                 <td>{{ $item->warehouse }}</td>
-                                                <td>{{ $item->header->job_no }}</td>
+                                                <td>{{ $item->job_no }}</td>
                                                 <td>{{ $item->customer }}</td>
-                                                <td>{{ $item->description == null ? '-' : $item->description }}</td>
+                                                <td>{{ $item->inbound_remark == null ? '-' : $item->inbound_remark }}
+                                                </td>
                                                 <td>{{ $item->id_cargo }}</td>
-                                                {{-- <td>{{ $item->sku }}</td> --}}
-                                                <td>{{ \Carbon\Carbon::parse($item->header->created_at)->format('d-m-Y') }}
+                                                <td>{{ \Carbon\Carbon::parse($item->created_at)->format('d-m-Y') }}
                                                 </td>
                                                 <td>{{ $item->p }}</td>
                                                 <td>{{ $item->l }}</td>
@@ -115,19 +114,24 @@
                                         <tr>
                                             <th class="center" rowspan="2">Warehouse</th>
                                             <th class="center" rowspan="2">Customer</th>
-                                            <th class="center" rowspan="2">Qty</th>
+                                            <th class="center" rowspan="2">SOH</th>
+                                            <th class="center" rowspan="2">SOB</th>
+                                            <th class="center" rowspan="2">SOA</th>
                                             <th class="center" rowspan="2">Weight Total (Kg)</th>
                                             <th class="center" rowspan="2">Vol. Total (Cbm)</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @foreach ($groupBy as $key => $value)
+                                        @foreach ($summary as $key => $value)
                                             <tr>
-                                                <td class="center">{{ $warehouse[$key] ?? '-' }}</td>
-                                                <td class="center">{{ $customer[$key] ?? '-' }}</td>
-                                                <td class="center">{{ $total_sku[$key] ?? 0 }}</td>
-                                                <td class="center">{{ number_format($w_sum[$key], 0, '.', '') }}</td>
-                                                <td class="center">{{ number_format($cbm_sum[$key], 2, '.', '') }}</td>
+                                                <td class="center">{{ $value->warehouse ?? '-' }}</td>
+                                                <td class="center">{{ $value->customer ?? '-' }}</td>
+                                                <td class="center">{{ $value->on_hand ?? '-' }}</td>
+                                                <td class="center">{{ $value->on_booking ?? '-' }}</td>
+                                                <td class="center">{{ $value->on_actual ?? '-' }}</td>
+                                                <td class="center">{{ number_format($value->w_sum, 0, '.', '') }}</td>
+                                                <td class="center">{{ number_format($value->total_cbm, 2, '.', '') }}
+                                                </td>
                                             </tr>
                                         @endforeach
                                     </tbody>

@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Models\Master\Principal as MasterPrincipal;
+use DataTables;
+use Illuminate\Support\Str;
 
 class LedgerController extends Controller
 {
@@ -16,10 +19,21 @@ class LedgerController extends Controller
         return view("report.stock-report.index");
     }
 
+    public function masterSku($excludeProductIds, $principal_id = null)
+    {
+        return DB::table('iv_product as a')
+            ->leftJoin('iv_principal as b', 'a.principal_id', 'b.id')
+            ->when($principal_id, function ($q) use ($principal_id) {
+                $q->where('a.principal_id', $principal_id);
+            })
+            ->whereNotIn('a.id', $excludeProductIds)
+            ->get();
+    }
+
+
     public function report(Request $request)
     {
         $user = Auth::user();
-
         $company_id = Auth::user()->company_id;
         $principal_id = $request->principal_id;
         $branch_id = $request->branch_id;
@@ -27,7 +41,16 @@ class LedgerController extends Controller
         $GroupOn = $request->GroupOn;
         $sortOrder = $request->sortOrder;
 
-        $principal = \App\Models\Master\Principal::find($principal_id);
+        if ($principal_id === 'ALL') {
+            $principal = (object)[
+                'principal_name' => 'ALL PRINCIPAL',
+                'multi_level' => 'No'
+            ];
+        } else {
+            $principal = MasterPrincipal::find($principal_id);
+        }
+
+        $stockKosong = [];
 
         if (!empty($request->group_code_from) && !empty($request->group_code_to)) {
             $group_from = $request->group_code_from;
@@ -131,33 +154,23 @@ class LedgerController extends Controller
             $product_to = $product_to;
         }
 
-        if ($reportType == "summary") {
-            $stok = DB::table('iv_stock_transaction as a')
-                ->select(
-                    'product_id',
-                    DB::raw("sum(CASE WHEN a.job_type IN ('IMP', 'TFRI', 'ADJ+') THEN a.qty ELSE 0 END ) as qty_received"),
-                    DB::raw("sum(CASE WHEN a.job_type IN ('EXP', 'TFRO', 'ADJ-') THEN a.qty ELSE 0 END ) as qty_issue")
-                )
-                ->where('company_id', $company_id)
-                ->where('principal_id', $principal_id)
-                ->where('branch_id', $branch_id)
-                ->whereBetween('product_code', [$product_from, $product_to])
-                ->whereIn(DB::raw("COALESCE(a.site_id, 0)"), $site_list)
-                ->where(DB::raw("COALESCE(a.area_id, 0)"), "LIKE", $area_id)
-                ->whereBetween(DB::raw("COALESCE(a.location_code, '')"), [$location_from, $location_to])
-                ->whereBetween('a.job_date', [date('1990-01-01'), date('2999-12-31')])
-                ->groupBy('product_code')
-                ->orderBy("product_code", $sortOrder)
-                ->orderBy("site_id", $sortOrder)
-                ->orderBy("area_id", $sortOrder)
-                ->orderBy("location_code", $sortOrder)
-                ->get();
+        $user = DB::table("users as a")
+            ->select(
+                "a.*",
+                "b.role_name"
+            )
+            ->join("sm_role as b", "a.role_id", "b.id")
+            ->where("a.username", Auth::user()->username)
+            ->first();
+        $isVendor = ($user->role_name == 'Vendor');
 
+        if ($reportType == "summary") {
             switch ($GroupOn) {
                 case "product":
                     $stockList = DB::table("iv_stock_ledger as a")
                         ->select(
-                            "a.id",
+                            "a.planning",
+                            "p.principal_name",
                             "a.product_code",
                             "a.product_id",
                             "b.product_name",
@@ -170,15 +183,17 @@ class LedgerController extends Controller
                             "b.buom",
                             DB::raw("sum(a.qtys) as qtys"),
                             DB::raw("sum(a.qtya) as qtya"),
-                            DB::raw("sum(a.qtyp) as qtyp"),
-                            DB::raw("CASE WHEN a.status = 'B' THEN 'BAD' ELSE 'GOODS' END as status_code")
+                            DB::raw("sum(a.qtyp) as qtyp")
                         )
                         ->join("iv_product as b", "a.product_id", "b.id")
                         ->join("iv_product_group as e", "b.group_id", "e.id")
                         ->join("iv_product_brand as f", "b.brand_id", "f.id")
-                        ->leftjoin("iv_location as g", "a.location_id", "g.id")
+                        ->join("iv_principal as p", "a.principal_id", "p.id")
+                        ->leftJoin("iv_location as g", "a.location_id", "g.id")
                         ->where("a.company_id", $company_id)
-                        ->where("a.principal_id", $principal_id)
+                        ->when($principal_id !== 'ALL', function ($q) use ($principal_id) {
+                            $q->where('a.principal_id', $principal_id);
+                        })
                         ->where("a.branch_id", $branch_id)
                         ->where("a.qtys", ">", 0)
                         ->whereBetween("e.group_code", [$group_from, $group_to])
@@ -187,76 +202,113 @@ class LedgerController extends Controller
                         ->whereIn(DB::raw("COALESCE(a.site_id, 0)"), $site_list)
                         ->where(DB::raw("COALESCE(a.area_id, 0)"), "LIKE", $area_id)
                         ->whereBetween(DB::raw("COALESCE(a.location_code, '')"), [$location_from, $location_to])
-                        ->whereBetween(DB::raw("COALESCE(a.exp_date, now())"), [$exp_date_from, $exp_date_to])
+                        ->whereBetween(DB::raw("COALESCE(a.exp_date, now())"), [date($exp_date_from), date($exp_date_to)])
                         ->groupBy("a.product_id")
+                        ->orderBy("b.product_name", "asc")
                         ->orderBy("b.product_code", $sortOrder)
-                        ->orderBy("a.site_id", $sortOrder)
-                        ->orderBy("a.area_id", $sortOrder)
-                        ->orderBy("a.location_code", $sortOrder)
                         ->get();
-                    $arr_product = $stockList->pluck('product_id')->toArray();
 
-                    $stok = $stok->whereIn('product_id', $arr_product);
+                    if ($product_from == "") {
+                        $stockKosong = $this->masterSku(
+                            $stockList->pluck('product_id')->toArray(),
+                            $principal_id === 'ALL' ? null : $principal_id
+                        );
+                        $ledgerData = DB::table('iv_stock_ledger as l')
+                            ->selectRaw('l.product_id, l.planning')
+                            ->whereIn('l.product_id', $stockKosong->pluck('id'))
+                            ->whereRaw('l.id IN (
+                                SELECT MAX(id)
+                                FROM iv_stock_ledger
+                                GROUP BY product_id
+                            )')
+                            ->get()
+                            ->keyBy('product_id');
+                    }
 
-                    $total = [];
-                    foreach ($stok as $value) {
-                        $total[] = $value->qty_received - $value->qty_issue;
+                    foreach ($stockKosong as $item) {
+
+                        $plans = [];
+
+                        if (isset($ledgerData[$item->id]) && !empty($ledgerData[$item->id]->planning)) {
+                            $plans = json_decode($ledgerData[$item->id]->planning, true);
+                        }
+                        $plans = collect($plans)->sortBy('week')->values()->toArray();
+                        $max = 4;
+
+                        for ($i = 1; $i <= $max; $i++) {
+                            $item->{"ip_$i"} = '';
+                            $item->{"week_$i"} = '';
+                        }
+                        foreach ($plans as $index => $plan) {
+                            if ($index < $max) {
+                                $item->{"ip_" . ($index + 1)} = $plan['ip'] ?? '';
+                                $item->{"week_" . ($index + 1)} = $plan['week'] ?? '';
+                            }
+                        }
                     }
 
                     if ($principal->multi_level == "Yes") {
                         $headOne = collect([
                             ["name" => "SKU No.", "rowspan" => "2", "colspan" => "1"],
                             ["name" => "SKU Name", "rowspan" => "2", "colspan" => "1"],
-                            ["name" => "SOH", "rowspan" => "1", "colspan" => "3"],
-                            ["name" => "SOB", "rowspan" => "1", "colspan" => "3"],
-                            ["name" => "SOA", "rowspan" => "1", "colspan" => "3"],
-                            ["name" => "Unit", "rowspan" => "1", "colspan" => "3"],
-                            ["name" => "Status", "rowspan" => "2", "colspan" => "1"],
+                            ["name" => "Conversi", "rowspan" => "2", "colspan" => "1"],
+                            ["name" => "SOH", "rowspan" => "1", "colspan" => "4"],
+                            ["name" => "SOB", "rowspan" => "1", "colspan" => "4"],
+                            ["name" => "SOA", "rowspan" => "1", "colspan" => "4"],
+                            ["name" => "Unit", "rowspan" => "1", "colspan" => "4"],
                         ]);
 
                         $headTwo = collect([
                             ["name" => "1st"],
                             ["name" => "2nd"],
                             ["name" => "3rd"],
+                            ["name" => "Quantum"],
                             ["name" => "1st"],
                             ["name" => "2nd"],
                             ["name" => "3rd"],
+                            ["name" => "Quantum"],
                             ["name" => "1st"],
                             ["name" => "2nd"],
                             ["name" => "3rd"],
+                            ["name" => "Quantum"],
                             ["name" => "1st"],
                             ["name" => "2nd"],
-                            ["name" => "3rd"]
+                            ["name" => "3rd"],
+                            ["name" => "Quantum"],
                         ]);
 
                         $bodyOne = collect([
                             ["name" => "SKU No.", "field_name" => "product_code", "class" => "left"],
                             ["name" => "SKU Name", "field_name" => "product_name", "class" => "left"],
+                            ["name" => "Conversi Qty", "field_name" => "conversi", "class" => "left"],
                             ["name" => "1st", "field_name" => "pqtys", "class" => "right"],
                             ["name" => "2nd", "field_name" => "mqtys", "class" => "right"],
                             ["name" => "3rd", "field_name" => "bqtys", "class" => "right"],
+                            ["name" => "Quantum", "field_name" => "quantum_soh", "class" => "right"],
                             ["name" => "1st", "field_name" => "pqtyp", "class" => "right"],
                             ["name" => "2nd", "field_name" => "mqtyp", "class" => "right"],
                             ["name" => "3rd", "field_name" => "bqtyp", "class" => "right"],
+                            ["name" => "Quantum", "field_name" => "quantum_sob", "class" => "right"],
                             ["name" => "1st", "field_name" => "pqtya", "class" => "right"],
                             ["name" => "2nd", "field_name" => "mqtya", "class" => "right"],
                             ["name" => "3rd", "field_name" => "bqtya", "class" => "right"],
+                            ["name" => "Quantum", "field_name" => "quantum_soa", "class" => "right"],
                             ["name" => "1st", "field_name" => "puom", "class" => "center"],
                             ["name" => "2nd", "field_name" => "muom", "class" => "center"],
                             ["name" => "3rd", "field_name" => "buom", "class" => "center"],
-                            ["name" => "status", "field_name" => "status_code", "class" => "center"]
+                            ["name" => "Quantum", "field_name" => "quantum_unit", "class" => "center"],
                         ]);
 
-                        $columnCount = 15;
+                        $columnCount = 20;
                     } else {
                         $headOne = collect([
+                            ["name" => "Principal", "rowspan" => "2", "colspan" => "1"],
                             ["name" => "SKU No.", "rowspan" => "2", "colspan" => "1"],
                             ["name" => "SKU Name", "rowspan" => "2", "colspan" => "1"],
                             ["name" => "SOH", "rowspan" => "1", "colspan" => "1"],
                             ["name" => "SOB", "rowspan" => "1", "colspan" => "1"],
                             ["name" => "SOA", "rowspan" => "1", "colspan" => "1"],
                             ["name" => "Unit", "rowspan" => "1", "colspan" => "1"],
-                            ["name" => "Status", "rowspan" => "2", "colspan" => "1"]
                         ]);
 
                         $headTwo = collect([
@@ -267,48 +319,138 @@ class LedgerController extends Controller
                         ]);
 
                         $bodyOne = collect([
+                            ["name" => "Principal.", "field_name" => "principal_name", "class" => "left"],
                             ["name" => "SKU No.", "field_name" => "product_code", "class" => "left"],
                             ["name" => "SKU Name", "field_name" => "product_name", "class" => "left"],
                             ["name" => "1st", "field_name" => "pqtys", "class" => "right"],
                             ["name" => "1st", "field_name" => "pqtyp", "class" => "right"],
                             ["name" => "1st", "field_name" => "pqtya", "class" => "right"],
                             ["name" => "1st", "field_name" => "puom", "class" => "center"],
-                            ["name" => "status", "field_name" => "status_code", "class" => "center"]
                         ]);
 
-                        $columnCount = 7;
+                        if ($isVendor) {
+                            $max = 4; // jumlah plan
+                            for ($i = 1; $i <= $max; $i++) {
+                                $bodyOne->push([
+                                    "name" => "IP $i",
+                                    "field_name" => "ip_$i",
+                                    "class" => "right",
+                                    "style" => "background:yellow"
+                                ]);
+
+                                $bodyOne->push([
+                                    "name" => "Week $i",
+                                    "field_name" => "week_$i",
+                                    "class" => "right",
+                                    "style" => "background:yellow"
+                                ]);
+
+                                $headOne->push([
+                                    "name" => "IP $i",
+                                    "rowspan" => "2",
+                                    "colspan" => "1",
+                                    "style" => "background:yellow"
+                                ]);
+
+                                $headOne->push([
+                                    "name" => "Week $i",
+                                    "rowspan" => "2",
+                                    "colspan" => "1",
+                                    "style" => "background:yellow"
+                                ]);
+                            }
+                        }
+                        if ($isVendor) {
+                            $columnCount = 9 + ($max * 2);
+                        } else {
+                            $columnCount = 9;
+                        }
                     }
 
                     $listData = [];
+
                     foreach ($stockList as $key => $value) {
-                        // dd( $value->qtys != $total[$key] ? $value->qtys . '-'. $total[$key]  : 'sama');
-                        $listData[] = [
-                            "product_code" => $value->product_code,
-                            "product_name" => $value->product_name,
-                            "puom" => $value->puom,
-                            "muom" => $value->muom,
-                            "buom" => $value->buom,
-                            "pqtys" => $value->qtys != $total[$key] ? $value->qtys : $total[$key],
-                            "mqtys" => (($value->qtys % $value->uppp) - (($value->qtys % $value->uppp) % $value->muppp)) / $value->muppp,
-                            "bqtys" => $value->qtys % $value->uppp % $value->muppp,
-                            "pqtyp" => ($value->qtyp  - ($value->qtyp % $value->uppp)) / $value->uppp,
-                            "mqtyp" => (($value->qtyp % $value->uppp) - (($value->qtyp % $value->uppp) % $value->muppp)) / $value->muppp,
-                            "bqtyp" => $value->qtyp % $value->uppp % $value->muppp,
-                            "pqtya" => $value->qtys != $total[$key] ? abs($value->qtys - ($value->qtyp  - ($value->qtyp % $value->uppp)) / $value->uppp) :  abs($total[$key] - ($value->qtyp  - ($value->qtyp % $value->uppp)) / $value->uppp),
-                            "mqtya" => (($value->qtya % $value->uppp) - (($value->qtya % $value->uppp) % $value->muppp)) / $value->muppp,
-                            "bqtya" => $value->qtya % $value->uppp % $value->muppp,
-                            "status_code" => 'GOODS',
-                        ];
+
+                        if (!is_null($value->qtys)) {
+
+                            // 🔥 1. Decode planning JSON
+                            $plans = [];
+
+                            if (!empty($value->planning)) {
+                                $plans = is_array($value->planning)
+                                    ? $value->planning
+                                    : json_decode($value->planning, true);
+                            }
+
+                            // 🔥 optional: biar urut berdasarkan week
+                            $plans = collect($plans)->sortBy('week')->values()->toArray();
+
+                            // 🔥 2. prepare default kosong
+                            $max = 4;
+                            $ipWeek = [];
+
+                            for ($i = 1; $i <= $max; $i++) {
+                                $ipWeek["ip_$i"] = '';
+                                $ipWeek["week_$i"] = '';
+                            }
+
+                            // 🔥 3. isi dari JSON
+                            foreach ($plans as $index => $plan) {
+                                if ($index < $max) {
+                                    $ipWeek["ip_" . ($index + 1)] = $plan['ip'] ?? '';
+                                    $ipWeek["week_" . ($index + 1)] = $plan['week'] ?? '';
+                                }
+                            }
+
+                            // 🔥 4. merge ke data utama
+                            $listData[] = array_merge([
+                                "principal_name" => $value->principal_name,
+                                "product_code" => $value->product_code,
+                                "product_name" => $value->product_name,
+                                "puom" => $value->puom,
+                                "muom" => $value->muom,
+                                "buom" => $value->buom,
+
+                                "pqtys" => ($value->qtys  - ($value->qtys % $value->uppp)) / $value->uppp,
+                                "mqtys" => (($value->qtys % $value->uppp) - (($value->qtys % $value->uppp) % $value->muppp)) / $value->muppp,
+                                "bqtys" => $value->qtys % $value->uppp % $value->muppp,
+
+                                "pqtyp" => ($value->qtyp  - ($value->qtyp % $value->uppp)) / $value->uppp,
+                                "mqtyp" => (($value->qtyp % $value->uppp) - (($value->qtyp % $value->uppp) % $value->muppp)) / $value->muppp,
+                                "bqtyp" => $value->qtyp % $value->uppp % $value->muppp,
+
+                                "pqtya" => ($value->qtya  - ($value->qtya % $value->uppp)) / $value->uppp,
+                                "mqtya" => (($value->qtya % $value->uppp) - (($value->qtya % $value->uppp) % $value->muppp)) / $value->muppp,
+                                "bqtya" => $value->qtya % $value->uppp % $value->muppp,
+
+                                "conversi" => $value->muppp,
+                                "quantum_unit" => Str::upper($value->muom),
+
+                                "quantum_soh" => ($value->qtys  - ($value->qtys % $value->uppp)) / $value->uppp * $value->muppp +
+                                    (($value->qtys % $value->uppp) - (($value->qtys % $value->uppp) % $value->muppp)) / $value->muppp,
+
+                                "quantum_sob" => ($value->qtyp  - ($value->qtyp % $value->uppp)) / $value->uppp * $value->muppp +
+                                    (($value->qtyp % $value->uppp) - (($value->qtyp % $value->uppp) % $value->muppp)) / $value->muppp,
+
+                                "quantum_soa" => ($value->qtya  - ($value->qtya % $value->uppp)) / $value->uppp * $value->muppp +
+                                    (($value->qtya % $value->uppp) - (($value->qtya % $value->uppp) % $value->muppp)) / $value->muppp,
+
+                            ], $ipWeek);
+                        }
                     }
+
 
                     $data = [
                         "title" => "Product Wise - Stock Report ( Summary )",
-                        "css" => "portrait",
+                        "css" => "landscape",
                         "headOne" => $headOne->toArray(),
                         "headTwo" => $headTwo->toArray(),
                         "bodyOne" => $bodyOne->toArray(),
                         "listData" => $listData,
-                        "columnCount" => $columnCount
+                        "columnCount" => $columnCount,
+                        "stockKosong" => $stockKosong,
+                        "principal" => $principal,
+                        'isVendor' => $isVendor
                     ];
 
                     return view("report", $data);
@@ -317,6 +459,7 @@ class LedgerController extends Controller
                     $stockList = DB::table("iv_stock_ledger as a")
                         ->select(
                             "a.product_code",
+                            "a.product_id",
                             "b.product_name",
                             "a.lot_no",
                             "b.uppp",
@@ -427,7 +570,7 @@ class LedgerController extends Controller
                     }
 
                     $listData = [];
-                    foreach ($stockList as $value) {
+                    foreach ($stockList as $key => $value) {
                         $listData[] = [
                             "product_code" => $value->product_code,
                             "product_name" => $value->product_name,
@@ -462,6 +605,7 @@ class LedgerController extends Controller
                 case "product-doc":
                     $stockList = DB::table("iv_stock_ledger as a")
                         ->select(
+                            "a.product_id",
                             "a.product_code",
                             "b.product_name",
                             "a.document_ref",
@@ -495,6 +639,7 @@ class LedgerController extends Controller
                         ->orderBy("b.product_name", $sortOrder)
                         ->orderBy("a.location_code", $sortOrder)
                         ->get();
+
 
                     if ($principal->multi_level == "Yes") {
                         $headOne = collect([
@@ -573,7 +718,7 @@ class LedgerController extends Controller
                     }
 
                     $listData = [];
-                    foreach ($stockList as $value) {
+                    foreach ($stockList as $key => $value) {
                         $listData[] = [
                             "product_code" => $value->product_code,
                             "product_name" => $value->product_name,
@@ -609,6 +754,7 @@ class LedgerController extends Controller
                     $stockList = DB::table("iv_stock_ledger as a")
                         ->select(
                             "a.product_code",
+                            "a.product_id",
                             "b.product_name",
                             "a.mfg_date",
                             "a.exp_date",
@@ -642,6 +788,7 @@ class LedgerController extends Controller
                         ->orderBy("b.product_name", $sortOrder)
                         ->orderBy("a.location_code", $sortOrder)
                         ->get();
+
 
                     if ($principal->multi_level == "Yes") {
                         $headOne = collect([
@@ -726,7 +873,7 @@ class LedgerController extends Controller
                     }
 
                     $listData = [];
-                    foreach ($stockList as $value) {
+                    foreach ($stockList as $key => $value) {
                         $listData[] = [
                             "product_code" => $value->product_code,
                             "product_name" => $value->product_name,
@@ -761,6 +908,25 @@ class LedgerController extends Controller
                     break;
             }
         } else if ($reportType == "detail") {
+            // $stok = DB::table('iv_stock_transaction as a')
+            //     ->select(
+            //         'product_id',
+            //         DB::raw("sum(CASE WHEN a.job_type IN ('IMP', 'TFRI', 'ADJ+') THEN a.qty ELSE 0 END ) as qty_received"),
+            //         DB::raw("sum(CASE WHEN a.job_type IN ('EXP', 'TFRO', 'ADJ-') THEN a.qty ELSE 0 END ) as qty_issue")
+            //     )
+            //     ->where('company_id', $company_id)
+            //     ->where('principal_id', $principal_id)
+            //     ->where('branch_id', $branch_id)
+            //     ->whereBetween('product_code', [$product_from, $product_to])
+            //     ->whereIn(DB::raw("COALESCE(a.site_id, 0)"), $site_list)
+            //     ->where(DB::raw("COALESCE(a.area_id, 0)"), "LIKE", $area_id)
+            //     ->whereBetween(DB::raw("COALESCE(a.location_code, '')"), [$location_from, $location_to])
+            //     ->whereBetween('a.job_date', [date('1990-01-01'), date('2999-12-31')])
+            //     ->orderBy("product_code", $sortOrder)
+            //     ->orderBy("site_id", $sortOrder)
+            //     ->orderBy("area_id", $sortOrder)
+            //     ->orderBy("location_code", $sortOrder)
+            //     ->get();
             switch ($GroupOn) {
                 case "product":
                     $stockList = DB::table("iv_stock_ledger as a")
@@ -770,6 +936,7 @@ class LedgerController extends Controller
                             "b.product_name",
                             "a.lot_no",
                             "a.mfg_date",
+                            "p.principal_name",
                             "a.exp_date",
                             "c.site_name",
                             "d.area_name",
@@ -784,16 +951,19 @@ class LedgerController extends Controller
                             "a.freeze_flag",
                             "b.volume",
                             "b.gross_weight",
-                            DB::raw("CASE WHEN a.status = 'B' THEN 'BAD' ELSE 'GOODS' END as status_code")
+                            DB::raw("CASE WHEN a.status = 'B' THEN 'BAD' WHEN a.status = 'K' THEN 'QUARANTINE' ELSE 'GOODS' END as status_code")
                         )
                         ->join("iv_product as b", "a.product_id", "b.id")
                         ->leftjoin("iv_site as c", "a.site_id", "c.id")
                         ->leftJoin("iv_site_area as d", "a.area_id", "d.id")
                         ->join("iv_product_group as e", "b.group_id", "e.id")
                         ->join("iv_product_brand as f", "b.brand_id", "f.id")
+                        ->join("iv_principal as p", "a.principal_id", "p.id")
                         ->leftJoin("iv_location as g", "a.location_id", "g.id")
                         ->where("a.company_id", $company_id)
-                        ->where("a.principal_id", $principal_id)
+                        ->when($principal_id !== 'ALL', function ($q) use ($principal_id) {
+                            $q->where('a.principal_id', $principal_id);
+                        })
                         ->where("a.branch_id", $branch_id)
                         ->where("a.qtys", ">", 0)
                         ->whereBetween("e.group_code", [$group_from, $group_to])
@@ -812,6 +982,7 @@ class LedgerController extends Controller
                         $headOne = collect([
                             ["name" => "SKU No.", "rowspan" => "2", "colspan" => "1"],
                             ["name" => "SKU Name", "rowspan" => "2", "colspan" => "1"],
+                            ["name" => "Conversi Qty", "rowspan" => "2", "colspan" => "1"],
                             ["name" => "Batch No.", "rowspan" => "2", "colspan" => "1"],
                             ["name" => "Date", "rowspan" => "1", "colspan" => "3"],
                             ["name" => "Site", "rowspan" => "2", "colspan" => "1"],
@@ -820,7 +991,7 @@ class LedgerController extends Controller
                             ["name" => "SOH", "rowspan" => "1", "colspan" => "3"],
                             ["name" => "SOA", "rowspan" => "1", "colspan" => "3"],
                             ["name" => "Unit", "rowspan" => "1", "colspan" => "3"],
-                            ["name" => "Freeze", "rowspan" => "2", "colspan" => "1"],
+                            // ["name" => "Freeze", "rowspan" => "2", "colspan" => "1"],
                             ["name" => "Status", "rowspan" => "2", "colspan" => "1"],
                         ]);
 
@@ -830,18 +1001,22 @@ class LedgerController extends Controller
                             ["name" => "Exp Date"],
                             ["name" => "1st"],
                             ["name" => "2nd"],
-                            ["name" => "3rd"],
+                            // ["name" => "3rd"],
+                            ["name" => "Quantum"],
                             ["name" => "1st"],
                             ["name" => "2nd"],
-                            ["name" => "3rd"],
+                            // ["name" => "3rd"],
+                            ["name" => "Quantum"],
                             ["name" => "1st"],
                             ["name" => "2nd"],
-                            ["name" => "3rd"],
+                            // ["name" => "3rd"],
+                            ["name" => "Quantum"],
                         ]);
 
                         $bodyOne = collect([
                             ["name" => "SKU No.", "field_name" => "product_code", "class" => "left"],
                             ["name" => "SKU Name", "field_name" => "product_name", "class" => "left"],
+                            ["name" => "Conversi", "field_name" => "conversi", "class" => "center"],
                             ["name" => "Batch", "field_name" => "lot_no", "class" => "center"],
                             ["name" => "Mfg", "field_name" => "job_date", "class" => "center"],
                             ["name" => "Mfg", "field_name" => "mfg_date", "class" => "center"],
@@ -851,20 +1026,24 @@ class LedgerController extends Controller
                             ["name" => "Location", "field_name" => "location_code", "class" => "left"],
                             ["name" => "1st", "field_name" => "pqtys", "class" => "right"],
                             ["name" => "2nd", "field_name" => "mqtys", "class" => "right"],
-                            ["name" => "3rd", "field_name" => "bqtys", "class" => "right"],
+                            // ["name" => "3rd", "field_name" => "bqtys", "class" => "right"],
+                            ["name" => "Quantum", "field_name" => "quantum_soh", "class" => "center"],
                             ["name" => "1st", "field_name" => "pqtya", "class" => "right"],
                             ["name" => "2nd", "field_name" => "mqtya", "class" => "right"],
-                            ["name" => "3rd", "field_name" => "bqtya", "class" => "right"],
+                            // ["name" => "3rd", "field_name" => "bqtya", "class" => "right"],
+                            ["name" => "Quantum", "field_name" => "quantum_soa", "class" => "center"],
                             ["name" => "1st", "field_name" => "puom", "class" => "center"],
                             ["name" => "2nd", "field_name" => "muom", "class" => "center"],
-                            ["name" => "3rd", "field_name" => "buom", "class" => "center"],
-                            ["name" => "3rd", "field_name" => "freeze", "class" => "center"],
+                            // ["name" => "3rd", "field_name" => "buom", "class" => "center"],
+                            ["name" => "Quantum Unit", "field_name" => "quantum_unit", "class" => "center"],
+                            // ["name" => "3rd", "field_name" => "freeze", "class" => "center"],
                             ["name" => "3rd", "field_name" => "status_code", "class" => "center"]
                         ]);
 
-                        $columnCount = 19;
+                        $columnCount = 24;
                     } else {
                         $headOne = collect([
+                            ["name" => "Principal", "rowspan" => "2", "colspan" => "1"],
                             ["name" => "SKU No.", "rowspan" => "2", "colspan" => "1"],
                             ["name" => "SKU Name", "rowspan" => "2", "colspan" => "1"],
                             ["name" => "Batch No.", "rowspan" => "2", "colspan" => "1"],
@@ -875,7 +1054,7 @@ class LedgerController extends Controller
                             ["name" => "SOH", "rowspan" => "1", "colspan" => "1"],
                             ["name" => "SOA", "rowspan" => "1", "colspan" => "1"],
                             ["name" => "Unit", "rowspan" => "1", "colspan" => "1"],
-                            ["name" => "Freeze", "rowspan" => "2", "colspan" => "1"],
+                            // ["name" => "Freeze", "rowspan" => "2", "colspan" => "1"],
                             ["name" => "Status", "rowspan" => "2", "colspan" => "1"],
                         ]);
 
@@ -889,6 +1068,7 @@ class LedgerController extends Controller
                         ]);
 
                         $bodyOne = collect([
+                            ["name" => "Principal", "field_name" => "principal_name", "class" => "left"],
                             ["name" => "SKU No.", "field_name" => "product_code", "class" => "left"],
                             ["name" => "SKU Name", "field_name" => "product_name", "class" => "left"],
                             ["name" => "Batch", "field_name" => "lot_no", "class" => "center"],
@@ -901,7 +1081,7 @@ class LedgerController extends Controller
                             ["name" => "1st", "field_name" => "pqtys", "class" => "right"],
                             ["name" => "1st", "field_name" => "pqtya", "class" => "right"],
                             ["name" => "1st", "field_name" => "puom", "class" => "center"],
-                            ["name" => "3rd", "field_name" => "freeze", "class" => "center"],
+                            // ["name" => "3rd", "field_name" => "freeze", "class" => "center"],
                             ["name" => "3rd", "field_name" => "status_code", "class" => "center"]
                         ]);
 
@@ -911,27 +1091,32 @@ class LedgerController extends Controller
                     $listData = [];
                     foreach ($stockList as $value) {
                         $listData[] = [
+                            "principal_name" => $value->principal_name,
                             "product_code" => $value->product_code,
                             "product_name" => $value->product_name,
+                            "conversi" => $value->muppp,
                             "lot_no" => $value->lot_no,
                             "job_date" => \Carbon\Carbon::parse($value->job_date)->format("d-m-Y"),
-                            'mfg_date' => isset($value->mfg_date) ? \Carbon\Carbon::parse($value->mfg_date)->format('d-m-Y') : "",
-                            'exp_date' => isset($value->exp_date) ? \Carbon\Carbon::parse($value->exp_date)->format('d-m-Y') : "",
+                            'mfg_date' => isset($value->mfg_date) ? \Carbon\Carbon::parse($value->mfg_date)->format('d-m-Y') : "-",
+                            'exp_date' => isset($value->exp_date) ? \Carbon\Carbon::parse($value->exp_date)->format('d-m-Y') : "-",
                             "site_name" => $value->site_name,
                             "area_name" => $value->area_name,
                             "location_code" => $value->location_code,
                             "pqtys" => ($value->qtys  - ($value->qtys % $value->uppp)) / $value->uppp,
                             "mqtys" => (($value->qtys % $value->uppp) - (($value->qtys % $value->uppp) % $value->muppp)) / $value->muppp,
                             "bqtys" => $value->qtys % $value->uppp % $value->muppp,
+                            "quantum_soh" => ($value->qtys  - ($value->qtys % $value->uppp)) / $value->uppp * $value->muppp + (($value->qtys % $value->uppp) - (($value->qtys % $value->uppp) % $value->muppp)) / $value->muppp, // PQTYS * MUPPP + MQTYS
                             "pqtya" => ($value->qtya  - ($value->qtya % $value->uppp)) / $value->uppp,
                             "mqtya" => (($value->qtya % $value->uppp) - (($value->qtya % $value->uppp) % $value->muppp)) / $value->muppp,
                             "bqtya" => $value->qtya % $value->uppp % $value->muppp,
+                            "quantum_soa" => ($value->qtya  - ($value->qtya % $value->uppp)) / $value->uppp * $value->muppp + (($value->qtya % $value->uppp) - (($value->qtya % $value->uppp) % $value->muppp)) / $value->muppp, // PQTYA * MUPPP + MQTYA
                             "puom" => $value->puom,
                             "muom" => $value->muom,
                             "buom" => $value->buom,
-                            "freeze" => $value->freeze_flag,
-                            "weight" => number_format($value->gross_weight * $value->qtys, 3, ",", "."),
-                            "volume" => number_format($value->volume * $value->qtys, 3, ",", "."),
+                            "quantum_unit" => $value->muom,
+                            // "freeze" => $value->freeze_flag,
+                            // "weight" => number_format($value->gross_weight * $value->qtys, 3, ",", "."),
+                            // "volume" => number_format($value->volume * $value->qtys, 3, ",", "."),
                             "status_code" => $value->status_code,
                         ];
                     }
@@ -1465,6 +1650,7 @@ class LedgerController extends Controller
                         ->select(
                             "a.job_date",
                             "a.product_code",
+                            "a.product_id",
                             "b.product_name",
                             "a.lot_no",
                             "a.document_ref",
@@ -1502,6 +1688,8 @@ class LedgerController extends Controller
                         ->orderBy("a.location_code", $sortOrder)
                         ->orderBy("b.product_name", $sortOrder)
                         ->get();
+
+
 
                     if ($principal->multi_level == "Yes") {
                         $headOne = collect([
@@ -1645,7 +1833,15 @@ class LedgerController extends Controller
 
         $time = \Carbon\Carbon::now()->format("dmy.His");
 
-        $principal = \App\Models\Master\Principal::find($principal_id);
+        if ($principal_id === 'ALL') {
+            $principal = (object)[
+                'principal_name' => 'ALL PRINCIPAL',
+                'multi_level' => 'No' // atau default yg paling aman
+            ];
+        } else {
+            $principal = MasterPrincipal::find($principal_id);
+        }
+
 
         if (!empty($request->group_code_from) && !empty($request->group_code_to)) {
             $group_from = $request->group_code_from;
@@ -1750,9 +1946,48 @@ class LedgerController extends Controller
         $exp_date_from = date("Y-m-d", strtotime($exp_date_from));
         $exp_date_to = date("Y-m-d", strtotime($exp_date_to));
 
-        $filename = "$principal->short_name-$reportType-$time.xlsx";
+        $filename = "$principal->principal_name-$reportType-$time.xlsx";
 
 
         return Excel::download(new StockLedgerReportExport($reportType, $branch_id, $principal_id, $group_from, $group_to, $brand_from, $brand_to, $product_from, $product_to, $exp_date_from, $exp_date_to, $site_list, $area_id, $location_from, $location_to), $filename);
+    }
+
+    public function locationAvailable()
+    {
+        return view('transaction.location_available');
+    }
+
+    public function getLocationAvailable()
+    {
+        $site_arr = DB::table('users_site')
+            ->where('user_id', Auth::user()->id)
+            ->get()->pluck('site_id')
+            ->toArray();
+
+        $master_location = DB::table('iv_location')
+            ->whereIn('site_id', $site_arr)
+            ->where('status_code', '!=', 'B')
+            ->where('active', 'Yes')
+            ->get()
+            ->pluck('location_code')
+            ->toArray();
+
+        $avail_location = DB::table('iv_stock_ledger')
+            ->where('qtys', '>', 0)
+            ->whereIn('site_id', $site_arr)
+            ->where('status', 'G')
+            ->get()
+            ->pluck('location_code')
+            ->toArray();
+        $data = array_diff($master_location, $avail_location);
+        $data = DB::table('iv_location as a')
+            ->select('a.location_code', 'b.site_name', 'c.area_name')
+            ->join('iv_site as b', 'b.id', '=', 'a.site_id')
+            ->join('iv_site_area as c', 'c.id', '=', 'a.area_id')
+            ->whereIn('location_code', $data)
+            ->whereIn('a.site_id', $site_arr)
+            ->get();
+
+        return Datatables::of($data)->make(true);
     }
 }

@@ -6,15 +6,19 @@ use Illuminate\Http\Request;
 
 class ProfileController extends Controller
 {
-    public function about() {
+    public function about()
+    {
+        // return view('about');
         return view('about');
     }
 
-    public function services() {
+    public function services()
+    {
         return view('services');
     }
 
-    public function contact() {
+    public function contact()
+    {
         return view('contact');
     }
 }

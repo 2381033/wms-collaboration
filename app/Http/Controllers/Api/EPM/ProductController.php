@@ -159,7 +159,7 @@ class ProductController extends Controller
                                 'muppp'  => $list['conversi_rate'],
                                 'manufactur_id'  => null,
                                 'batch_flag'  => 'No',
-                                'expired_flag'  => 'No',
+                                'expired_flag'  => 'Yes',
                                 'freeze_flag'  => 'No',
                                 'length'  => '0',
                                 'width'  => '0',

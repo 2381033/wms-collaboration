@@ -6,8 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Report</title>
-
-    <!-- <link rel="stylesheet" href="{{ asset('assets/css/barcode_export.css') }}"> -->
     <style>
         /* body {
     width: 100%;
@@ -102,7 +100,7 @@
         }
 
         .table {
-            font-size: 18px;
+            font-size: 15px;
             border-collapse: collapse;
             border-spacing: 0;
             width: 100%;
@@ -122,7 +120,20 @@
 </head>
 
 <body>
-    @foreach ($list_data as $item)
+    @foreach ($list_data->groupBy('pallet_id') as $key => $item)
+        @php
+            // Ambil semua serial number dalam satu pallet
+            $serials = $item->pluck('serial_no')->unique();
+
+            // Ambil PO number dari serial_no yang berbeda-beda (dipisah dari awal string)
+            $poFromSerial = $serials
+                ->map(function ($serial) {
+                    return explode('-', $serial)[0];
+                })
+                ->unique()
+                ->implode(', ');
+        @endphp
+
         <div class="page">
             <div class="container">
                 <div class="row">
@@ -136,10 +147,14 @@
                             </tr>
                             <tr>
                                 <td colspan="2" class="center">
-                                    @isset($item->serial_no)
-                                        <img src="data:image/png;base64,{{ DNS2D::getBarcodePNG($item->serial_no, 'QRCODE', 4, 4) }}"
-                                            alt="barcode" />
-                                    @endisset
+                                    <img src="data:image/png;base64,{{ DNS2D::getBarcodePNG($item->where('pallet_id', $key)->first()->serial_no, 'QRCODE', 4, 4) }}"
+                                        alt="barcode" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2">
+                                    <small>Job No</small><br>
+                                    <b>{{ $view->job_no }}</b>
                                 </td>
                             </tr>
                             <tr>
@@ -156,14 +171,16 @@
                             </tr>
                             <tr>
                                 <td>
-                                    <small>PO Number</small>
+                                    <small>{{ $view->shipper_id == 38 ? 'PO Number - HBL' : 'PO Number' }}</small>
                                     <br>
-                                    <span style="font-size: 25px;"><b>{{ $view->po_number }}</b></span>
-
+                                    <span style="font-size: 12px; font-weight: bold;">
+                                        {{ $poFromSerial }}
+                                    </span>
                                 </td>
                                 <td>
-                                    <small>PEB Number</small><br>
-                                    <b>{{ $view->peb_no == 0 ? $view->aju_no : $view->peb_no }}</b>
+                                    <small>{{ $view->peb_no == 0 ? 'AJU Number' : 'PEB Number' }}</small><br>
+                                    <span
+                                        style="font-size: 35px"><b>{{ $view->peb_no == 0 ? $view->aju_no : $view->peb_no }}</b></span>
                                 </td>
                             </tr>
                             <tr>
@@ -176,32 +193,29 @@
                             <tr>
                                 <td colspan="2">
                                     <small>Destination</small><br>
-
-                                    <span style="font-size: 20px;"> <b>{{ $view->destination }}</b></span>
+                                    <span style="font-size: 15px;"> <b>{{ $view->destination }}</b></span>
                                 </td>
                             </tr>
                             <tr>
                                 <td>
                                     <small>Quantity</small><br>
-                                    <b>{{ $item->quantity }} &nbsp; of &nbsp; {{ $view->qty_actual }}</b>
+                                    <b>{{ $item->where('pallet_id', $key)->sum('quantity') }} &nbsp; of &nbsp;
+                                        {{ $total_receipt }}</b>
                                 </td>
                                 <td>
                                     <small>Total Pallet</small><br>
-                                    <b>{{ $item->pallet_id }} &nbsp; / &nbsp; {{ $view->total_pallet }}</b>
+                                    <b>{{ $item->where('pallet_id', $key)->first()->pallet_id }} &nbsp; / &nbsp;
+                                        {{ $total_pallet }}</b>
                                 </td>
                             </tr>
                             <tr>
                                 <td>
                                     <small>Checker</small><br>
-                                    <b>{{ $view->pic_name }}</b>
+                                    <b>{{ $checker_name == '-' ? '-' : Str::Upper($checker_name) }}</b>
                                 </td>
                                 <td>
                                     <small>Tanggal Bongkar</small><br>
-                                    @if ($view->tgl_bongkar != null)
-                                        <b>{{ \Carbon\carbon::parse($view->tgl_bongkar)->format('d-M-Y') ?? '-' }}</b>
-                                    @else
-                                        <b>-</b>
-                                    @endif
+                                    <b>{{ \Carbon\carbon::parse($view->created_at)->format('d-m-Y') ?? '-' }}</b>
                                 </td>
                             </tr>
                         </table>
@@ -219,7 +233,7 @@
         </div>
     @endforeach
     <script>
-        window.print();
+        // window.print();
     </script>
 </body>
 

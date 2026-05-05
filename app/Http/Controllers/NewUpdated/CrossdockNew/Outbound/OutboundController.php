@@ -213,12 +213,13 @@ class OutboundController extends Controller
     public function storeHeader(Request $request)
     {
         $request->validate([
-            'description' => 'required',
-            'id_customer' => 'required',
-            'job_no' => 'required',
-            'id_branch' => 'required',
-            'po_no' => 'required',
-            'do_no' => 'required',
+            'description'   => 'required',
+            'job_no'        => 'required',
+            'id_customer'   => 'required',
+            'id_warehouse'  => 'required',
+            'id_branch'     => 'required',
+            'po_no'         => 'required',
+            'do_no'         => 'required',
         ]);
 
         DB::table('cross_outbound_header')->insert([
@@ -552,8 +553,8 @@ class OutboundController extends Controller
                 'carrier_name' => $request->carrier_name,
                 'etd'          => $request->etd,
                 'vehicle_no'   => $request->vehicle_no,
-                // 'vehicle_type' => $request->vehicle,
-                // 'vehicle_size' => $request->size,
+                'vehicle_type' => $request->vehicle,
+                'vehicle_size' => $request->size,
                 'awb_no'       => $request->awb_no,
                 'driver_name'  => $request->driver_name,
                 'awb_date'     => $request->awb_date,
@@ -654,32 +655,41 @@ class OutboundController extends Controller
 
     private function AddToTransaction($array)
     {
-        foreach ($array as $key => $value) {
-            //add to stock
-            DB::table('cross_stock_transaction')
-                ->insert([
-                    'job_no'     => $value->stock->job_no,
-                    'id_branch'     => $value->stock->id_branch,
-                    'id_warehouse'     => $value->stock->id_warehouse,
-                    'id_outbound'   => $value->id_header,
-                    'location_code' => $value->stock->location_code,
-                    'description'    => $value->stock->description,
-                    'unit'          => $value->stock->unit,
-                    'type_job'   => 'out',
-                    'qty'        => $value->qty,
-                    'id_cargo'   => $value->stock->id_cargo,
-                    'sku'        => $value->stock->sku,
-                    'p'          => $value->stock->p,
-                    'l'          => $value->stock->l,
-                    't'          => $value->stock->t,
-                    'w'             => $value->stock->w,
-                    'cbm_per_unit'  => $value->stock->cbm_per_unit,
-                    'cbm_total'     => $value->stock->cbm_total,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'created_by' => Auth::user()->username
-                ]);
+        if (empty($array)) {
+            return;
         }
+
+        // gunakan transaction agar semua insert konsisten
+        DB::transaction(function () use ($array) {
+            // jika jumlah besar, pertimbangkan batch insert untuk performa
+            foreach ($array as $value) {
+                // pastikan fallback bila field tidak tersedia
+                DB::table('cross_stock_transaction')->insert([
+                    'job_no'        => $value->stock_job_no ?? null,
+                    'id_branch'     => $value->stock_id_branch ?? null,
+                    'id_warehouse'  => $value->stock_id_warehouse ?? null,
+                    'id_outbound'   => $value->id_header ?? $value->id ?? null, // sesuaikan sumber id_outbound
+                    'location_code' => $value->stock_location_code ?? null,
+                    'description'   => $value->stock_description ?? null,
+                    'unit'          => $value->stock_unit ?? null,
+                    'type_job'      => 'out',
+                    'qty'           => $value->qty ?? 0,
+                    // id_cargo: prefer detail/aliased id_cargo (dari select kita ada id_cargo)
+                    'id_cargo'      => $value->id_cargo ?? $value->stock_id_cargo ?? null,
+                    'sku'           => $value->stock_sku ?? null,
+                    'p'             => $value->stock_p ?? null,
+                    'l'             => $value->stock_l ?? null,
+                    't'             => $value->stock_t ?? null,
+                    'w'             => $value->stock_w ?? null,
+                    'cbm_per_unit'  => $value->stock_cbm_per_unit ?? null,
+                    'cbm_total'     => $value->stock_cbm_total ?? null,
+                    'created_at'    => now(),
+                    'created_by'    => optional(Auth::user())->username ?? 'system',
+                ]);
+            }
+        });
     }
+
 
     public function sendPermintaanEdit($id)
     {
@@ -807,46 +817,102 @@ class OutboundController extends Controller
         return back();
     }
 
-    private function joinTableCargo()
+    private function joinTableCargo($id_header = null)
     {
-        $data = DB::table('cross_outbound_header as header')
+        $q = DB::table('cross_outbound_header as header')
             ->join('cross_outbound_detail as detail', 'detail.id_header', '=', 'header.id')
-            ->get();
-        // dd($data);
-        $data->map(function ($value) {
-            $value->stock = DB::table('cross_stock_ledger')->where('id', $value->id_stock)->first();
-            $value->id_cargo = $value->stock->id_cargo ?? 0;
-        });
+            ->leftJoin('cross_stock_ledger as stock', 'stock.id', '=', 'detail.id_stock')
+            ->leftJoin('cross_mt_customer as customer', 'customer.id', '=', 'header.id_customer')
+            ->select(
+                'header.*',
+                'detail.*',
+                'customer.name as customer_name',
+                'stock.id as stock_id',
+                'stock.id_cargo as id_cargo',
+                'stock.job_no as stock_job_no',
+                'stock.id_branch as stock_id_branch',
+                'stock.id_warehouse as stock_id_warehouse',
+                'stock.location_code as stock_location_code',
+                'stock.description as stock_description',
+                'stock.unit as stock_unit',
+                'stock.sku as stock_sku',
+                'stock.p as stock_p',
+                'stock.l as stock_l',
+                'stock.t as stock_t',
+                'stock.w as stock_w',
+                'stock.cbm_per_unit as stock_cbm_per_unit',
+                'stock.cbm_total as stock_cbm_total'
+            );
 
-        return $data;
+        if ($id_header) {
+            // filter by detail.id_header (sesuaikan jika field berbeda)
+            $q->where('detail.id_header', $id_header);
+        }
+
+        return $q->get();
     }
+
 
     public function report($type, $id)
     {
-        $data           = $this->joinTableCargo()->where('id_header', $id);
-        $customer       = $this->getCustomer();
-        $warehouse      = $this->getWarehouse();
-        $despatch       = $this->getDespatch($id)->where('id_header', $data->first()->id_header)->first();
-        $v_despatch  = $data->first();
+        $data = $this->joinTableCargo()->where('id_header', $id);
+
+        if ($data->isEmpty()) {
+            // return view kosong / default seperti sebelumnya
+            return view('new.CrossDock.Report.Outbound.' . $type, [
+                'data' => collect(),
+                'groupBy' => collect(),
+                'tittle' => ($type === 'picking') ? 'Picking Report ' : ($type === 'scan' ? 'Scan Checker Report' : ''),
+                'customer' => $this->getCustomer(),
+                'warehouse' => $this->getWarehouse(),
+                'despatch' => null,
+                'v_despatch' => null,
+                'w_sum' => [],
+                'cbm_sum' => [],
+            ]);
+        }
+
+        $warehouse = $this->getWarehouse();
+        $despatch  = $this->getDespatch($id)->where('id_header', $data->first()->id_header)->first();
+        $customer  = $this->getCustomer();
+        $v_despatch = $data->first();
         $groupBy = $data->groupBy('id_cargo');
-        foreach ($groupBy as $key => $value) {
-            foreach ($value->where('id_cargo', $key) as $k => $v) {
-                $w[$key][] = $v->qty * $v->stock->w;
-                $cbm[$key][] = $v->qty * $v->stock->cbm_per_unit;
-            }
-            $qty[$key] =  array_sum($data->where('id_cargo', $key)->pluck('qty')->toArray());
-            $w_sum[$key][] =  array_sum($w[$key]);
-            $cbm_sum[$key][] =  array_sum($cbm[$key]);
+
+        $w_sum = [];
+        $cbm_sum = [];
+        $qty_sum = [];
+        foreach ($groupBy as $key => $items) {
+            $qty_sum[$key] = (float) $items->sum('qty');
+
+            $w_sum[$key] = (float) $items->sum(function ($v) {
+                return ($v->stock_w ?? 0) * ($v->qty ?? 0);
+            });
+
+            $cbm_sum[$key] = (float) $items->sum(function ($v) {
+                return ($v->stock_cbm_per_unit ?? 0) * ($v->qty ?? 0);
+            });
         }
 
-        if ($type == 'picking') {
-            $tittle = 'Picking Report ';
-        } elseif ($type == 'despatch') {
-            $tittle = '';
-        } elseif ($type == 'scan') {
-            $tittle = 'Scan Checker Report';
-        }
+        if ($type == 'picking') $tittle = 'Picking Report ';
+        elseif ($type == 'despatch') $tittle = '';
+        elseif ($type == 'scan') $tittle = 'Scan Checker Report';
+        else $tittle = '';
+        $doNumber = $v_despatch && $v_despatch->do_no ? (string) $v_despatch->do_no : 'MKT001';
+        $refNumber = $despatch && $despatch->ref_number ? (string) $despatch->ref_number : 'MKT001';
 
-        return view('new.CrossDock.Report.Outbound.' . $type, compact('data', 'groupBy', 'tittle', 'customer', 'despatch', 'warehouse', 'v_despatch', 'w_sum', 'cbm_sum'));
+        return view('new.CrossDock.Report.Outbound.' . $type, compact(
+            'data',
+            'groupBy',
+            'tittle',
+            'customer',
+            'despatch',
+            'warehouse',
+            'v_despatch',
+            'w_sum',
+            'cbm_sum',
+            'qty_sum',
+            'doNumber',
+            'refNumber'
+        ));
     }
 }

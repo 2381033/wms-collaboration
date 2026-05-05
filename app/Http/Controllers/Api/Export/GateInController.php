@@ -7,28 +7,64 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Str;
 
-use App\Models\Transaction\Export\OutboundHeader as ExportOutboundHeader;
-use App\Models\Transaction\Export\OutboundDetail as ExportOutboundDetail;
-use App\Models\Transaction\Export\OutboundOrder as ExportOutboundOrder;
-
 class GateInController extends Controller
 {
+
+    private function compressJpeg($uploadedFile, $destination, $quality = 70)
+    {
+        $source = imagecreatefromjpeg($uploadedFile->getRealPath());
+        $width  = imagesx($source);
+        $height = imagesy($source);
+
+        $maxWidth = 1600;
+        $maxHeight = 1600;
+
+        if ($width > $maxWidth || $height > $maxHeight) {
+            $ratio = min($maxWidth / $width, $maxHeight / $height);
+
+            $newWidth  = intval($width * $ratio);
+            $newHeight = intval($height * $ratio);
+
+            $resized = imagecreatetruecolor($newWidth, $newHeight);
+
+            imagecopyresampled(
+                $resized,
+                $source,
+                0,
+                0,
+                0,
+                0,
+                $newWidth,
+                $newHeight,
+                $width,
+                $height
+            );
+
+            $source = $resized;
+        }
+
+        imagejpeg($source, $destination, $quality);
+
+        imagedestroy($source);
+    }
     public function store(Request $request)
     {
         $exception = DB::transaction(function () use ($request) {
             try {
                 $type = $request->type;
-                $file = $request->file('photo');
-                $random = Str::random(6);
-                $filename = 'gate-in-' . $type . '-' . $request->vehicle_number . "-" .$random. "-" . date('Y-m-d') . "." . $file->getClientOriginalExtension();
-                $file->move(public_path('foto/warehouse-export/gate-in-' . $type . '/'), $filename);
+                $filename = 'gate-in-' . $request->job_no . "-" . Str::random(6) . ".jpg";
+                $destination = public_path('foto/warehouse-export/gate-in-' . $type . '/' . $filename);
+                $this->compressJpeg($request->file('photo'), $destination);
                 if ($type == 'cargo') {
                     DB::table('ex_gate_in_cargo')
                         ->insert(
                             [
-                                'vehicle_number'   => $request->vehicle_number,
-                                'vehicle_type'     => $request->vehicle_type,
-                                'driver_name'      => $request->driver_name,
+                                'transporter_name' => Str::upper($request->transporter_name),
+                                'vehicle_number'   => Str::upper($request->vehicle_number),
+                                'vehicle_type'     => Str::upper($request->vehicle_type),
+                                'driver_name'      => Str::upper($request->driver_name),
+                                // 'shipper_name'     => Str::upper($request->shipper_name),
+                                'id_visitor'       => Str::upper($request->id_visitor),
                                 'created_at'       => date('Y-m-d H:i:s'),
                                 'created_by'       => $request->created_by,
                                 'file'             => $filename

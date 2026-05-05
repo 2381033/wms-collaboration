@@ -40,8 +40,40 @@ class MasterController extends Controller
     {
         $data = DB::table("ex_gate_in_cargo")
             ->select('vehicle_number', 'id')
-            ->where("confirmed_flag", "No")
-            ->get();
+            ->groupBy("vehicle_number")
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'label' => $item->vehicle_number,
+                    'value' => $item->vehicle_number,
+                ];
+            })
+            ->prepend([
+                'label' => 'ADD NEW',
+                'value' => 'add_new',
+            ])
+            ->values(); // reset keys (0, 1, 2,...)
+        return response()->json(['pesan' => 'Berhasil', 'data' => $data]);
+    }
+
+    public function getTransporter()
+    {
+        $data = DB::table("ex_gate_in_cargo")
+            ->select('transporter_name', 'id')
+            ->whereNotNull('transporter_name')
+            ->groupBy("transporter_name")
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'label' => $item->transporter_name,
+                    'value' => $item->transporter_name,
+                ];
+            })
+            ->prepend([
+                'label' => 'ADD NEW',
+                'value' => 'add_new',
+            ])
+            ->values(); // reset keys (0, 1, 2,...)
         return response()->json(['pesan' => 'Berhasil', 'data' => $data]);
     }
 
@@ -56,8 +88,8 @@ class MasterController extends Controller
     public function getChecker($username)
     {
         $auth_group_id = DB::table('auth_group')
-        ->where('name', 'Checker')
-        ->value('id');
+            ->where('name', 'Checker')
+            ->value('id');
 
         $data = DB::table("users")
             ->where("auth_group_id", $auth_group_id)

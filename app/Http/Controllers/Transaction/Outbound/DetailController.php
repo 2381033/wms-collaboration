@@ -27,7 +27,7 @@ class DetailController extends Controller
 
         if ($request->ajax()) {
             $list_data = outboundDetails::from('iv_outbound_detail as a')
-                ->select('a.*', 'b.product_name')
+                ->select('a.*', 'b.product_name', 'b.manufactur_code')
                 ->join('iv_product as b', 'a.product_id', 'b.id')
                 ->where('a.company_id', $company_id)
                 ->where('a.outbound_id', $request->outbound_id)
@@ -42,7 +42,7 @@ class DetailController extends Controller
                 })
                 ->addColumn('action', function ($data) {
                     $button = "";
-                    if ($data->picking_flag == 'No') {
+                    if ($data->picking_flag == 'No'  && is_null($data->manufactur_code)) {
                         if (Gate::allows('gate-access', "warehouse/outbound")) {
                             $button .= '<a href="javascript:void(0)" data-toggle="tooltip"  data-id="' . $data->id . '" data-original-title="Edit" class="edit-detail btn btn-info btn-sm"><i class="far fa-edit"></i></a>';
                             $button .= '&nbsp;&nbsp;';
@@ -205,269 +205,187 @@ class DetailController extends Controller
 
     public function import(Request $request)
     {
-        // validasi
         $this->validate($request, [
             'file' => 'required|mimes:csv,xls,xlsx'
         ]);
 
-        // menangkap file excel
         $file = $request->file('file');
-
-        // membuat nama file unik
         $nama_file = rand() . "." . $file->extension();
-
         $path = storage_path('app/file/excel/' . $nama_file);
-        $request->file('file')->storeAs('file/excel', $nama_file);
+        $file->storeAs('file/excel', $nama_file);
 
         $import = new OutboundOrderDetailImports();
         $rows = $import->toCollection($path);
 
-        $id = $request->job_id;
-        $job = outboundJob::find($id);
+        $job = outboundJob::find($request->job_id);
 
         $insert = [];
         $errors = [];
-        $error_flag = false;
         $line = 1;
 
         foreach ($rows[0] as $row) {
+
             $message = [];
+            $error_flag = false;
 
-            $customer_code = trim($row["customer_code"]);
-            $order_no = trim($row["order_no"]);
-            $customer_ref = trim($row["customer_ref"]);
-            $product_code = trim($row["sku_no"]);
-            $qty_1 = $row["qty_1"];
-            $qty_2 = $row["qty_2"];
-            $qty_3 = $row["qty_3"];
-            $location_code = $row['location_code'] ?? '';
-            $batch_no = $row["batch_no"];
+            $customer_code = trim($row["customer_code"] ?? '');
+            $order_no      = trim($row["order_no"] ?? '');
+            $customer_ref  = trim($row["customer_ref"] ?? '');
+            $product_input = trim($row["sku_no"] ?? '');
+            $qty_1         = $row["qty_1"] ?? 0;
+            $qty_2         = $row["qty_2"] ?? 0;
+            $qty_3         = $row["qty_3"] ?? 0;
+            $location_code = trim($row["location_code"] ?? '');
+            $batch_no      = trim($row["batch_no"] ?? '');
 
-            $detail = 0;
-            $order_count = 0;
-            $customer_count = 0;
-            $product_count = 0;
+            if (empty($customer_code) || empty($product_input)) {
+                $line++;
+                continue;
+            }
 
-            if ($customer_code === null || $product_code === null) {
-                exit;
-            } else {
-                $customer_count = masterCustomer::where("principal_id", $job->principal_id)->where("customer_code", $customer_code)->count();
+            $customer = masterCustomer::where("principal_id", $job->principal_id)
+                ->where("customer_code", $customer_code)
+                ->first();
 
-                $location_error = false;
-                $batch_error = false;
+            if (!$customer) {
+                $message[] = "Line $line $customer_code : customer not found.";
+                $error_flag = true;
+            }
 
-                if ($customer_count > 0) {
-                    $customer = masterCustomer::where("principal_id", $job->principal_id)->where("customer_code", $customer_code)->first();
+            if (!$error_flag) {
+                $order = outboundOrder::where("outbound_id", $job->id)
+                    ->where("customer_id", $customer->id)
+                    ->where("order_no", $order_no)
+                    ->first();
 
-                    $order_count = outboundOrder::where("outbound_id", $id)
-                        ->where("customer_id", $customer->id)
-                        ->where("order_no", $order_no)
-                        ->count();
-
-                    if ($order_count > 0) {
-                        $order = outboundOrder::where("outbound_id", $id)
-                            ->where("customer_id", $customer->id)
-                            ->where("order_no", $order_no)
-                            ->first();
-
-                        $product_count = masterProduct::where("principal_id", $job->principal_id)
-                            ->where("product_code", $product_code)
-                            ->count();
-
-                        if ($product_count > 0) {
-                            $product = masterProduct::where("principal_id", $job->principal_id)
-                                ->where("product_code", $product_code)
-                                ->first();
-
-
-                            $detail = outboundDetails::where("outbound_id", $job->id)
-                                ->where("customer_id", $customer->id)
-                                ->where("order_id", $order->id)
-                                ->where("product_code", $product_code)
-                                ->count();
-
-
-                            // if ( $detail == 0 ) {
-                            if (!empty($location_code) && $location_code !== "" && $location_code !== null) {
-                                $stock = DB::table("iv_stock_ledger as a")
-                                    ->where("a.principal_id", $job->principal_id)
-                                    ->where("a.product_code", $product_code)
-                                    ->where("a.location_code", $location_code)
-                                    ->where("a.qtya", ">", 0)
-                                    ->count();
-                                if ($stock == 0) {
-                                    $location_error = true;
-                                } else {
-                                    $stock = DB::table("iv_stock_ledger as a")
-                                        ->where("a.principal_id", $job->principal_id)
-                                        ->where("a.product_code", $product_code)
-                                        ->where("a.location_code", $location_code)
-                                        ->where("a.qtya", ">", 0)
-                                        ->first();
-
-                                    $location_id = $stock->location_id;
-                                }
-
-                                $stock = DB::table("iv_stock_ledger as a")
-                                    ->where("a.principal_id", $job->principal_id)
-                                    ->where("a.product_code", $product_code)
-                                    ->where("a.lot_no", $batch_no)
-                                    ->where("a.qtya", ">", 0)
-                                    ->count();
-
-                                if ($stock == 0 && !empty($batch_no)) {
-                                    $batch_error = true;
-                                }
-
-                                if ($location_id > 0) {
-                                    $loc = masterLocation::find($location_id);
-
-                                    $site_id = $loc->site_id;
-                                    $area_id = $loc->area_id;
-                                    $location_from_id = $loc->id;
-                                    $location_from = $loc->location_code;
-                                    $location_to_id = $loc->id;
-                                    $location_to = $loc->location_code;
-                                }
-                            } else {
-                                $site_id = null;
-                                $area_id = null;
-                                $location_from_id = null;
-                                $location_from = null;
-                                $location_to_id = null;
-                                $location_to = null;
-                            }
-                            // } 
-                        }
-                    }
-                }
-
-                if ($customer_count > 0 && $order_count > 0 && $product_count > 0 && $location_error == false && $batch_error == false) {
-                    if (empty($pallet_id) || $pallet_id == "") {
-                        $pallet_id = 0;
-                    }
-
-                    if (empty($qty_1) || $qty_1 == "") {
-                        $qty_1 = 0;
-                    }
-
-                    if (empty($qty_2) || $qty_2 == "") {
-                        $qty_2 = 0;
-                    }
-
-                    if (empty($qty_3) || $qty_3 == "") {
-                        $qty_3 = 0;
-                    }
-
-                    $qty = ($qty_1 * $product->uppp) + ($qty_2 * $product->muppp) + $qty_3;
-
-                    if ($qty == 0) {
-                        $error_flag = true;
-                        $message[] = [
-                            "Line $line $product_code : Quantity must be greater 0"
-                        ];
-                    }
-
-                    if ($error_flag == false) {
-                        $insert[] = [
-                            "company_id" => $job->company_id,
-                            "outbound_id" => $id,
-                            "order_id" => $order->id,
-                            "principal_id" => $job->principal_id,
-                            "customer_id" => $customer->id,
-                            "job_no" => $job->job_no,
-                            "order_no" => $order_no,
-                            "document_ref" => $customer_ref,
-                            "product_id" => $product->id,
-                            "product_code" => $product_code,
-                            "pqty" => $qty_1,
-                            "mqty" => $qty_2,
-                            "bqty" => $qty_3,
-                            "qty" => $qty,
-                            "puom" => $product->puom,
-                            "muom" => $product->muom,
-                            "buom" => $product->buom,
-                            "uppp" => $product->uppp,
-                            "muppp" => $product->muppp,
-                            "site_id" => $site_id,
-                            "area_id" => $area_id,
-                            "location_from_id" => $location_from_id,
-                            "location_from" => $location_from,
-                            "location_to_id" => $location_to_id,
-                            "location_to" => $location_to,
-                            "lot_no" => $batch_no !== "" ? $batch_no : null,
-                        ];
-                    }
-                } else {
+                if (!$order) {
+                    $message[] = "Line $line $order_no : order number not found.";
                     $error_flag = true;
                 }
+            }
 
-                if ($error_flag == true) {
-                    if ($customer_count == 0) {
-                        $message[] = [
-                            "Line $line $customer_code : customer not found."
-                        ];
-                    }
-                    if ($order_count == 0) {
-                        $message[] = [
-                            "Line $line $order_no : order number not found."
-                        ];
-                    }
-                    if ($product_count == 0) {
-                        $message[] = [
-                            "Line $line $product_code : product not found."
-                        ];
-                    }
-                    // if ( $detail > 0 ) {
-                    //     $message[] = [
-                    //         "Line $line $product_code : Data already exists."
-                    //     ];
-                    // }
-                    if ($location_error) {
-                        $message[] = [
-                            "Line $line $product_code : location not found."
-                        ];
-                    }
-                    if ($batch_error) {
-                        $message[] = [
-                            "Line $line $product_code : batch number not found."
-                        ];
-                    }
+            if (!$error_flag) {
 
-                    $errors[] = $message;
+                $productData = \App\Helpers\ProductResolver::resolve(
+                    $job->principal_id,
+                    $product_input,
+                    'outbound',
+                    [$job->branch_id ?? null]
+                );
+
+                if (!$productData) {
+                    $message[] = "Line $line $product_input : product not found or wrong code type.";
+                    $error_flag = true;
+                } else {
+                    $product     = $productData['product'];
+                    // $primaryCode = $product->product_code; // always primary for DB
+                }
+            }
+            if (!$error_flag && !empty($location_code)) {
+
+                $stock = DB::table("iv_stock_ledger")
+                    ->where("principal_id", $job->principal_id)
+                    ->where("product_id", $product->id)
+                    ->where("location_code", $location_code)
+                    ->where("qtya", ">", 0)
+                    ->first();
+
+                if (!$stock) {
+                    $message[] = "Line $line $product_input : location not found.";
+                    $error_flag = true;
+                } else {
+
+                    $location = masterLocation::find($stock->location_id);
+
+                    $site_id           = $location->site_id ?? null;
+                    $area_id           = $location->area_id ?? null;
+                    $location_from_id  = $location->id ?? null;
+                    $location_from     = $location->location_code ?? null;
+                    $location_to_id    = $location->id ?? null;
+                    $location_to       = $location->location_code ?? null;
                 }
 
-                $error_flag = false;
-                $line++;
+                if (!empty($batch_no)) {
+                    $batchCheck = DB::table("iv_stock_ledger")
+                        ->where("principal_id", $job->principal_id)
+                        ->where("product_id", $product->id)
+                        ->where("lot_no", $batch_no)
+                        ->where("qtya", ">", 0)
+                        ->exists();
+
+                    if (!$batchCheck) {
+                        $message[] = "Line $line $product_input : batch number not found.";
+                        $error_flag = true;
+                    }
+                }
+            } else {
+                $site_id = $area_id = $location_from_id = $location_from =
+                    $location_to_id = $location_to = null;
             }
+            if (!$error_flag) {
+
+                $qty_1 = $qty_1 ?: 0;
+                $qty_2 = $qty_2 ?: 0;
+                $qty_3 = $qty_3 ?: 0;
+
+                $qty = ($qty_1 * $product->uppp) +
+                    ($qty_2 * $product->muppp) +
+                    $qty_3;
+
+                if ($qty <= 0) {
+                    $message[] = "Line $line $product_input : Quantity must be greater 0.";
+                    $error_flag = true;
+                }
+            }
+
+            if (!$error_flag) {
+
+                $insert[] = [
+                    "company_id"       => $job->company_id,
+                    "outbound_id"      => $job->id,
+                    "order_id"         => $order->id,
+                    "principal_id"     => $job->principal_id,
+                    "customer_id"      => $customer->id,
+                    "job_no"           => $job->job_no,
+                    "order_no"         => $order_no,
+                    "document_ref"     => $customer_ref,
+                    "product_id"       => $product->id,
+                    "product_code"     => $product_input,
+                    "pqty"             => $qty_1,
+                    "mqty"             => $qty_2,
+                    "bqty"             => $qty_3,
+                    "qty"              => $qty,
+                    "puom"             => $product->puom,
+                    "muom"             => $product->muom,
+                    "buom"             => $product->buom,
+                    "uppp"             => $product->uppp,
+                    "muppp"            => $product->muppp,
+                    "site_id"          => $site_id,
+                    "area_id"          => $area_id,
+                    "location_from_id" => $location_from_id,
+                    "location_from"    => $location_from,
+                    "location_to_id"   => $location_to_id,
+                    "location_to"      => $location_to,
+                    "lot_no"           => $batch_no ?: null,
+                ];
+            } else {
+                $errors[] = $message;
+            }
+
+            $line++;
         }
 
         Storage::delete('/file/excel/' . $nama_file);
 
-        $exception = DB::transaction(function () use ($insert, $errors) {
-            try {
-                if (count($errors) > 0) {
-                    $message = ['error' => $errors];
-                } else {
-                    outboundDetails::insert($insert);
+        if (count($errors) > 0) {
+            return response()->json(['error' => $errors]);
+        }
 
-                    DB::commit();
+        outboundDetails::insert($insert);
 
-                    $message = ['success' => 'Data Successfully uploaded'];
-                }
-
-                return $message;
-            } catch (\Exception $e) {
-                DB::rollBack();
-
-                $message = ['error' => [$e->getMessage()]];
-
-                return $message;
-            }
-        });
-
-        return response()->json($exception);
+        return response()->json(['success' => 'Data Successfully uploaded']);
     }
+
 
     public function export($outbound_id)
     {
@@ -476,5 +394,149 @@ class DetailController extends Controller
             ->first()->principal_id;
 
         return Excel::download(new outboundOrderDetailExport($principal), "tempate-outbound.xlsx");
+    }
+
+    public function getListEAN($job_id)
+    {
+        $list_data = DB::table("iv_outbound_batch as a")
+            ->select(
+                "a.id",
+                "a.product_code",
+                "b.product_name",
+                "a.lot_no",
+                "a.ean_code",
+                "a.pqty",
+                "a.mqty",
+                "a.remarks",
+                "b.puom",
+                "b.muom",
+                "b.buom",
+                "b.uppp",
+                "b.muppp",
+                "b.volume",
+                "b.manufactur_code",
+                "b.gross_weight",
+                DB::raw("sum(a.qty) as qty"),
+                DB::raw("CASE
+                        WHEN b.manufactur_code IS NULL THEN a.qty
+                        WHEN a.ean_code IS NOT NULL THEN LENGTH(a.ean_code) - LENGTH(REPLACE(a.ean_code, ',', '')) + 1
+                        ELSE 0
+                    END as ean_code_count")
+            )
+            ->join("iv_product as b", "a.product_id", "b.id")
+            ->where("a.outbound_id", $job_id)
+            ->groupBy(
+                "a.product_code",
+                "b.product_name",
+                "a.lot_no",
+                "b.puom",
+                "b.muom",
+                "b.buom",
+                "b.uppp",
+                "b.muppp",
+                "b.volume",
+                "b.gross_weight"
+            )
+            ->get();
+        return datatables()->of($list_data)
+            ->addIndexColumn()
+            ->make(true);
+    }
+
+    public function doScanEan($value, $job_id)
+    {
+        $exception = DB::transaction(function () use ($value, $job_id) {
+            try {
+                $manufactur_code = $this->extractDigits($value);
+                $masterProd = DB::table('iv_product')
+                    ->select('manufactur_code', 'product_code')
+                    ->where('manufactur_code', $manufactur_code)
+                    ->first();
+                if (is_null($masterProd)) {
+                    $message = ['message' => 'invalid'];
+                    DB::rollBack();
+                } else {
+                    $pluckArr = $this->getDetail($job_id)->pluck('product_code')->toArray();
+                    if (in_array($masterProd->product_code, $pluckArr)) {
+                        $pluckEan = $this->getDetail($job_id)->pluck('ean_code')->toArray();
+                        $filteredData = array_filter($pluckEan, function ($value) {
+                            return !is_null($value);
+                        });
+                        $eanCodes = array_map(function ($value) {
+                            return explode(',', $value); // Memisahkan berdasarkan koma
+                        }, $filteredData);
+                        $flattenedEanCodes = array_merge(...$eanCodes);
+                        if (in_array($value, $flattenedEanCodes)) {
+                            $message =  ['message' => 'duplicate'];
+                            DB::rollBack();
+                        } else {
+                            $eanCode = DB::table('iv_outbound_batch')
+                                ->where('outbound_id', $job_id)
+                                ->where('product_code', $masterProd->product_code)
+                                ->get()->pluck('ean_code')->toArray();
+                            $qty = $this->getDetail($job_id)
+                                ->where('product_code', $masterProd->product_code)
+                                ->sum('qty');
+                            $string = $eanCode[0];  // Ambil ean_code pertama
+                            // Periksa apakah ean_code kosong atau null
+                            if (empty($string)) {
+                                $ean_code_count = 0;
+                            } else {
+                                // Jika ada nilai ean_code, pisahkan dan hitung jumlahnya
+                                $ean_codes = explode(",", $string);
+                                $ean_code_count = count($ean_codes);
+                            }
+                            if ($ean_code_count >= $qty) {
+                                $message =  ['message' => 'qty'];
+                                DB::rollBack();
+                            } else {
+                                $eanCode = DB::table('iv_outbound_batch')
+                                    ->where('outbound_id', $job_id)
+                                    ->where('product_code', $masterProd->product_code)
+                                    ->groupBy('product_code')
+                                    ->get()->pluck('ean_code')->toArray();
+                                array_push($eanCode, $value);
+                                // 01084303586758582171202501130082
+                                $filteredArray = array_filter($eanCode, function ($val) {
+                                    return !empty($val); // Mengecek agar nilai yang kosong atau null dihapus
+                                });
+
+                                if (empty($filteredArray)) {
+                                    $ean_code = $value;
+                                } else {
+                                    $ean_code = implode(',', $filteredArray);
+                                }
+                                DB::table('iv_outbound_batch')
+                                    ->where('outbound_id', $job_id)
+                                    ->where('product_code', $masterProd->product_code)
+                                    ->update([
+                                        'ean_code' => $ean_code
+                                    ]);
+
+                                DB::commit();
+                                $message = ['message' => 'success', 'sku' => $masterProd->product_code];
+                            }
+                        }
+                    }
+                }
+                return $message;
+            } catch (\Exception $e) {
+                DB::rollBack();
+                $message = ['error' => [$e->getMessage()]];
+                return $message;
+            }
+        });
+        return response()->json($exception);
+    }
+
+    private function getDetail($job_id)
+    {
+        $data = DB::table('iv_outbound_batch')->where('outbound_id', $job_id)->get();
+        return $data;
+    }
+
+    private function extractDigits($input)
+    {
+        return substr($input, 3, 13);
     }
 }

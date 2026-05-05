@@ -177,7 +177,7 @@ class PickingController extends Controller
                                             ->where("a.product_id", $value->product_id)
                                             ->where("a.qtya", ">", 0)
                                             ->where("a.freeze_flag", "No")
-                                            ->where("a.exp_date", ">", $expired_flag)
+                                            // ->where("a.exp_date", ">", $expired_flag)
                                             ->where("a.status", "G") // ambil status yang goods
                                             // ->whereIn("b.status_code", ['F', 'M', 'P'])
                                             ->whereBetween(DB::raw("COALESCE(a.location_code, '')"), [$location_from, $location_to])
@@ -189,6 +189,7 @@ class PickingController extends Controller
                                             ->orderby("a.area_id", "asc")
                                             ->orderby("a.location_code", "asc")
                                             ->first();
+                                        // dd($stock);
                                     } elseif ($pick_criteria == "FIFO") {
                                         $stock =  stockLedger::from("iv_stock_ledger as a")
                                             ->select("a.*")

@@ -9,43 +9,34 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-use App\Models\Transaction\Outbound\Job as OutboundJob;
-use App\Models\Transaction\Export\OutboundHeader as ExportOutboundHeader;
-use App\Models\Transaction\Inbound\Job as InboundJob;
-use App\Models\Transaction\Export\OutboundOrder as ExportOutboundOrder;
-use App\Models\Transaction\Export\OutboundDetail as ExportOutboundDetail;
-
 class JobController extends Controller
 {
     public $menu_name = "export/outbound";
 
-    public function index(Request $request) {
+    public function index(Request $request)
+    {
         if (!GlobalHelpers::isAccess($this->menu_name)) {
             abort(403);
         }
 
         if ($request->ajax()) {
-            $dateObject = \Carbon\Carbon::createFromFormat('d/m/Y', $request->date_from);
             $date_from = \Carbon\Carbon::parse($request->date_from)->format('Y-m-d');
-
-            $dateObject = \Carbon\Carbon::createFromFormat('d/m/Y', $request->date_to);
             $date_to = \Carbon\Carbon::parse($request->date_to)->format('Y-m-d');
 
-            $list_data = OutboundJob::from('ex_outbound_header as a')
-                            ->select('a.*', "b.forwarder_name")
-                            ->join("mt_forwarder as b", "a.forwarder_id", "b.id")
-                            ->where('a.branch_id', $request->branch_id)
-                            ->whereBetween('a.job_date', [$date_from, $date_to])
-                            ->where('a.status_flag', $request->status_flag)
-                            ->orderBy("a.job_no", "desc")
-                            ->get();
+            $list_data = \App\Models\Transaction\Outbound\Job::from('ex_outbound_header as a')
+                ->select('a.*', "b.forwarder_name")
+                ->join("mt_forwarder as b", "a.forwarder_id", "b.id")
+                ->where('a.branch_id', $request->branch_id)
+                ->whereBetween('a.job_date', [$date_from, $date_to])
+                ->where('a.status_flag', $request->status_flag)
+                ->orderBy("a.job_no", "desc")
+                ->get();
 
             return datatables()->of($list_data)
-                ->editColumn('job_date', function ($data)
-                {
-                    return date('d/m/Y', strtotime($data->job_date) );
+                ->editColumn('job_date', function ($data) {
+                    return date('d/m/Y', strtotime($data->job_date));
                 })
-                ->addColumn('job_no', function($data){
+                ->addColumn('job_no', function ($data) {
                     $button = "";
                     $button .= '<a href="' . URL("/export/outbound/create/$data->id") . '" class="btn btn-default btn-sm"><i class="far fa-file"></i> ' . $data->job_no . '</a>';
                     return $button;
@@ -57,15 +48,15 @@ class JobController extends Controller
 
         return view("transaction.export.outbound.index");
     }
-
-    public function create($id = 0) {
+    public function create($id = 0)
+    {
         $company_id = Auth::user()->company_id;
 
-        $header = InboundJob::from('ex_outbound_header as a')
-                        ->select('a.*', "b.forwarder_name")
-                        ->join("mt_forwarder as b", "a.forwarder_id", "b.id")
-                        ->where('a.id', $id)
-                        ->first();
+        $header = \App\Models\Transaction\Inbound\Job::from('ex_outbound_header as a')
+            ->select('a.*', "b.forwarder_name")
+            ->join("mt_forwarder as b", "a.forwarder_id", "b.id")
+            ->where('a.id', $id)
+            ->first();
 
         $size_list = DB::table("iv_container_size")->where("company_id", $company_id)->where("active", "Yes")->get();
 
@@ -77,7 +68,8 @@ class JobController extends Controller
         return view("transaction.export.outbound.create", $data);
     }
 
-    public function store(Request $request) {
+    public function store(Request $request)
+    {
         $rules = array(
             'branch_id' => 'required',
             'forwarder_id' => 'required',
@@ -90,7 +82,7 @@ class JobController extends Controller
         $validator = \Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
-            return response()->json(['error'=>$validator->errors()->all()]);
+            return response()->json(['error' => $validator->errors()->all()]);
         }
 
         $exception = DB::transaction(function () use ($request) {
@@ -98,10 +90,19 @@ class JobController extends Controller
                 $user_name = Auth::user()->username;
                 $id = $request->id;
 
-                $job = ExportOutboundHeader::find($id);
+                $job = \App\Models\Transaction\Export\OutboundHeader::find($id);
 
                 if (!isset($job)) {
-                    $job = new ExportOutboundHeader();
+                    $isDuplicate = \App\Models\Transaction\Export\OutboundHeader::where('container_no', Str::Upper($request->container_no))
+                        ->where('destination', Str::Upper($request->destination))
+                        ->where('forwarder_id', $request->forwarder_id)
+                        ->exists();
+
+                    if ($isDuplicate) {
+                        return ['error' => ['Job dengan No. Container ini sudah dibuat hari ini.']];
+                    }
+
+                    $job = new \App\Models\Transaction\Export\OutboundHeader();
 
                     $job_no = $this->getJob($request->branch_id);
 
@@ -112,12 +113,12 @@ class JobController extends Controller
                 $job->branch_id = $request->branch_id;
                 $job->forwarder_id = $request->forwarder_id;
                 $job->size_id = $request->size_id;
-                $job->container_no = $request->container_no;
-                $job->destination = $request->destination;
-                $job->vessel_name = $request->vessel_name;
-                $job->surveyor_name = $request->surveyor_name;
-                $job->voyage_no = $request->voyage_no;
-                $job->remarks = $request->remarks;
+                $job->container_no = Str::Upper($request->container_no);
+                $job->destination = Str::Upper($request->destination);
+                $job->vessel_name = Str::Upper($request->vessel_name);
+                $job->surveyor_name = Str::Upper($request->surveyor_name);
+                $job->voyage_no = Str::Upper($request->voyage_no);
+                $job->remarks = Str::Upper($request->remarks);
                 $job->qty_cargo = 0;
                 $job->cbm = 0;
                 $job->weight = 0;
@@ -127,14 +128,13 @@ class JobController extends Controller
 
                 DB::commit();
 
-                $message = ['success'=>url('/export/outbound/create/' . $job->id)];
+                $message = ['success' => url('/export/outbound/create/' . $job->id)];
 
                 return $message;
-            }
-            catch(\Exception $e) {
+            } catch (\Exception $e) {
                 DB::rollBack();
 
-                $message = ['error'=>[$e->getMessage()]];
+                $message = ['error' => [$e->getMessage()]];
 
                 return $message;
             }
@@ -143,86 +143,192 @@ class JobController extends Controller
         return response()->json($exception);
     }
 
-    private function getJob($branch_id) {
+    private function getJob($branch_id)
+    {
         $job_date = \Carbon\Carbon::today();
-
         $year = $job_date->year;
         $month = $job_date->month;
 
-        $job = ExportOutboundHeader::where('branch_id', $branch_id)
-                        ->whereYear('job_date', $year)
-                        ->whereMonth('job_date', $month)
-                        ->max("job_no");
+        $lastJob = \App\Models\Transaction\Export\InboundHeader::whereYear('branch_id', $branch_id)
+            ->whereMonth('job_date', $month)
+            ->lockForUpdate()
+            ->orderBy('job_no', 'desc')
+            ->first();
 
-        if (is_null($job)) {
+        $job = \App\Models\Transaction\Export\OutboundHeader::whereYear('job_date', $year)
+            ->whereMonth('job_date', $month)
+            ->max("job_no");
+
+        if (!$lastJob) {
             $increment = 1;
         } else {
-            $increment = substr($job, 7, 4) + 1;
+            $increment = (int) substr($lastJob->job_no, 7, 4) + 1;
         }
 
-        $job_no = 'O' . $year . Str::of($month)->padLeft(2, '0') . Str::of($increment)->padLeft(4, '0');
+        $job_no = 'I' . $year . str_pad($month, 2, '0', STR_PAD_LEFT) . str_pad($increment, 4, '0', STR_PAD_LEFT);
 
         return $job_no;
     }
 
-    public function submit(Request $request) {
-        $exception = DB::transaction(function () use ($request) {
+    public function submitOldPakFirman(Request $request)
+    {
+        $result = DB::transaction(function () use ($request) {
             try {
-                $user_name = Auth::user()->username;
+                $userName = Auth::user()->username;
+                $now = now();
 
-                $job = ExportOutboundHeader::find($request->job_id);
+                $job = \App\Models\Transaction\Export\OutboundHeader::findOrFail($request->job_id);
+                $orders = \App\Models\Transaction\Export\OutboundOrder::where('job_id', $job->id)->get();
 
-                $orders = ExportOutboundOrder::where("job_id", $request->job_id)->get();
+                $transactionRows = [];
 
                 foreach ($orders as $order) {
-                    $detail_count = ExportOutboundDetail::where("job_id", $request->job_id)
-                                    ->where("order_id", $order->id)
-                                    ->where("status_flag", "Confirmed")
-                                    ->count();
+                    $details = \App\Models\Transaction\Export\OutboundDetail::where([
+                        ['job_id', '=', $job->id],
+                    ])->get();
 
-                    if ( $detail_count == 0 ) {
-                        DB::rollBack();
+                    $confirmedCount = $details->where('status_flag', 'Confirmed')->count();
 
-                        $message = ['error'=>"Pallets unprocessed."];
-
-                        return $message;
+                    if ($confirmedCount === 0) {
+                        throw new \Exception("Pallets unprocessed for order {$order->id}");
                     }
 
-                    if ( $detail_count == $order->total_pallet ) {
-                        $status = "Full";
-                    } else {
-                        $status = "Partial";
-                    }
+                    $status = ($confirmedCount >= $order->total_pallet) ? 'Full' : 'Partial';
+                    $order->update(['status_flag' => $status]);
 
-                    $order->status_flag = $status;
-                    $order->save();
+                    $confirmedDetails = $details->where('status_flag', 'Confirmed');
+
+                    foreach ($confirmedDetails as $detail) {
+                        $transactionRows[] = [
+                            'job_type' => 'out',
+                            'branch_id' => $job->branch_id,
+                            'job_no' => $job->job_no,
+                            'po_number' => $detail->po_number ?? null,
+                            'vehicle_no' => $job->container_no,
+                            'forwarder_id' => $job->forwarder_id,
+                            'shipper_id' => $job->shipper_id,
+                            'consignee_id' => $job->consignee_id,
+                            'destination' => $job->destination ?? null,
+                            'peb_no' => $detail->peb_no,
+                            'aju_no' => $detail->aju_no ?? null,
+                            'serial_no' => $detail->serial_no,
+                            'pallet_id' => $detail->pallet_id,
+                            'quantity' => $detail->quantity,
+                            'cbm' => $job->cbm ?? 0,
+                            'weight' => $job->weight ?? 0,
+                            'total_pallet' => $order->total_pallet ?? 0,
+                            'qty_cargo' => $details->sum('quantity'),
+                            'user_id' => $userName,
+                            'created_at' => $now,
+                        ];
+                    }
                 }
 
-                $job->status_flag = "Confirmed";
-                $job->save();
+                if (!empty($transactionRows)) {
+                    DB::table('ex_stock_transaction')->insert($transactionRows);
+                }
 
-                DB::commit();
+                $hasOpenOrders = \App\Models\Transaction\Export\OutboundOrder::where('job_id', $job->id)
+                    ->where('status_flag', '!=', 'Full')
+                    ->exists();
 
-                $message = ['success'=>"Success"];
+                if (!$hasOpenOrders) {
+                    $job->update(['status_flag' => 'Confirmed']);
+                }
 
-                return $message;
-            }
-            catch(\Exception $e) {
-                DB::rollBack();
-
-                $message = ['error'=>$e->getMessage()];
-
-                return $message;
+                return ['success' => 'Success'];
+            } catch (\Exception $e) {
+                throw $e;
             }
         });
 
-        return response()->json($exception);
+        return response()->json($result);
     }
 
-    public function update(Request $request) {
+    public function submit(Request $request)
+    {
+        $result = DB::transaction(function () use ($request) {
+            try {
+                $userName = Auth::user()->username;
+                $now = now();
+
+                $job = \App\Models\Transaction\Export\OutboundHeader::findOrFail($request->job_id);
+                $orders = \App\Models\Transaction\Export\OutboundOrder::where('job_id', $job->id)->get();
+
+                $detailsByJob = \App\Models\Transaction\Export\OutboundDetail::where('job_id', $job->id)->get();
+
+                $transactionRows = [];
+
+                foreach ($orders as $order) {
+
+                    $details = $detailsByJob;
+
+                    $confirmedCount = $details->where('status_flag', 'Confirmed')->count();
+
+                    if ($confirmedCount === 0) {
+                        throw new \Exception("Pallets unprocessed for order {$order->id}");
+                    }
+
+                    $status = ($confirmedCount >= $order->total_pallet) ? 'Full' : 'Partial';
+                    $order->update(['status_flag' => $status]);
+
+                    $confirmedDetails = $details->where('status_flag', 'Confirmed');
+
+                    foreach ($confirmedDetails as $detail) {
+                        $transactionRows[] = [
+                            'job_type' => 'out',
+                            'branch_id' => $job->branch_id,
+                            'job_no' => $job->job_no,
+                            'po_number' => $detail->po_number ?? null,
+                            'vehicle_no' => $job->container_no,
+                            'forwarder_id' => $job->forwarder_id,
+                            'shipper_id' => $job->shipper_id,
+                            'consignee_id' => $job->consignee_id,
+                            'destination' => $job->destination ?? null,
+                            'peb_no' => $detail->peb_no,
+                            'aju_no' => $detail->aju_no ?? null,
+                            'serial_no' => $detail->serial_no,
+                            'pallet_id' => $detail->pallet_id,
+                            'quantity' => $detail->quantity,
+                            'cbm' => $job->cbm ?? 0,
+                            'weight' => $job->weight ?? 0,
+                            'total_pallet' => $order->total_pallet ?? 0,
+                            'qty_cargo' => $details->sum('quantity'),
+                            'user_id' => $userName,
+                            'created_at' => $now,
+                        ];
+                    }
+                }
+
+                if (!empty($transactionRows)) {
+                    foreach (array_chunk($transactionRows, 500) as $chunk) {
+                        DB::table('ex_stock_transaction')->insert($chunk);
+                    }
+                }
+
+                $hasOpenOrders = \App\Models\Transaction\Export\OutboundOrder::where('job_id', $job->id)
+                    ->where('status_flag', '!=', 'Full')
+                    ->exists();
+
+                if (!$hasOpenOrders) {
+                    $job->update(['status_flag' => 'Confirmed']);
+                }
+
+                return ['success' => 'Success'];
+            } catch (\Exception $e) {
+                throw $e;
+            }
+        });
+
+        return response()->json($result);
+    }
+
+
+    public function update(Request $request)
+    {
         $exception = DB::transaction(function () use ($request) {
             try {
-                $job = ExportOutboundHeader::find($request->job_id);
+                $job = \App\Models\Transaction\Export\OutboundHeader::find($request->job_id);
 
                 $job->surveyor_name = $request->surveyor_name;
                 $job->vessel_name = $request->vessel_name;
@@ -231,14 +337,13 @@ class JobController extends Controller
 
                 DB::commit();
 
-                $message = ['success'=>"Success"];
+                $message = ['success' => "Success"];
 
                 return $message;
-            }
-            catch(\Exception $e) {
+            } catch (\Exception $e) {
                 DB::rollBack();
 
-                $message = ['error'=>$e->getMessage()];
+                $message = ['error' => $e->getMessage()];
 
                 return $message;
             }

@@ -38,7 +38,7 @@ class MasterDataController extends Controller
 
     public function getListWarehouse()
     {
-        $data = DB::table('cross_mt_warehouse')->get();
+        $data = DB::table('cross_mt_warehouse')->where('status', 1)->get();
         $data->map(function ($value) {
             $value->branch = $this->getBranch()->where('id', $value->id_branch)->first()->branch_name ?? '-';
         });
@@ -47,7 +47,7 @@ class MasterDataController extends Controller
 
     public function getListCustomer()
     {
-        $data = DB::table('cross_mt_customer')->get();
+        $data = DB::table('cross_mt_customer')->where('status', 1)->get();
         $data->map(function ($value) {
             $value->branch = $this->getBranch()->where('id', $value->id_branch)->first()->branch_name ?? '-';
         });
@@ -76,7 +76,10 @@ class MasterDataController extends Controller
     {
         $exception = DB::transaction(function () use ($id) {
             try {
-                DB::table('cross_mt_warehouse')->where('id', $id)->delete();
+                DB::table('cross_mt_warehouse')->where('id', $id)
+                    ->update([
+                        'status' => 0
+                    ]);
                 DB::commit();
                 $message = ['message' => 'Data Successfully Saved'];
 
@@ -238,7 +241,10 @@ class MasterDataController extends Controller
     {
         $exception = DB::transaction(function () use ($id) {
             try {
-                DB::table('cross_mt_customer')->where('id', $id)->delete();
+                DB::table('cross_mt_customer')->where('id', $id)
+                    ->update([
+                        'status' => 0
+                    ]);
                 DB::commit();
                 $message = ['message' => 'Data Successfully Saved'];
 

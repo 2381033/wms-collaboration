@@ -12,6 +12,44 @@ use Illuminate\Support\Str;
 
 class GarageController extends Controller
 {
+
+    private function compressJpeg($uploadedFile, $destination, $quality = 70)
+    {
+        $source = imagecreatefromjpeg($uploadedFile->getRealPath());
+        $width  = imagesx($source);
+        $height = imagesy($source);
+
+        $maxWidth = 1600;
+        $maxHeight = 1600;
+
+        if ($width > $maxWidth || $height > $maxHeight) {
+            $ratio = min($maxWidth / $width, $maxHeight / $height);
+
+            $newWidth  = intval($width * $ratio);
+            $newHeight = intval($height * $ratio);
+
+            $resized = imagecreatetruecolor($newWidth, $newHeight);
+
+            imagecopyresampled(
+                $resized,
+                $source,
+                0,
+                0,
+                0,
+                0,
+                $newWidth,
+                $newHeight,
+                $width,
+                $height
+            );
+
+            $source = $resized;
+        }
+
+        imagejpeg($source, $destination, $quality);
+
+        imagedestroy($source);
+    }
     private function myBranch($user_id)
     {
         $branch = DB::table('sm_user_branch')
@@ -41,11 +79,9 @@ class GarageController extends Controller
     {
         $exception = DB::transaction(function () use ($request) {
             try {
-                $file = $request->file('photo');
-                $filename = 'on-garasi-' . $request->job_no . "." . $file->getClientOriginalExtension();
-                if (!file_exists(public_path('foto/checkpoint-driver/lokasi-garage/' . $filename))) {
-                    $file->move(public_path('foto/checkpoint-driver/lokasi-garage/'), $filename);
-                }
+                $filename = 'on-garasi-' . $request->job_no . "-" . Str::random(6) . ".jpg";
+                $destination = public_path('foto/checkpoint-driver/lokasi-garage/' . $filename);
+                $this->compressJpeg($request->file('photo'), $destination);
                 DB::table('cp_driver_job')
                     ->updateOrInsert(
                         ['token' =>  $request->token],
@@ -73,11 +109,9 @@ class GarageController extends Controller
     {
         $exception = DB::transaction(function () use ($request) {
             try {
-                $file = $request->file('photo');
-                $filename = 'surat-jalan-' . $request->job_no . "." . $file->getClientOriginalExtension();
-                if (!file_exists(public_path('foto/checkpoint-driver/surat-jalan/' . $filename))) {
-                    $file->move(public_path('foto/checkpoint-driver/surat-jalan/'), $filename);
-                }
+                $filename = 'surat-jalan-' . $request->job_no . "-" . Str::random(6) . ".jpg";
+                $destination = public_path('foto/checkpoint-driver/surat-jalan/' . $filename);
+                $this->compressJpeg($request->file('photo'), $destination);
                 DB::table('cp_driver_job')
                     ->where('token', $request->token)
                     ->update(
@@ -105,11 +139,13 @@ class GarageController extends Controller
     {
         $exception = DB::transaction(function () use ($token) {
             try {
+                $job = $this->getJob($token);
+
                 DB::table('cp_driver_job')
                     ->updateOrInsert(
                         ['token' =>  $token],
                         [
-                            'start_from_garage' => date('Y-m-d H:i:s'),
+                            'start_from_garage' => $this->logicWaktu($job->driver),
                             'status_job' => 'to_loc_muat'
                         ]
                     );
@@ -129,6 +165,17 @@ class GarageController extends Controller
         return response()->json($exception);
     }
 
+    private function logicWaktu($id_user)
+    {
+        $branch = $this->whereMyBranch($id_user);
+
+        if ($branch == 5) {
+            return date('Y-m-d H:i:s', strtotime('+1 hour'));
+        } else {
+            return date('Y-m-d H:i:s');
+        }
+    }
+
     public function balikKeGarasi(Request $request)
     {
         $exception = DB::transaction(function () use ($request) {
@@ -140,7 +187,7 @@ class GarageController extends Controller
                     ->update([
                         'remarks_perjalanan' => $request->remarks_perjalanan,
                         'back_to_garage' => 'Yes',
-                        'start_back_to_garage' => date('Y-m-d H:i:s'),
+                        'start_back_to_garage' => $this->logicWaktu($job->driver),
                         'status_job' => 'to_garage'
                     ]);
                 DB::commit();
@@ -170,7 +217,7 @@ class GarageController extends Controller
                 DB::table('cp_driver_job')
                     ->where('token', $job->token)
                     ->update([
-                        'finish_back_to_garage' => date('Y-m-d H:i:s'),
+                        'finish_back_to_garage' => $this->logicWaktu($job->driver),
                         // 'confirmed_flag' => 'Yes',
                         // 'status_job' => 'confirmed',
                         // 'confirmed_at' => date('Y-m-d H:i:s'),
@@ -200,17 +247,16 @@ class GarageController extends Controller
             try {
                 $job = $this->getJob($request->token);
                 $userDetails = $this->detailUser($job->driver);
-                $file = $request->file('photo');
-                $filename = 'finish-garasi-' . $request->job_no . "." . $file->getClientOriginalExtension();
-                if (!file_exists(public_path('foto/checkpoint-driver/lokasi-garage/' . $filename))) {
-                    $file->move(public_path('foto/checkpoint-driver/lokasi-garage/'), $filename);
-                }
+
+                $filename = 'finish-garasi-' . $request->job_no . "-" . Str::random(6) . ".jpg";
+                $destination = public_path('foto/checkpoint-driver/lokasi-garage/' . $filename);
+                $this->compressJpeg($request->file('photo'), $destination);
                 DB::table('cp_driver_job')
                     ->where('token', $request->token)
                     ->update([
                         'confirmed_flag' => 'Yes',
                         'status_job' => 'confirmed',
-                        'confirmed_at' => date('Y-m-d H:i:s'),
+                        'confirmed_at' => $this->logicWaktu($job->driver),
                         'confirmed_by' => $userDetails->id,
                         'foto_km_finish'   => $filename,
                     ]);

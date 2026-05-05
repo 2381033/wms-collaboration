@@ -55,7 +55,7 @@ class CycleCountReminder extends Command
                 ->where("icd.branch_id", $value->branch_id)
                 ->whereBetween("icd.created_at", [$date_from, $date_to])
                 ->count();
-                // dd($cycle_count,$date_from,$date_to);
+            // dd($cycle_count,$date_from,$date_to);
             // $cycle_count_sql = $cycle_count->toSql();
             // $cycle_count_bindings = $cycle_count->getBindings();
             if ($cycle_count > 0) {

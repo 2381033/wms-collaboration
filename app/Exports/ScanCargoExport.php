@@ -29,7 +29,6 @@ class ScanCargoExport implements FromCollection, WithHeadings, ShouldAutoSize
         ->join("ex_scan_cargo_detail as detail", "header.id", "detail.id_header")
         ->where("detail.job_no", $this->job_no)
         ->get();
-
     }
 
     public function headings(): array

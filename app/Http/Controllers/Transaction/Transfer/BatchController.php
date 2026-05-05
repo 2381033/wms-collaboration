@@ -18,37 +18,36 @@ use App\Models\Transaction\Transfer\Job as TransferJob;
 
 class BatchController extends Controller
 {
-    public function index(Request $request) {
+    public function index(Request $request)
+    {
         if ($request->ajax()) {
             if (!empty($request->transfer_id) && !empty($request->transfer_id)) {
                 $detail = DB::table("iv_transfer_detail as a")
-                            ->select("a.*", "b.product_name", "c.site_name", "d.area_name", "e.site_name as dest_site_name", "f.area_name as dest_area_name")
-                            ->join("iv_product as b", "a.product_id", "b.id")
-                            ->leftjoin("iv_site as c", "a.site_id", "c.id")
-                            ->leftjoin("iv_site_area as d", "a.area_id", "d.id")
-                            ->leftjoin("iv_site as e", "a.dest_site_id", "e.id")
-                            ->leftjoin("iv_site_area as f", "a.dest_area_id", "f.id")
-                            ->where("a.transfer_id", $request->transfer_id)
-                            ->where("a.picked_flag", "Yes")
-                            ->where("a.confirmed_flag", "No")
-                            ->get();
+                    ->select("a.*", "b.product_name", "c.site_name", "d.area_name", "e.site_name as dest_site_name", "f.area_name as dest_area_name")
+                    ->join("iv_product as b", "a.product_id", "b.id")
+                    ->leftjoin("iv_site as c", "a.site_id", "c.id")
+                    ->leftjoin("iv_site_area as d", "a.area_id", "d.id")
+                    ->leftjoin("iv_site as e", "a.dest_site_id", "e.id")
+                    ->leftjoin("iv_site_area as f", "a.dest_area_id", "f.id")
+                    ->where("a.transfer_id", $request->transfer_id)
+                    ->where("a.picked_flag", "Yes")
+                    ->where("a.confirmed_flag", "No")
+                    ->get();
             }
 
             return datatables()->of($detail)
-            ->addColumn("check", function ($data) {
-                return "<input type='checkbox' required='required' name='confirm_id[]' class='confirm-check' id='" . $data->id . "' value='" . $data->id . "'>";
-            })
-            ->editColumn("exp_date", function ($data)
-            {
-                return date("d/m/Y", strtotime($data->exp_date) );
-            })
-            ->editColumn("mfg_date", function ($data)
-            {
-                return date("d/m/Y", strtotime($data->mfg_date) );
-            })
-            ->rawColumns(["check"])
-            ->addIndexColumn()
-            ->make(true);
+                ->addColumn("check", function ($data) {
+                    return "<input type='checkbox' required='required' name='confirm_id[]' class='confirm-check' id='" . $data->id . "' value='" . $data->id . "'>";
+                })
+                ->editColumn("exp_date", function ($data) {
+                    return date("d/m/Y", strtotime($data->exp_date));
+                })
+                ->editColumn("mfg_date", function ($data) {
+                    return date("d/m/Y", strtotime($data->mfg_date));
+                })
+                ->rawColumns(["check"])
+                ->addIndexColumn()
+                ->make(true);
         }
     }
 
@@ -66,15 +65,15 @@ class BatchController extends Controller
             $arrid = '';
             foreach ($data as $key => $value) {
                 $batchList = TransferBatch::where("transfer_id", $transfer_id)
-                                ->where("line_id", $value)
-                                ->orderBy("job_type", "ASC")
-                                ->get();
+                    ->where("line_id", $value)
+                    ->orderBy("job_type", "ASC")
+                    ->get();
                 foreach ($batchList as $key => $valueBatch) {
                     $batch = TransferBatch::find($valueBatch->id);
                 }
 
-                if (strlen($arrid)>0) {
-                    $arrid .= ",".$value;
+                if (strlen($arrid) > 0) {
+                    $arrid .= "," . $value;
                 } else {
                     $arrid .= $value;
                 }
@@ -96,7 +95,8 @@ class BatchController extends Controller
         return response()->json($message);
     }
 
-    public function submit2(Request $request) {
+    public function submit2(Request $request)
+    {
         $exception = DB::transaction(function () use ($request) {
             $confirmed_by = Auth::user()->username;
             $confirmed_date = \Carbon\Carbon::now();
@@ -112,18 +112,18 @@ class BatchController extends Controller
                 foreach ($data as $id) {
                     $detail = TransferDetail::find($id);
                     $batchList = TransferBatch::where("transfer_id", $detail->transfer_id)
-                                    ->where("line_id", $id)
-                                    ->orderBy("job_type", "ASC")
-                                    ->get();
+                        ->where("line_id", $id)
+                        ->orderBy("job_type", "ASC")
+                        ->get();
 
                     $flag = false;
                     foreach ($batchList as $value) {
                         if ($value->job_type == "TFRI") {
                             $stock_count = StockLedger::where("principal_id", $detail->principal_id)
-                                            ->where("serial_no", $value->serial_no)
-                                            ->count();
+                                ->where("serial_no", $value->serial_no)
+                                ->count();
 
-                            if ( $stock_count > 0 ) {
+                            if ($stock_count > 0) {
                                 $flag = true;
                             }
                         }
@@ -257,8 +257,8 @@ class BatchController extends Controller
                 $job = TransferJob::find($detail->transfer_id);
 
                 $detail_count = TransferDetail::where("transfer_id", $detail->transfer_id)
-                            ->where("confirmed_flag", "No")
-                            ->get();
+                    ->where("confirmed_flag", "No")
+                    ->get();
 
                 if (is_null($detail_count)) {
                     $count = 0;
@@ -275,18 +275,17 @@ class BatchController extends Controller
 
                 DB::commit();
 
-                $message = ["success"=>"Sukses"];
+                $message = ["success" => "Sukses"];
 
                 $dataapi = $request->confirm_id;
                 $databatch = $batch->id;
                 $this->sendAPI($dataapi, $databatch);
 
                 return $message;
-            }
-            catch(\Exception $e) {
+            } catch (\Exception $e) {
                 DB::rollBack();
 
-                $message = ["error"=>[$e->getMessage()]];
+                $message = ["error" => [$e->getMessage()]];
 
                 return $message;
             }
@@ -312,7 +311,7 @@ class BatchController extends Controller
                 $job = TransferJob::find($batch->transfer_id);
                 $detail = TransferDetail::find($id);
                 $qty = ($detail->actual_pqty * $detail->muppp);
-                $location_code_from = explode('.',$detail->location_code);
+                $location_code_from = explode('.', $detail->location_code);
                 $fromrow = $location_code_from[0];
                 $frombin = $location_code_from[1];
                 $fromlvl = $location_code_from[2];
@@ -340,59 +339,59 @@ class BatchController extends Controller
                 ];
                 array_push($datasend, json_encode($data));
                 if (strlen($jsondatasend) > 1) {
-                    $jsondatasend .= ",".json_encode($data);
+                    $jsondatasend .= "," . json_encode($data);
                 } else {
                     $jsondatasend .= json_encode($data);
                 }
             }
         }
         $client = new guzzle();
-                try {
-                    $response = $client->request('POST', 'https://egate.enseval.com/api/Principal/MiniDC/MKTMovement2', [
-                        'headers' => [
-                            'accept' => '/',
-                            'Content-Type' => 'application/json',
-                            'Authorization' => 'dGVzdDp0ZXN0'
-                        ],
-                        'body' => "[".$jsondatasend."]"
-                    ]);
-                    DB::beginTransaction();
-                    $saveresponse = DB::table('iv_epm_response_api')->insert([
-                        'activity' => 'STOCKTRANSFER',
-                        'activity_id' => $batch->transfer_id,
-                        'job_no' => $job->job_no,
-                        'status' => $response->getStatusCode(),
-                        'body' => "[".$jsondatasend."]",
-                        'error' => $response->getBody()->getContents(),
-                        'created_date' => \Carbon\Carbon::now()
-                    ]);
-                    if ($saveresponse) {
-                        DB::commit();
-                    } else {
-                        DB::rollback();
-                    }
-                } catch (BadResponseException $ex) {
-                    $response = $ex->getResponse();
-                    $jsonBody = (string) $response->getBody();
-                    // echo "<pre>";
-                    // print_r($jsonBody);
-                    // echo "</pre>";
-                    DB::beginTransaction();
-                    $saveresponse = DB::table('iv_epm_response_api')->insert([
-                        'activity' => 'STOCKTRANSFER',
-                        'activity_id' => $batch->transfer_id,
-                        'job_no' => $job->job_no,
-                        'status' => $response->getStatusCode(),
-                        'body' => "[".$jsondatasend."]",
-                        'error' => $jsonBody,
-                        'created_date' => \Carbon\Carbon::now()
-                    ]);
-                    if ($saveresponse) {
-                        DB::commit();
-                    } else {
-                        DB::rollback();
-                    }
-                }
+        try {
+            $response = $client->request('POST', 'https://egate.enseval.com/api/Principal/MiniDC/MKTMovement2', [
+                'headers' => [
+                    'accept' => '/',
+                    'Content-Type' => 'application/json',
+                    'Authorization' => 'dGVzdDp0ZXN0'
+                ],
+                'body' => "[" . $jsondatasend . "]"
+            ]);
+            DB::beginTransaction();
+            $saveresponse = DB::table('iv_epm_response_api')->insert([
+                'activity' => 'STOCKTRANSFER',
+                'activity_id' => $batch->transfer_id,
+                'job_no' => $job->job_no,
+                'status' => $response->getStatusCode(),
+                'body' => "[" . $jsondatasend . "]",
+                'error' => $response->getBody()->getContents(),
+                'created_date' => \Carbon\Carbon::now()
+            ]);
+            if ($saveresponse) {
+                DB::commit();
+            } else {
+                DB::rollback();
+            }
+        } catch (BadResponseException $ex) {
+            $response = $ex->getResponse();
+            $jsonBody = (string) $response->getBody();
+            // echo "<pre>";
+            // print_r($jsonBody);
+            // echo "</pre>";
+            DB::beginTransaction();
+            $saveresponse = DB::table('iv_epm_response_api')->insert([
+                'activity' => 'STOCKTRANSFER',
+                'activity_id' => $batch->transfer_id,
+                'job_no' => $job->job_no,
+                'status' => $response->getStatusCode(),
+                'body' => "[" . $jsondatasend . "]",
+                'error' => $jsonBody,
+                'created_date' => \Carbon\Carbon::now()
+            ]);
+            if ($saveresponse) {
+                DB::commit();
+            } else {
+                DB::rollback();
+            }
+        }
         return 'sukses';
     }
 }
