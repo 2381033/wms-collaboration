@@ -342,7 +342,7 @@ $(document).ready(function () {
                 </tr>`;
             $("table tbody").append(markup);
             $("#cbmAdd").on("keydown", function(e) {
-                // Cek kalau tombol yang ditekan adalah koma (keyCode 188 atau e.key === ",")
+               
                 if (e.key === "," || e.keyCode === 188) {
                     e.preventDefault(); // cegah input koma
                 }

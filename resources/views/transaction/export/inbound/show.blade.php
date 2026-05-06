@@ -802,7 +802,7 @@
         }
 
         $('#updatePalletize').on('submit', function(e) {
-            e.preventDefault(); // Hindari reload form default
+            e.preventDefault();
             $('.btn-update').hide(); // Sembunyikan tombol saat submit
             let form = $(this);
             let formData = new FormData(this);

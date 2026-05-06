@@ -262,7 +262,7 @@ class JobController extends Controller
         DB::rollBack();
         $message = ['error' => ["More than one name of {$label}"]];
         return $message;
-        // throw new \Exception("More than one name of {$label}");
+       
     }
 
     public function store(Request $request)
