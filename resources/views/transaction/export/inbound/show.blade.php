@@ -260,7 +260,7 @@
                                         @if ($header->status_flag == 'Confirmed') readonly @endif>
                                 </div>
                             </div>
-                            <div class="col-sm-4">
+                            <div class="col-sm-3">
                                 <div class="form-group">
                                     <label>PEB No</label>
                                     <input type="text" autocomplete="off" placeholder="Silahkan isi.." id="peb_no"
@@ -268,7 +268,7 @@
                                         @if ($header->status_flag == 'Confirmed') readonly @endif />
                                 </div>
                             </div>
-                            <div class="col-sm-4">
+                            <div class="col-sm-3">
                                 <div class="form-group">
                                     <label>AJU No</label>
                                     <input type="text" autocomplete="off" placeholder="Silahkan isi.." id="aju_no"
@@ -276,11 +276,23 @@
                                         @if ($header->status_flag == 'Confirmed') readonly @endif />
                                 </div>
                             </div>
-                            <div class="col-sm-4">
+                            <div class="col-sm-3">
                                 <div class="form-group">
-                                    <label for="vehicle_no">Vehicle No</label>
+                                    <label for="vehicle_no_by_ao">Vehicle No</label>
                                     <input type="text" autocomplete="off" placeholder="Silahkan isi.." required
+                                        id="vehicle_no" name="vehicleNumber" value="{{ $header->vehicle_no_by_ao }}"
+                                        class="form-control" @isset($header) readonly @endisset />
+                                             <input type="hidden" autocomplete="off" placeholder="Silahkan isi.." required
                                         id="vehicle_no" name="vehicle_no" value="{{ $header->vehicle_no }}"
+                                        class="form-control" @isset($header) readonly @endisset />
+                                </div>
+                            </div>
+                               
+                                <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label for="gate_in_by_ao">Gate In</label>
+                                    <input type="text" autocomplete="off" placeholder="Silahkan isi.." required
+                                        id="vehicle_no" name="gateIn" value="{{ $header->gate_in_by_ao }}"
                                         class="form-control" @isset($header) readonly @endisset />
                                 </div>
                             </div>

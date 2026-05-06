@@ -30,7 +30,7 @@
         <td colspan="4">: {{ $data['detail']->sum('quantity') . ' ' . $data['detail']->first()->unit }}</td>
 
         <td style="font-weight:bold;">TRUCK NO</td>
-        <td colspan="4" style="border-right:2px solid black;">: {{ $data['header']->vehicle_no }}
+        <td colspan="4" style="border-right:2px solid black;">: {{ $data['header']->vehicle_no_by_ao }}
             ({{ DB::table('ex_gate_in_cargo')->where('vehicle_number', $data['header']->vehicle_no)->value('vehicle_type') }})
         </td>
     </tr>
@@ -40,7 +40,7 @@
 
         <td style="font-weight:bold;">DATE IN</td>
         <td colspan="4" style="border-right:2px solid black;">:
-            {{ \Carbon\Carbon::parse($data['header']->created_at)->format('d-m-Y H:i') }}</td>
+            {{ \Carbon\Carbon::parse($data['header']->gate_in_by_ao)->format('d-m-Y H:i') }}</td>
     </tr>
     <tr>
         <td style="font-weight:bold; border-left:2px solid black;">TOTAL VGM</td>

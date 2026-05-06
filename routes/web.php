@@ -676,6 +676,8 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/export/inbound/showImages/{job_id}', 'Transaction\Export\Inbound\JobController@showImages');
     Route::get('/export/inbound/backtoChecker/{job_id}', 'Transaction\Export\Inbound\JobController@backtoChecker');
     Route::get('/export/inbound/deleteImage/{id}', 'Transaction\Export\Inbound\JobController@deleteImage');
+    Route::get('/export/inbound/gateTime/{nopol}', 'Transaction\Export\Inbound\JobController@gateTime');
+    
 
     Route::get('/export/inbound/detail', 'Transaction\Export\Inbound\DetailController@index')->name('export-detail.index');
     Route::post('/export/inbound/detail/store', 'Transaction\Export\Inbound\DetailController@store')->name('export-detail.store');

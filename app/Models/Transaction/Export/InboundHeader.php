@@ -27,6 +27,8 @@ class InboundHeader extends Model
         "weight",
         "total_pallet",
         "status_flag",
-        "user_id"
+        "user_id",
+        "vehicle_no_by_ao",
+        "gate_in_by_ao",
     ];
 }

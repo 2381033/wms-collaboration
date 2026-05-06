@@ -151,6 +151,14 @@ class JobController extends Controller
 
         return view("transaction.export.inbound.create", $data);
     }
+    public function gateTime($nopol){
+        $data = DB::table('ex_gate_in_cargo')
+        ->where('vehicle_number', $nopol)
+        ->first();
+        return response()->json($data);
+    }
+
+    
     public function show($id)
     {
         $header = InboundJob::from('ex_inbound_header as a')
@@ -257,6 +265,7 @@ class JobController extends Controller
 
     public function store(Request $request)
     {
+        
         $rules = array(
             'branch_id' => 'required',
             'vehicle_no' => 'required',
@@ -268,6 +277,8 @@ class JobController extends Controller
             'peb_no' => 'required',
             'aju_no' => 'required',
             'vgm' => 'required',
+            'gateIn' => 'required',
+            'vehicleNumber' => 'required',
         );
 
         $validator = \Validator::make($request->all(), $rules);
@@ -399,6 +410,8 @@ class JobController extends Controller
                 $job->qty_cargo = isset($request->qty) ? $qty : $job->qty_cargo;
                 $job->cbm = isset($request->cbm) ? $cbm : $job->cbm;
                 $job->pic_name = isset($request->pic_name) ? $request->pic_name : NULL;
+                $job->gate_in_by_ao = $request->gateIn; 
+                $job->vehicle_no_by_ao = $request->vehicleNumber;
                 $job->save();
 
                 DB::table('ex_stock_ledger')
@@ -529,7 +542,7 @@ class JobController extends Controller
                     ->where("vehicle_number", $job->vehicle_no)
                     ->whereDate('created_at', $job->created_at)
                     ->first();
-                $this->storeToWims($job, $details, $foto, $vehicle);
+                // $this->storeToWims($job, $details, $foto, $vehicle);
                 DB::commit();
                 return ['success' => "Success"];
             } catch (\Exception $e) {
