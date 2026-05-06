@@ -138,7 +138,7 @@
                                         name="aju_no" class="form-control" required />
                                 </div>
                             </div>
-                            <div class="col-sm-4">
+                            <div class="col-sm-3">
                                 <div class="form-group">
                                     <label for="">Vehicle No.</label>
                                     <select class="form-control selectVehicle" name="vehicle_no" required id="">
@@ -149,13 +149,17 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-sm-4">
-                                <label for="">Gate in</label>
-                                <input type="datetime-local" name="gateIn" class="form-control valueGateIn"  id="">
+                            <div class="col-sm-3">
+                                <label for="">Gate Date</label>
+                                <input type="date" name="gateDate" min="{{date('Y-01-01')}}" max="{{date('Y-12-31')}}" class="form-control valueGateDate"  id="" style="display: none">
                             </div>
-                            <div class="col-sm-4">
+                            <div class="col-sm-3">
+                                <label for="">Gate Time</label>
+                                <input type="time" name="gateTime" class="form-control valueGateTime"  id="" style="display: none">
+                            </div>
+                            <div class="col-sm-3">
                                 <label for="">Vehicle Number</label>
-                                <input type="text" name="vehicleNumber" class="form-control valueVehicle"  id="" placeholder="automated">
+                                <input type="text" name="vehicleNumber" class="form-control valueVehicle"  id="" placeholder="automated" style="display: none">
                             </div>
                             <div class="col-sm-3">
                                 <div class="form-group">
@@ -265,6 +269,23 @@
                 e.preventDefault();
             }
         });
+        
+        
+$(document).ready(function () {
+    const currentYear = new Date().getFullYear();
+
+    $('.valueGateDate').on('blur', function () {
+        let value=$(this).val()
+        if(value){
+            let years=value.split('-')[0];
+            if (years != currentYear) {
+                alert('Tahun harus ' + currentYear);
+                $(this).val('');
+            }
+            
+        }
+    });
+});
 
         document.getElementById('vgm').addEventListener('input', function(e) {
             let value = this.value;
@@ -360,9 +381,18 @@
                 url: "{{url('/export/inbound/gateTime') }}/"+value, // URL server
                 type: 'get',
             success: function(response){
-                 $('.valueGateIn') .val(response.created_at)
-                 $('.valuevehicle') .val(response.vehicle_number)
-                 console.log(response)
+                let datetime = response.created_at.split(' ');
+                let date = datetime[0]; 
+                let time = datetime[1]; 
+                $('.valueGateDate').val(date);
+                $('.valueGateTime').val(time);
+                $('.valueVehicle').val(response.vehicle_number);
+
+                $('.valueGateDate').show();
+                $('.valueGateTime').show();
+                $('.valueVehicle').show();
+
+                console.log(response);
             }
             });
             });
