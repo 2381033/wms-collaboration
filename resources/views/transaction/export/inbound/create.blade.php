@@ -151,15 +151,19 @@
                             </div>
                             <div class="col-sm-3">
                                 <label for="">Gate Date</label>
-                                <input type="date" name="gateDate" min="{{date('Y-01-01')}}" max="{{date('Y-12-31')}}" class="form-control valueGateDate"  id="" style="display: none">
+                                <input type="date" name="gateDate" min="{{ date('Y-01-01') }}"
+                                    max="{{ date('Y-12-31') }}" class="form-control valueGateDate" id=""
+                                    style="display: none">
                             </div>
                             <div class="col-sm-3">
                                 <label for="">Gate Time</label>
-                                <input type="time" name="gateTime" class="form-control valueGateTime"  id="" style="display: none">
+                                <input type="time" name="gateTime" class="form-control valueGateTime" id=""
+                                    style="display: none">
                             </div>
                             <div class="col-sm-3">
                                 <label for="">Vehicle Number</label>
-                                <input type="text" name="vehicleNumber" class="form-control valueVehicle"  id="" placeholder="automated" style="display: none">
+                                <input type="text" name="vehicleNumber" class="form-control valueVehicle" id=""
+                                    placeholder="automated" style="display: none">
                             </div>
                             <div class="col-sm-3">
                                 <div class="form-group">
@@ -269,23 +273,23 @@
                 e.preventDefault();
             }
         });
-        
-        
-$(document).ready(function () {
-    const currentYear = new Date().getFullYear();
 
-    $('.valueGateDate').on('blur', function () {
-        let value=$(this).val()
-        if(value){
-            let years=value.split('-')[0];
-            if (years != currentYear) {
-                alert('Tahun harus ' + currentYear);
-                $(this).val('');
-            }
-            
-        }
-    });
-});
+        //test
+        $(document).ready(function() {
+            const currentYear = new Date().getFullYear();
+
+            $('.valueGateDate').on('blur', function() {
+                let value = $(this).val()
+                if (value) {
+                    let years = value.split('-')[0];
+                    if (years != currentYear) {
+                        alert('Tahun harus ' + currentYear);
+                        $(this).val('');
+                    }
+
+                }
+            });
+        });
 
         document.getElementById('vgm').addEventListener('input', function(e) {
             let value = this.value;
@@ -342,7 +346,7 @@ $(document).ready(function () {
                 </tr>`;
             $("table tbody").append(markup);
             $("#cbmAdd").on("keydown", function(e) {
-               
+
                 if (e.key === "," || e.keyCode === 188) {
                     e.preventDefault(); // cegah input koma
                 }
@@ -373,28 +377,28 @@ $(document).ready(function () {
 
         $('.selectChecker').select2();
         $('.selectVehicle').select2();
-        
-        $(document).ready(function(){
-            $('.selectVehicle').change(function(){
-            var value = $(this).val();
-            $.ajax({
-                url: "{{url('/export/inbound/gateTime') }}/"+value, // URL server
-                type: 'get',
-            success: function(response){
-                let datetime = response.created_at.split(' ');
-                let date = datetime[0]; 
-                let time = datetime[1]; 
-                $('.valueGateDate').val(date);
-                $('.valueGateTime').val(time);
-                $('.valueVehicle').val(response.vehicle_number);
 
-                $('.valueGateDate').show();
-                $('.valueGateTime').show();
-                $('.valueVehicle').show();
+        $(document).ready(function() {
+            $('.selectVehicle').change(function() {
+                var value = $(this).val();
+                $.ajax({
+                    url: "{{ url('/export/inbound/gateTime') }}/" + value, // URL server
+                    type: 'get',
+                    success: function(response) {
+                        let datetime = response.created_at.split(' ');
+                        let date = datetime[0];
+                        let time = datetime[1];
+                        $('.valueGateDate').val(date);
+                        $('.valueGateTime').val(time);
+                        $('.valueVehicle').val(response.vehicle_number);
 
-                console.log(response);
-            }
-            });
+                        $('.valueGateDate').show();
+                        $('.valueGateTime').show();
+                        $('.valueVehicle').show();
+
+                        console.log(response);
+                    }
+                });
             });
         });
 
