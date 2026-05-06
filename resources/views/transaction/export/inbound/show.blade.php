@@ -260,7 +260,7 @@
                                         @if ($header->status_flag == 'Confirmed') readonly @endif>
                                 </div>
                             </div>
-                            <div class="col-sm-3">
+                            <div class="col-sm-6">
                                 <div class="form-group">
                                     <label>PEB No</label>
                                     <input type="text" autocomplete="off" placeholder="Silahkan isi.." id="peb_no"
@@ -268,7 +268,7 @@
                                         @if ($header->status_flag == 'Confirmed') readonly @endif />
                                 </div>
                             </div>
-                            <div class="col-sm-3">
+                            <div class="col-sm-6">
                                 <div class="form-group">
                                     <label>AJU No</label>
                                     <input type="text" autocomplete="off" placeholder="Silahkan isi.." id="aju_no"
@@ -276,7 +276,7 @@
                                         @if ($header->status_flag == 'Confirmed') readonly @endif />
                                 </div>
                             </div>
-                            <div class="col-sm-3">
+                            <div class="col-sm-4">
                                 <div class="form-group">
                                     <label for="vehicle_no_by_ao">Vehicle No</label>
                                     <input type="text" autocomplete="off" placeholder="Silahkan isi.." required
@@ -287,12 +287,19 @@
                                         class="form-control" @isset($header) readonly @endisset />
                                 </div>
                             </div>
-                               
-                                <div class="col-sm-3">
+                                <div class="col-sm-4">
                                 <div class="form-group">
-                                    <label for="gate_in_by_ao">Gate In</label>
+                                    <label for="gate_in_by_ao">Gate Date</label>
                                     <input type="text" autocomplete="off" placeholder="Silahkan isi.." required
-                                        id="vehicle_no" name="gateIn" value="{{ $header->gate_in_by_ao }}"
+                                        id="vehicle_no" name="GateDate" value="{{ explode(' ', $header->gate_in_by_ao)[0] }}"
+                                        class="form-control" @isset($header) readonly @endisset />
+                                </div>
+                            </div>
+                                <div class="col-sm-4">
+                                <div class="form-group">
+                                    <label for="gate_in_by_ao">Gate Time</label>
+                                    <input type="text" autocomplete="off" placeholder="Silahkan isi.." required
+                                        id="vehicle_no" name="GateTime" value="{{ explode(' ', $header->gate_in_by_ao)[1] }}"
                                         class="form-control" @isset($header) readonly @endisset />
                                 </div>
                             </div>
@@ -795,7 +802,7 @@
         }
 
         $('#updatePalletize').on('submit', function(e) {
-            e.preventDefault(); // Hindari reload form default
+            e.preventDefault();
             $('.btn-update').hide(); // Sembunyikan tombol saat submit
             let form = $(this);
             let formData = new FormData(this);

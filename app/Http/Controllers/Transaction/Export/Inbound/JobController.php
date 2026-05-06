@@ -142,6 +142,8 @@ class JobController extends Controller
             ->where("confirmed_flag", "No")
             ->whereDate('created_at', date('Y-m-d'))
             ->get();
+        
+        
 
         $data = [
             'checker' => $checker,
@@ -260,12 +262,11 @@ class JobController extends Controller
         DB::rollBack();
         $message = ['error' => ["More than one name of {$label}"]];
         return $message;
-        // throw new \Exception("More than one name of {$label}");
+       
     }
 
     public function store(Request $request)
     {
-        
         $rules = array(
             'branch_id' => 'required',
             'vehicle_no' => 'required',
@@ -277,7 +278,8 @@ class JobController extends Controller
             'peb_no' => 'required',
             'aju_no' => 'required',
             'vgm' => 'required',
-            'gateIn' => 'required',
+            'gateDate' => 'required',
+            'gateTime' => 'required',
             'vehicleNumber' => 'required',
         );
 
@@ -410,7 +412,7 @@ class JobController extends Controller
                 $job->qty_cargo = isset($request->qty) ? $qty : $job->qty_cargo;
                 $job->cbm = isset($request->cbm) ? $cbm : $job->cbm;
                 $job->pic_name = isset($request->pic_name) ? $request->pic_name : NULL;
-                $job->gate_in_by_ao = $request->gateIn; 
+                $job->gate_in_by_ao = $request->gateDate .' '.$request->gateTime; 
                 $job->vehicle_no_by_ao = $request->vehicleNumber;
                 $job->save();
 
