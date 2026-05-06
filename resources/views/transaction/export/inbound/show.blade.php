@@ -290,16 +290,16 @@
                                 <div class="col-sm-4">
                                 <div class="form-group">
                                     <label for="gate_in_by_ao">Gate Date</label>
-                                    <input type="text" autocomplete="off" placeholder="Silahkan isi.." required
-                                        id="vehicle_no" name="GateDate" value="{{ explode(' ', $header->gate_in_by_ao)[0] }}"
+                                    <input type="text" autocomplete="off"  required
+                                        id="vehicle_no" name="GateDate" value="{{ explode(' ', $header->gate_in_by_ao)[0] ?? '' }}"
                                         class="form-control" @isset($header) readonly @endisset />
                                 </div>
                             </div>
                                 <div class="col-sm-4">
                                 <div class="form-group">
                                     <label for="gate_in_by_ao">Gate Time</label>
-                                    <input type="text" autocomplete="off" placeholder="Silahkan isi.." required
-                                        id="vehicle_no" name="GateTime" value="{{ explode(' ', $header->gate_in_by_ao)[1] }}"
+                                    <input type="text" autocomplete="off"  required
+                                        id="vehicle_no" name="GateTime" value="{{ explode(' ', $header->gate_in_by_ao)[1] ?? '' }}"
                                         class="form-control" @isset($header) readonly @endisset />
                                 </div>
                             </div>
