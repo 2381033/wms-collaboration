@@ -124,14 +124,14 @@
                                         id="consignee_name" name="consignee_name" class="form-control" />
                                 </div>
                             </div>
-                            <div class="col-sm-4">
+                            <div class="col-sm-6">
                                 <div class="form-group">
                                     <label>PEB No</label>
                                     <input type="text" autocomplete="off" placeholder="Silahkan isi.." id="peb_no"
                                         name="peb_no" class="form-control" required />
                                 </div>
                             </div>
-                            <div class="col-sm-4">
+                            <div class="col-sm-6">
                                 <div class="form-group">
                                     <label>AJU No</label>
                                     <input type="text" autocomplete="off" placeholder="Silahkan isi.." id="aju_no"
@@ -148,6 +148,14 @@
                                         @endforeach
                                     </select>
                                 </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="">Gate in</label>
+                                <input type="datetime-local" name="gateIn" class="form-control valueGateIn"  id="">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="">Vehicle Number</label>
+                                <input type="text" name="vehicleNumber" class="form-control valueVehicle"  id="" placeholder="automated">
                             </div>
                             <div class="col-sm-3">
                                 <div class="form-group">
@@ -344,6 +352,22 @@
 
         $('.selectChecker').select2();
         $('.selectVehicle').select2();
+        
+        $(document).ready(function(){
+            $('.selectVehicle').change(function(){
+            var value = $(this).val();
+            $.ajax({
+                url: "{{url('/export/inbound/gateTime') }}/"+value, // URL server
+                type: 'get',
+            success: function(response){
+                 $('.valueGateIn') .val(response.created_at)
+                 $('.valuevehicle') .val(response.vehicle_number)
+                 console.log(response)
+            }
+            });
+            });
+        });
+
         $(document).ready(function() {
             $.ajaxSetup({
                 headers: {

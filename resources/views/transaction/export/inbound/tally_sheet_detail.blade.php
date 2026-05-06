@@ -106,14 +106,14 @@
                                             <tr>
                                                 <td>TRUCK NO</td>
                                                 <td>:</td>
-                                                <td>{{ $header->vehicle_no }}
+                                                <td>{{ $header->vehicle_no_by_ao }}
                                                     ({{ DB::table('ex_gate_in_cargo')->where('vehicle_number', $header->vehicle_no)->value('vehicle_type') }})
                                                 </td>
                                             </tr>
                                             <tr>
                                                 <td>DATE IN</td>
                                                 <td>:</td>
-                                                <td>{{ \Carbon\Carbon::parse($gatein)->format('d-m-Y H:i') }}
+                                                <td>{{ \Carbon\Carbon::parse($header->gate_in_by_ao)->format('d-m-Y H:i') }}
                                                 </td>
                                             </tr>
                                             <tr>
