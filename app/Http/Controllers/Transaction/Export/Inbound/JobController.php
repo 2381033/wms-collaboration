@@ -142,8 +142,8 @@ class JobController extends Controller
             ->where("confirmed_flag", "No")
             ->whereDate('created_at', date('Y-m-d'))
             ->get();
-        
-        
+
+
 
         $data = [
             'checker' => $checker,
@@ -153,14 +153,15 @@ class JobController extends Controller
 
         return view("transaction.export.inbound.create", $data);
     }
-    public function gateTime($nopol){
+    public function gateTime($nopol)
+    {
         $data = DB::table('ex_gate_in_cargo')
-        ->where('vehicle_number', $nopol)
-        ->first();
+            ->where('vehicle_number', $nopol)
+            ->orderBy('id', 'desc')
+            ->first();
         return response()->json($data);
     }
 
-    
     public function show($id)
     {
         $header = InboundJob::from('ex_inbound_header as a')
@@ -262,7 +263,6 @@ class JobController extends Controller
         DB::rollBack();
         $message = ['error' => ["More than one name of {$label}"]];
         return $message;
-       
     }
 
     public function store(Request $request)
@@ -278,9 +278,9 @@ class JobController extends Controller
             'peb_no' => 'required',
             'aju_no' => 'required',
             'vgm' => 'required',
-            'gateDate' => 'required',
-            'gateTime' => 'required',
-            'vehicleNumber' => 'required',
+            // 'gateDate' => 'required',
+            // 'gateTime' => 'required',
+            // 'vehicleNumber' => 'required',
         );
 
         $validator = \Validator::make($request->all(), $rules);
@@ -412,7 +412,7 @@ class JobController extends Controller
                 $job->qty_cargo = isset($request->qty) ? $qty : $job->qty_cargo;
                 $job->cbm = isset($request->cbm) ? $cbm : $job->cbm;
                 $job->pic_name = isset($request->pic_name) ? $request->pic_name : NULL;
-                $job->gate_in_by_ao = $request->gateDate .' '.$request->gateTime; 
+                $job->gate_in_by_ao = $request->gateDate . ' ' . $request->gateTime;
                 $job->vehicle_no_by_ao = $request->vehicleNumber;
                 $job->save();
 
