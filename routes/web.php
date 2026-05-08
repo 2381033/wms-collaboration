@@ -677,11 +677,12 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/export/inbound/backtoChecker/{job_id}', 'Transaction\Export\Inbound\JobController@backtoChecker');
     Route::get('/export/inbound/deleteImage/{id}', 'Transaction\Export\Inbound\JobController@deleteImage');
     Route::get('/export/inbound/gateTime/{nopol}', 'Transaction\Export\Inbound\JobController@gateTime');
-    
+
 
     Route::get('/export/inbound/detail', 'Transaction\Export\Inbound\DetailController@index')->name('export-detail.index');
     Route::post('/export/inbound/detail/store', 'Transaction\Export\Inbound\DetailController@store')->name('export-detail.store');
     Route::get('/export/inbound/pallet-tag/{id}', 'Transaction\Export\Inbound\DetailController@palletTag');
+    Route::POST('/export/inbound/uploadFotoTally', 'Transaction\Export\Inbound\DetailController@uploadFotoTally')->name('uploadFotoTallyExport');
 
     Route::get('/export/inbound/tally_sheet/{type}/{id}', 'Transaction\Export\Inbound\DetailController@tally_sheet');
     // Route::get('/export/inbound/tally_sheet/download/{id}', 'Transaction\Export\Inbound\DetailController@tallySheetExcel');

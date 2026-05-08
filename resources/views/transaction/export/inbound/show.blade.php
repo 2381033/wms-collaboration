@@ -217,6 +217,12 @@
                                             Tally Sheet (Excel)
                                         </span>
                                     </a>
+                                    <hr>
+                                    <div class="alert alert-info" role="alert">
+                                        Tally Photo Incorrect? <a href="#" onclick="showImages()"
+                                            class="alert-link">Click to
+                                            Upload.</a>.
+                                    </div>
                                 @endif
                             </div>
                         </div>
@@ -290,7 +296,8 @@
                             <div class="col-sm-4">
                                 <div class="form-group">
                                     <label for="gate_in_by_ao">Gate Date</label>
-                                    <input type="text" autocomplete="off" required id="vehicle_no" name="GateDate"
+                                    <input type="text" autocomplete="off" placeholder="Silahkan isi.." required
+                                        id="vehicle_no" name="gateDate"
                                         value="{{ explode(' ', $header->gate_in_by_ao)[0] ?? '' }}" class="form-control"
                                         @isset($header) readonly @endisset />
                                 </div>
@@ -298,7 +305,8 @@
                             <div class="col-sm-4">
                                 <div class="form-group">
                                     <label for="gate_in_by_ao">Gate Time</label>
-                                    <input type="text" autocomplete="off" required id="vehicle_no" name="GateTime"
+                                    <input type="text" autocomplete="off" placeholder="Silahkan isi.." required
+                                        id="vehicle_no" name="gateTime"
                                         value="{{ explode(' ', $header->gate_in_by_ao)[1] ?? '' }}" class="form-control"
                                         @isset($header) readonly @endisset />
                                 </div>
@@ -767,7 +775,6 @@
             </div>
         </div>
     </div>
-
     <div class="modal fade" role="dialog" id="modal-images" data-backdrop="static" data-keyboard="false">
         <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
             <div class="modal-content">
@@ -776,7 +783,27 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                     <div class="modal-body">
-                        <div class="gallery"></div>
+                        <div class="row">
+                            <div class="col-sm-12">
+                                @if ($header->status_flag == 'Confirmed')
+                                    <form action="{{ route('uploadFotoTallyExport') }}" method="post"
+                                        enctype="multipart/form-data" id="uploadFotoTally">
+                                        @csrf
+                                        <input type="hidden" name="job_id" value="{{ $header->id }}">
+                                        <input type="file" name="foto_tally[]" class="form-control" required
+                                            accept="image/*" multiple>
+                                        <span class="text-muted">*Upload multiple foto tally</span>
+                                        <div class="float-right">
+                                            <button type="submit" class="btn btn-sm btn-dark m-3 btn-upload-foto-tally">
+                                                <i class="fas fa-upload"></i> Upload! </button>
+                                        </div>
+                                    </form>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="col-sm-12">
+                            <div class="gallery"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -832,6 +859,10 @@
                     $('.btn-update').show(); // Tampilkan kembali tombol
                 }
             });
+        });
+
+        $('#uploadFotoTally').on('submit', function() {
+            $('.btn-upload-foto-tally').hide();
         });
 
         function showImages() {

@@ -13,9 +13,48 @@ use App\Models\Transaction\Export\StockLedger as ExportStockLedger;
 use App\Exports\TallySheetDetailExport as tallySheetExcel;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Session;
 
 class DetailController extends Controller
 {
+
+    private function compressJpeg($uploadedFile, $destination, $quality = 70)
+    {
+        $source = imagecreatefromjpeg($uploadedFile->getRealPath());
+        $width  = imagesx($source);
+        $height = imagesy($source);
+
+        $maxWidth = 1600;
+        $maxHeight = 1600;
+
+        if ($width > $maxWidth || $height > $maxHeight) {
+            $ratio = min($maxWidth / $width, $maxHeight / $height);
+
+            $newWidth  = intval($width * $ratio);
+            $newHeight = intval($height * $ratio);
+
+            $resized = imagecreatetruecolor($newWidth, $newHeight);
+
+            imagecopyresampled(
+                $resized,
+                $source,
+                0,
+                0,
+                0,
+                0,
+                $newWidth,
+                $newHeight,
+                $width,
+                $height
+            );
+
+            $source = $resized;
+        }
+
+        imagejpeg($source, $destination, $quality);
+
+        imagedestroy($source);
+    }
     public function index(Request $request)
     {
         $details = [];
@@ -177,6 +216,28 @@ class DetailController extends Controller
             return Excel::download(new tallySheetExcel($type, $data), 'tally_sheet_' . $header->forwarder_name . '.xlsx');
         }
         return view("transaction.export.inbound.tally_sheet_" . $type, $data);
+    }
+
+    public function uploadFotoTally(Request $request)
+    {
+        $header = ExportInboundHeader::find($request->job_id);
+        if ($request->hasFile('foto_tally')) {
+            foreach ($request->file('foto_tally') as $photo) {
+                $filename = 'cargo-' . $header->job_no . "-" . Str::random(6) . ".jpg";
+                $destination = public_path('foto/warehouse-export/inbound-cargo/' . $filename);
+                $this->compressJpeg($photo, $destination);
+                DB::table('ex_inbound_foto_cargo')->insert([
+                    'file'        => $filename,
+                    'po_number'   => $header->po_number,
+                    'branch_id'   => $header->branch_id,
+                    'job_id'      => $header->id,
+                    'created_at'  => now(),
+                    'created_by'  => $header->created_by,
+                ]);
+            }
+        }
+        Session::flash('success', 'Foto tally berhasil diupload.');
+        return back();
     }
 
     public function updateNoPeb()
