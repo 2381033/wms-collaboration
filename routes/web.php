@@ -943,6 +943,8 @@ Route::group(['middleware' => 'auth'], function () {
     require base_path('routes/BeritaAcaraDC.php');
     require base_path('routes/GateInDC.php');
     require base_path('routes/ToolsManagement.php');
+    require base_path('routes/MNRManagement.php');
+
 });
 
 Route::group(['prefix' => 'api/static-auth', 'namespace' => 'Api'], function () {
