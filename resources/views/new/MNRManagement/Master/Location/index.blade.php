@@ -35,21 +35,26 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td>1</td>
-                                        <td>jakarta</td>
-                                        <td>MTKI</td>
-                                        <td>Masaji Tata Kontainer Indonesia</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-
-                            <table class="table">
-                                <thead class="thead-light">
-                                    ...
-                                </thead>
-                                <tbody>
-                                    ...
+                                    @foreach ($locations as $key => $loc)
+                                        <tr>
+                                            <td>{{ $key + 1 }}</td>
+                                            <td>
+                                                @if ($loc->branch_id == 1)
+                                                    Jakarta
+                                                @elseif($loc->branch_id == 2)
+                                                    Belawan
+                                                @elseif($loc->branch_id == 3)
+                                                    Semarang
+                                                @elseif($loc->branch_id == 4)
+                                                    Surabaya
+                                                @else
+                                                    {{ $loc->branch_id }}
+                                                @endif
+                                            </td>
+                                            <td>{{ $loc->location_code }}</td>
+                                            <td>{{ $loc->location_name }}</td>
+                                        </tr>
+                                    @endforeach
                                 </tbody>
                             </table>
                         </div>
@@ -57,76 +62,79 @@
                 </div>
             </div>
         </div>
-        <div class="modal fade" id="exampleModalScrollable" tabindex="-1" role="dialog" aria-labelledby="staticBackdrop"
-            aria-hidden="true">
-            <div class="modal-dialog modal-xl" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="exampleModalLabel">Form Input</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <i aria-hidden="true" class="ki ki-close"></i>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <form action="">
+    </div>
+    <div class="modal fade" id="exampleModalScrollable" tabindex="-1" role="dialog" aria-labelledby="staticBackdrop"
+        aria-hidden="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Form Input</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <i aria-hidden="true" class="ki ki-close"></i>
+                    </button>
+                </div>
 
+                <div class="modal-body">
+                    <form action="{{ route('locations.store') }}" method="POST">
+                        @csrf
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <div class="card card-custom">
 
-                            <div class="row">
-                                <div class="col-sm-12">
-                                    <div class="card card-custom"> <!--begin::Form-->
-
-                                        <div class="card-body">
-                                            <div class="form-group row">
-                                                <label class="col-2 col-form-label">Branch Name</label>
-                                                <div class="col-10">
-
-                                                    <select class="form-control" id="exampleSelect1">
-                                                        <option>Jakarta</option>
-                                                        <option>Belawan</option>
-                                                        <option>Semarang</option>
-                                                        <option>Surabaya</option>
-                                                        <option>Bogor</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-
-                                            <div class="form-group row">
-                                                <label class="col-2 col-form-label">Location Code</label>
-                                                <div class="col-10">
-                                                    <input class="form-control" type="text" placeholder="silahkan isi..."
-                                                        value="" id="example-text-input" />
-                                                </div>
-                                            </div>
-                                            <div class="form-group row">
-                                                <label for="example-number-input" class="col-2 col-form-label">Location
-                                                    ID</label>
-                                                <div class="col-10">
-                                                    <input class="form-control" type="number" placeholder="silahkan isi..."
-                                                        value="" id="example-number-input" />
-                                                </div>
+                                    <div class="card-body">
+                                        <div class="form-group row">
+                                            <label class="col-2 col-form-label">Branch Name</label>
+                                            <div class="col-10">
+                                                <select class="form-control" name="branch_id">
+                                                    <option value="" id="" selected disabled>
+                                                        silahkan pilih
+                                                    </option>
+                                                @foreach ($branch as $item)
+                                                    <option value="{{ $item->id }}">{{ $item->branch_name }}
+                                                    </option>
+                                                @endforeach
+                                                </select>
                                             </div>
                                         </div>
 
-                                        <div class="card-footer">
-                                            <div class="row">
-                                                <div class="col-2">
-                                                </div>
-                                                <div class="col-10">
-                                                    <button type="reset" class="btn btn-success mr-2">Submit</button>
-                                                    <button type="reset" class="btn btn-secondary">Cancel</button>
-                                                </div>
+                                        <div class="form-group row">
+                                            <label class="col-2 col-form-label">Locations Code</label>
+                                            <div class="col-10">
+                                                <input class="form-control" type="text" name="location_code"
+                                                    placeholder="silahkan isi..." value="" id="example-text-input" />
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <label for="example-number-input" class="col-2 col-form-label">Locations
+                                                Name</label>
+                                            <div class="col-10">
+                                                <input class="form-control" type="text" name="location_name"
+                                                    placeholder="silahkan isi..." value=""
+                                                    id="example-number-input" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card-footer">
+                                        <div class="row">
+                                            <div class="col-2">
+                                            </div>
+                                            <div class="col-10">
+                                                <button type="submit" class="btn btn-success mr-2">Submit</button>
+                                                <button type="button" class="btn btn-secondary"data-dismiss="modal">Cancel</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </form>
-                    </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
+    </div>
 
-    @endsection
+@endsection
 
-    @push('scripts')
-    @endpush
+@push('scripts')
+@endpush
