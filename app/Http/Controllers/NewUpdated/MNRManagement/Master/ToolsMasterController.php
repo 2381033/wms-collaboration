@@ -39,6 +39,30 @@ class ToolsMasterController extends Controller
             'created_at' => now(),
         ]);
 
-        return redirect()->back()->with('success','Tools berhasil ditambahkan!');
+        return redirect()->back()->with('success', 'Tools berhasil ditambahkan!');
+    }
+
+    public function update(Request $request)
+    {
+        $request->validate([
+            'id' => 'required',
+            'code' => 'required',
+            'name' => 'required',
+        ]);
+
+        DB::table('mr_master_tools')->where('id', $request->id)->update([
+                'code' => $request->code,
+                'name' => $request->name,
+                'updated_at' => now(),
+            ]);
+
+        return redirect()->back()->with('success', 'Tools berhasil diupdate!');
+    }
+
+    public function delete($id)
+    {
+        DB::table('mr_master_tools')->where('id', $id)->delete();
+
+        return redirect()->back()->with('success', 'Tools berhasil dihapus!');
     }
 }

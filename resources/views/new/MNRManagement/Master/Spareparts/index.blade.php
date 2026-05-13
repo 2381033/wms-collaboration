@@ -35,6 +35,7 @@
                                         <th>Name</th>
                                         <th>Type</th>
                                         <th>UOM</th>
+                                        <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -65,6 +66,19 @@
                                             <td>{{ $item->name }}</td>
                                             <td>{{ $item->type }}</td>
                                             <td>{{ $item->uom }}</td>
+                                            <td>
+                                                <button type="button" class="btn btn-warning btn-sm btn-edit"
+                                                    data-id="{{ $item->id }}" data-branch="{{ $item->branch_id }}"
+                                                    data-tools="{{ $item->tools_id }}"
+                                                    data-location="{{ $item->location_id }}"
+                                                    data-name="{{ $item->name }}" data-type="{{ $item->type }}"
+                                                    data-uom="{{ $item->uom }}">
+                                                    Edit
+                                                </button>
+                                                <a href="{{ route('spareparts.delete', $item->id) }}"
+                                                    class="btn btn-danger btn-sm"
+                                                    onclick="return confirm('Yakin hapus?')">Delete</a>
+                                            </td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -127,7 +141,6 @@
                                                     </select>
                                                 </div>
                                             </div>
-
                                             <div class="form-group row">
                                                 <label class="col-2 col-form-label">Name</label>
                                                 <div class="col-10">
@@ -159,20 +172,112 @@
                                                     <div class="col-2">
                                                     </div>
                                                     <div class="col-10">
-                                                        <button type="submit" class="btn btn-success mr-2">Submit</button>
-                                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                                        <button type="submit"
+                                                            class="btn btn-success mr-2">Submit</button>
+                                                        <button type="button" class="btn btn-secondary"
+                                                            data-dismiss="modal">Cancel</button>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
                         </form>
                     </div>
                 </div>
             </div>
         </div>
 
+        <div class="modal fade" id="editModal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-xl" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Spareparts</h5>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                    <form action="{{ route('spareparts.update') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="id" id="edit_id">
+                        <div class="modal-body">
+                            <div class="form-group row">
+                                <label class="col-2 col-form-label">Branch Name</label>
+                                <div class="col-10">
+                                    <select class="form-control" name="branch_id" id="edit_branch_id">
+                                        @foreach ($branch as $b)
+                                            <option value="{{ $b->id }}">{{ $b->branch_name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-2 col-form-label">Tools Name</label>
+                                <div class="col-10">
+                                    <select class="form-control" name="tools_id" id="edit_tools_id">
+                                        @foreach ($tools as $t)
+                                            <option value="{{ $t->id }}">{{ $t->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-2 col-form-label">Location Name</label>
+                                <div class="col-10">
+                                    <select class="form-control" name="location_id" id="edit_location_id">
+                                        @foreach ($locations as $l)
+                                            <option value="{{ $l->id }}">{{ $l->location_name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-2 col-form-label">Name</label>
+                                <div class="col-10">
+                                    <input class="form-control" type="text" name="name" id="edit_name">
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-2 col-form-label">Type</label>
+                                <div class="col-10">
+                                    <input class="form-control" type="text" name="type" id="edit_type">
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-2 col-form-label">UOM</label>
+                                <div class="col-10">
+                                    <select class="form-control" name="uom_name" id="edit_uom">
+                                        @foreach ($uom as $u)
+                                            <option value="{{ $u->code }}">{{ $u->uom_name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Update Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     @endsection
 
     @push('scripts')
+        <script>
+            $(document).ready(function() {
+                $(document).on('click', '.btn-edit', function() {
+
+                    $('#edit_id').val($(this).data('id'));
+                    $('#edit_branch_id').val($(this).data('branch'));
+                    $('#edit_tools_id').val($(this).data('tools'));
+                    $('#edit_location_id').val($(this).data('location'));
+                    $('#edit_name').val($(this).data('name'));
+                    $('#edit_type').val($(this).data('type'));
+                    $('#edit_uom').val($(this).data('uom'));
+
+                    $('#editModal').modal('show');
+                });
+            });
+        </script>
     @endpush

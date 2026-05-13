@@ -42,4 +42,29 @@ class VendorsMasterController extends Controller
         ]);
         return redirect()->back()->with('success', 'Vendor berhasil ditambahkan');
     }
+
+    public function update(Request $request)
+    {
+        $request->validate([
+            'id' => 'required',
+            'branch_id' => 'required',
+            'vendor_code' => 'required',
+            'vendor_name' => 'required',
+        ]);
+
+        DB::table('mr_master_vendors')->where('id', $request->id)->update([
+                'branch_id' => $request->branch_id,
+                'vendor_code' => $request->vendor_code,
+                'vendor_name' => $request->vendor_name,
+            ]);
+
+        return redirect()->back()->with('success', 'Vendor berhasil diupdate!');
+    }
+
+    public function delete($id)
+    {
+        DB::table('mr_master_vendors')->where('id', $id)->delete();
+
+        return redirect()->back()->with('success', 'Vendor berhasil dihapus!');
+    }
 }

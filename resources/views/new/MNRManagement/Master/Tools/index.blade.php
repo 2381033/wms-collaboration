@@ -35,6 +35,7 @@
                                         <th>No</th>
                                         <th>Code</th>
                                         <th>Name</th>
+                                        <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -43,6 +44,18 @@
                                             <td>{{ $key + 1 }}</td>
                                             <td>{{ $item->code }}</td>
                                             <td>{{ $item->name }}</td>
+                                            <td>
+                                                <button type="button" class="btn btn-warning btn-sm btn-edit"
+                                                    data-id="{{ $item->id }}" data-code="{{ $item->code }}"
+                                                    data-name="{{ $item->name }}">
+                                                    Edit
+                                                </button>
+
+                                                <a href="{{ route('tools.delete', $item->id) }}"
+                                                    class="btn btn-danger btn-sm" onclick="return confirm('Yakin hapus?')">
+                                                    Delete
+                                                </a>
+                                            </td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -69,14 +82,14 @@
                                 <label class="col-sm-3 col-form-label">Tools Code</label>
                                 <div class="col-sm-9">
                                     <input class="form-control" type="text" name="code"
-                                        placeholder="Contoh: T001"required />
+                                        placeholder="Contoh: T001"required autocomplete="off"/>
                                 </div>
                             </div>
                             <div class="form-group row">
                                 <label class="col-sm-3 col-form-label">Tools Name</label>
                                 <div class="col-sm-9">
                                     <input class="form-control" type="text" name="name"
-                                        placeholder="Contoh: Forklift Toyota" required />
+                                        placeholder="Contoh: Forklift Toyota" required autocomplete="off" />
                                 </div>
                             </div>
                         </div>
@@ -88,7 +101,63 @@
                 </div>
             </div>
         </div>
+        <div class="modal fade" id="editModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Master Tools</h5>
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                    <form action="{{ route('tools.update') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="id" id="edit_id">
+                        <div class="modal-body">
+                            <div class="form-group row">
+                                <label class="col-sm-3 col-form-label">
+                                    Tools Code
+                                </label>
+                                <div class="col-sm-9">
+                                    <input class="form-control" type="text" name="code" id="edit_code" autocomplete="off">
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-sm-3 col-form-label">
+                                    Tools Name
+                                </label>
+                                <div class="col-sm-9">
+                                    <input class="form-control" type="text" name="name" id="edit_name" autocomplete="off">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                Update
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+        </div>
     @endsection
 
     @push('scripts')
+    <script>
+    $(document).ready(function() {
+        $(document).on('click', '.btn-edit', function() {
+            $('#edit_id').val($(this).data('id'));
+            $('#edit_code').val($(this).data('code'));
+            $('#edit_name').val($(this).data('name'));
+
+            $('#editModal').modal('show');
+        });
+    });
+</script>
     @endpush

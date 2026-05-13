@@ -50,8 +50,41 @@ class SparepartsMasterController extends Controller
             'type' => $request->type,
             'uom' => $request->uom_name,
             'created_at' => now(),
+          
+        ]);
+        return redirect()->back()->with('success', 'Spareparts berhasil ditambahkan');
+    }
+
+    public function update(Request $request)
+    {
+        $request->validate([
+            'id'          => 'required',
+            'branch_id'   => 'required',
+            'tools_id'    => 'required',
+            'location_id' => 'required',
+            'name'        => 'required',
+            'type'        => 'required',
+            'uom_name'    => 'required',
         ]);
 
-        return redirect()->back()->with('success', 'Spareparts berhasil ditambahkan');
+        DB::table('mr_master_spareparts')
+            ->where('id', $request->id)
+            ->update([
+                'branch_id'   => $request->branch_id,
+                'tools_id'    => $request->tools_id,
+                'location_id' => $request->location_id,
+                'name'        => $request->name,
+                'type'        => $request->type,
+                'uom'         => $request->uom_name,
+                'updated_at' => now(),
+                // 'updated_at' dihapus agar tidak error jika kolom tidak ada
+            ]);
+        return redirect()->back()->with('success', 'Spareparts berhasil diperbarui');
+    }
+
+    public function delete($id)
+    {
+        DB::table('mr_master_spareparts')->where('id', $id)->delete();
+        return redirect()->back()->with('success', 'Spareparts berhasil dihapus');
     }
 }

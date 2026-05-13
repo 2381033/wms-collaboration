@@ -32,6 +32,7 @@
                                         <th>Branch</th>
                                         <th>Vendor Code</th>
                                         <th>Vendor Name</th>
+                                        <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -47,6 +48,18 @@
                                             </td>
                                             <td>{{ $item->vendor_code }}</td>
                                             <td>{{ $item->vendor_name }}</td>
+                                            <td>
+                                                <button type="button" class="btn btn-warning btn-sm btn-edit"
+                                                    data-id="{{ $item->id }}" data-branch="{{ $item->branch_id }}"
+                                                    data-code="{{ $item->vendor_code }}"
+                                                    data-name="{{ $item->vendor_name }}">   
+                                                    Edit
+                                                </button>
+                                                <a href="{{ route('vendors.delete', $item->id) }}"
+                                                    class="btn btn-danger btn-sm" onclick="return confirm('Yakin hapus?')">
+                                                    Delete
+                                                </a>
+                                            </td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -103,7 +116,73 @@
                 </div>
             </div>
         </div>
+        <div class="modal fade" id="editModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            Edit Vendor
+                        </h5>
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                    <form action="{{ route('vendors.update') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="id" id="edit_id">
+                        <div class="modal-body">
+                            <div class="form-group row">
+                                <label class="col-3 col-form-label">
+                                    Branch Name
+                                </label>
+                                <div class="col-9">
+                                    <input type="text" class="form-control" name="branch_id" id="edit_branch">
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-3 col-form-label">
+                                    Vendor Code
+                                </label>
+                                <div class="col-9">
+                                    <input type="text" class="form-control" name="vendor_code" id="edit_code">
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-3 col-form-label">
+                                    Vendor Name
+                                </label>
+                                <div class="col-9">
+                                    <input type="text" class="form-control" name="vendor_name" id="edit_name">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                Update
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     @endsection
 
     @push('scripts')
+        <script>
+            $(document).ready(function() {
+
+                $(document).on('click', '.btn-edit', function() {
+
+                    $('#edit_id').val($(this).data('id'));
+                    $('#edit_branch').val($(this).data('branch'));
+                    $('#edit_code').val($(this).data('code'));
+                    $('#edit_name').val($(this).data('name'));
+
+                    $('#editModal').modal('show');
+                });
+            });
+        </script>
     @endpush

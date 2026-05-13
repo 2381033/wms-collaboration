@@ -38,7 +38,36 @@ class LocationsMasterController extends Controller
             'location_name' => $request->location_name,
             'created_at'    => now(),
         ]);
-
         return redirect()->back()->with('success', 'Location berhasil ditambahkan!');
+    }
+
+    public function delete($id)
+    {
+        DB::table('mr_master_locations')->where('id', $id)->delete();
+
+        return redirect()->back()->with(
+            'success',
+            'Location berhasil dihapus!'
+        );
+    }
+
+    public function update(Request $request)
+    {
+        $request->validate([
+            'id'            => 'required',
+            'branch_id'     => 'required',
+            'location_code' => 'required',
+            'location_name' => 'required',
+        ]);
+
+        DB::table('mr_master_locations')
+            ->where('id', $request->id)
+            ->update([
+                'branch_id'     => $request->branch_id,
+                'location_code' => $request->location_code,
+                'location_name' => $request->location_name,
+            ]);
+
+        return redirect()->back()->with('success', 'Location berhasil diperbarui!');
     }
 }
