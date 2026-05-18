@@ -30,7 +30,7 @@
                                     <tr>
                                         <th>Nomor</th>
                                         <th>Branch Name</th>
-                                        <th>Tools Name</th>
+                                        <th>Equipment Name</th>
                                         <th>Location Name</th>
                                         <th>Name</th>
                                         <th>Type</th>
@@ -50,9 +50,9 @@
                                                 @endforeach
                                             </td>
                                             <td>
-                                                @foreach ($tools as $tool)
-                                                    @if ($tool->id == $item->tools_id)
-                                                        {{ $tool->name }}
+                                                @foreach ($equipment as $eq)
+                                                    @if ($eq->id == $item->equipment_id)
+                                                        {{ $eq->name }}
                                                     @endif
                                                 @endforeach
                                             </td>
@@ -69,7 +69,7 @@
                                             <td>
                                                 <button type="button" class="btn btn-warning btn-sm btn-edit"
                                                     data-id="{{ $item->id }}" data-branch="{{ $item->branch_id }}"
-                                                    data-tools="{{ $item->tools_id }}"
+                                                    data-equipment="{{ $item->equipment_id }}"
                                                     data-location="{{ $item->location_id }}"
                                                     data-name="{{ $item->name }}" data-type="{{ $item->type }}"
                                                     data-uom="{{ $item->uom }}">
@@ -118,11 +118,11 @@
                                                 </div>
                                             </div>
                                             <div class="form-group row">
-                                                <label class="col-2 col-form-label">Tools Name</label>
+                                                <label class="col-2 col-form-label">Equipment Name</label>
                                                 <div class="col-10">
-                                                    <select class="form-control" name="tools_id" required>
+                                                    <select class="form-control" name="equipment_id" required>
                                                         <option value="" selected disabled>Silahkan pilih...</option>
-                                                        @foreach ($tools as $item)
+                                                        @foreach ($equipment as $item)
                                                             <option value="{{ $item->id }}">{{ $item->name }}
                                                             </option>
                                                         @endforeach
@@ -211,10 +211,10 @@
                                 </div>
                             </div>
                             <div class="form-group row">
-                                <label class="col-2 col-form-label">Tools Name</label>
+                                <label class="col-2 col-form-label">Equipment Name</label>
                                 <div class="col-10">
-                                    <select class="form-control" name="tools_id" id="edit_tools_id">
-                                        @foreach ($tools as $t)
+                                    <select class="form-control" name="equipment_id" id="edit_equipment_id">
+                                        @foreach ($equipment as $t)
                                             <option value="{{ $t->id }}">{{ $t->name }}</option>
                                         @endforeach
                                     </select>
@@ -270,7 +270,7 @@
 
                     $('#edit_id').val($(this).data('id'));
                     $('#edit_branch_id').val($(this).data('branch'));
-                    $('#edit_tools_id').val($(this).data('tools'));
+                    $('#edit_equipment_id').val($(this).data('equipment'));
                     $('#edit_location_id').val($(this).data('location'));
                     $('#edit_name').val($(this).data('name'));
                     $('#edit_type').val($(this).data('type'));

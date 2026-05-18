@@ -7,6 +7,7 @@
             display: none;
         }
 
+        
         .message {
             transition-duration: 0.7ms;
         }
@@ -34,7 +35,7 @@
                                             <div class="col-12 col-xl-7">
                                                 <h4 class="text-danger font-weight-bolder">Master Data</h4>
                                                 <p class="text-dark-50 my-5 font-size-xl font-weight-bold">Click for setup
-                                                    vendors,locations,spareparts,tools</p>
+                                                    vendors,locations,spareparts,equipment</p>
                                                 <div class="d-flex flex-wrap" style="gap: 10px;">
                                                     <a href="{{ route('vendors.index') }}"
                                                         class="btn btn-danger font-weight-bold py-2 px-6">Vendors</a>
@@ -42,11 +43,10 @@
                                                         class="btn btn-danger font-weight-bold py-2 px-6">Locations</a>
                                                     <a href="{{ route('spareparts.index') }}"
                                                         class="btn btn-danger font-weight-bold py-2 px-6">Spareparts</a>
-                                                    <a href="{{ route('tools.index') }}"
-                                                        class="btn btn-danger font-weight-bold py-2 px-6">Tools</a>
+                                                    <a href="{{ route('equipment.index') }}"
+                                                        class="btn btn-danger font-weight-bold py-2 px-6">Equipment</a>
                                                 </div>
                                             </div>
-
                                         </div>
                                     </div>
                                 </div>

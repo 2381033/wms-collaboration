@@ -23,11 +23,11 @@ class SparepartsMasterController extends Controller
         $spareparts = DB::table('mr_master_spareparts')->get();
         // dd($spareparts);
         $branch = DB::table('mt_branch')->get();
-        $tools = DB::table('mr_master_tools')->get();
+        $equipment = DB::table('mr_master_equipment')->get();
         $locations = DB::table('mr_master_locations')->get();
         $uom = DB::table('rt_uom')->where('active', 'Yes')->get();
 
-        return view('new.MNRManagement.Master.Spareparts.index', compact('spareparts', 'branch', 'tools', 'locations', 'uom'));
+        return view('new.MNRManagement.Master.Spareparts.index', compact('spareparts', 'branch', 'equipment', 'locations', 'uom'));
     }
 
     public function store(Request $request)
@@ -35,7 +35,7 @@ class SparepartsMasterController extends Controller
         // dd($request->all());
         $request->validate([
             'branch_id' => 'required',
-            'tools_id' => 'required',
+            'equipment_id' => 'required',
             'location_id' => 'required',
             'name' => 'required',
             'type' => 'required',
@@ -44,7 +44,7 @@ class SparepartsMasterController extends Controller
 
         DB::table('mr_master_spareparts')->insert([
             'branch_id' => $request->branch_id,
-            'tools_id' => $request->tools_id,
+            'equipment_id' => $request->equipment_id,
             'location_id' => $request->location_id,
             'name' => $request->name,
             'type' => $request->type,
@@ -60,7 +60,7 @@ class SparepartsMasterController extends Controller
         $request->validate([
             'id'          => 'required',
             'branch_id'   => 'required',
-            'tools_id'    => 'required',
+            'equipment'    => 'required',
             'location_id' => 'required',
             'name'        => 'required',
             'type'        => 'required',
@@ -71,7 +71,7 @@ class SparepartsMasterController extends Controller
             ->where('id', $request->id)
             ->update([
                 'branch_id'   => $request->branch_id,
-                'tools_id'    => $request->tools_id,
+                'equipment'    => $request->equipment_id,
                 'location_id' => $request->location_id,
                 'name'        => $request->name,
                 'type'        => $request->type,

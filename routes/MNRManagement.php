@@ -16,10 +16,10 @@ Route::group(['middleware' => 'auth'], function () {
             Route::post('/spareparts/update', 'NewUpdated\MNRManagement\Master\SparepartsMasterController@update')->name('spareparts.update');
             Route::get('/spareparts/delete/{id}', 'NewUpdated\MNRManagement\Master\SparepartsMasterController@delete')->name('spareparts.delete');
 
-            Route::get('/tools', 'NewUpdated\MNRManagement\Master\ToolsMasterController@index')->name('tools.index');
-            Route::post('/tools/store', 'NewUpdated\MNRManagement\Master\ToolsMasterController@store')->name('tools.store');
-            Route::post('/tools/update', 'NewUpdated\MNRManagement\Master\ToolsMasterController@update')->name('tools.update');
-            Route::get('/tools/delete/{id}', 'NewUpdated\MNRManagement\Master\ToolsMasterController@delete')->name('tools.delete');
+            Route::get('/equipment', 'NewUpdated\MNRManagement\Master\EquipmentMasterController@index')->name('equipment.index');
+            Route::post('/equipment/store', 'NewUpdated\MNRManagement\Master\EquipmentMasterController@store')->name('equipment.store');
+            Route::post('/equipment/update', 'NewUpdated\MNRManagement\Master\EquipmentMasterController@update')->name('equipment.update');
+            Route::get('/equipment/delete/{id}', 'NewUpdated\MNRManagement\Master\EquipmentMasterController@delete')->name('equipment.delete');
 
             Route::get('/vendors', 'NewUpdated\MNRManagement\Master\VendorsMasterController@index')->name('vendors.index');
             Route::post('/vendors/store', 'NewUpdated\MNRManagement\Master\VendorsMasterController@store')->name('vendors.store');
@@ -30,6 +30,10 @@ Route::group(['middleware' => 'auth'], function () {
         Route::group(['prefix' => 'transaction/'], function () {
             Route::get('/in', 'NewUpdated\MNRManagement\Transaction\in\TransactionInController@index')->name('transaction.in');
             Route::get('/in/create', 'NewUpdated\MNRManagement\Transaction\in\TransactionInController@create')->name('transaction.in.create');
+            Route::post('/in/store', 'NewUpdated\MNRManagement\Transaction\in\TransactionInController@store')->name('transaction.in.store');
+            Route::get('/in/{job_number}', 'NewUpdated\MNRManagement\Transaction\in\TransactionInController@show')->name('transaction.in.show');
+            Route::post('/in/{job_number}/update-status', 'NewUpdated\MNRManagement\Transaction\in\TransactionInController@updateStatus')->name('transaction.in.update-status');
+            
             Route::get('/out', 'NewUpdated\MNRManagement\Transaction\out\TransactionOutController@index');
             Route::get('/report', 'NewUpdated\MNRManagement\Transaction\report\TransactionReportController@index');
         });
